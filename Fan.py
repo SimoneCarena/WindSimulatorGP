@@ -8,7 +8,7 @@ class Fan:
     '''
     def __init__(self,x0,y0,ux,uy,theta,v0):
         self.p0 = np.array([x0,y0])
-        self.theta = theta
+        self.theta = np.deg2rad(theta)
         self.u0 = np.array([ux,uy])
         self.v0 = v0
 
@@ -16,7 +16,6 @@ class Fan:
         '''
         Method used to generate the wind at a certain location (x,y).
         The function returns the wind speed at the specified coordinates
-        and the scale used in the quiver plot
         '''
         d = (x-self.p0[0])**2+(y-self.p0[1])**2
         u = np.array([(x-self.p0[0]),(y-self.p0[1])])
@@ -31,5 +30,5 @@ class Fan:
             speed = self.v0/distance_scale*np.copy(self.u0)
         else:
             speed = np.array([0,0])
-        return speed, distance_scale
+        return speed
         
