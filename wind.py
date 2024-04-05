@@ -16,10 +16,27 @@ fans = []
 for fan in data["fans"]:
     x0 = float(fan["x0"])
     y0 = float(fan["y0"])
-    ux = float(fan["ux"])
-    uy = float(fan["uy"])
+    alpha = np.deg2rad(float(fan["alpha"]))
     theta = float(fan["theta"])
     v0 = float(fan["v0"])
+
+    # Comptute the fan direction given the rotation angle alpha
+    if x0==0 and y0!=0:
+        ux0 = 1
+        uy0 = 0
+    elif x0!=0 and y0==0:
+        ux0 = 0
+        uy0 = 1
+    elif x0==width and y0!=height:
+        ux0 = -1
+        uy0 = 0
+    elif x0!=width and y0==height:
+        ux0 = 0
+        uy0 = -1
+
+    # Rotate the original versor to et the desired direction
+    ux = (ux0*np.cos(alpha))-(uy0*np.sin(alpha))
+    uy = (ux0*np.sin(alpha))+(uy0*np.cos(alpha))
 
     # Plot the fans
     plt.plot(x0,y0,'ko',markersize=5)
@@ -35,6 +52,7 @@ plt.ylim([0,height])
 # Simulate the wind in the field
 for x in np.linspace(0,width,resolution):
     for y in np.linspace(0,height,resolution):
+        # Total wind speed in each position
         total_speed = np.array([0,0],dtype=float)
         for fan in fans:
             speed = fan.generate_wind(x,y)

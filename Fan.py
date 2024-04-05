@@ -8,8 +8,8 @@ class Fan:
     '''
     def __init__(self,x0,y0,ux,uy,theta,v0):
         self.p0 = np.array([x0,y0])
-        self.theta = np.deg2rad(theta)
         self.u0 = np.array([ux,uy])
+        self.theta = np.deg2rad(theta)
         self.v0 = v0
 
     def generate_wind(self,x,y):
