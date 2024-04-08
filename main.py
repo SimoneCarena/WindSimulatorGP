@@ -48,19 +48,29 @@ for fan in data["fans"]:
 ax.set_xlim([0,width])
 ax.set_ylim([0,height])
 
+N = int(resolution/4)
+tr1 = [(x,3) for x in np.linspace(1,3,N)]
+tr2 = [(3,y) for y in np.linspace(3,1,N)]
+tr3 = [(x,1) for x in np.linspace(3,1,N)]
+tr4 = [(1,y) for y in np.linspace(1,3,N)]
+trajectory = tr1+tr2+tr3+tr4
+
 # Simulate the wind in the field
 def simulate_wind_field(t):
+    # Total wind speed in each position
     ax.clear()
-    for x in np.linspace(0,width,resolution):
-        for y in np.linspace(0,height,resolution):
-            # Total wind speed in each position
-            total_speed = np.array([0,0],dtype=float)
-            for fan in fans:
-                speed = fan.generate_wind(x,y)
-                total_speed+=speed
-            if total_speed[0]==0 and total_speed[1]==0:
-                continue
-            ax.quiver(x,y,total_speed[0],total_speed[1],width=0.0035,color='r',scale=80)
+    ax.set_xlim([0,width])
+    ax.set_ylim([0,height])
+    x = trajectory[t][0]
+    y = trajectory[t][1]
+    total_speed = np.array([0,0],dtype=float)
+    for fan in fans:
+        ax.quiver(fan.p0[0],fan.p0[1],fan.u0[0],fan.u0[1],color='k',scale=10)
+        ax.plot(fan.p0[0],fan.p0[1],'ko',markersize=5)
+        speed = fan.generate_wind(x,y)
+        total_speed+=speed
+    ax.quiver(x,y,total_speed[0],total_speed[1],color='r',scale=20)
+    ax.plot(x,y,'ko',markersize=5)
 
-anim = animation.FuncAnimation(fig,simulate_wind_field,frames=10,repeat=False)
+anim = animation.FuncAnimation(fig,simulate_wind_field,frames=resolution,interval=10)
 plt.show()

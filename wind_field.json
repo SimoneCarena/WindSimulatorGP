@@ -1,7 +1,7 @@
 {
     "height": 4,
     "width": 4,
-    "resolution": 30,
+    "resolution": 1000,
     "fans": [
         {
             "x0": 2,
