@@ -48,21 +48,21 @@ for fan in data["fans"]:
 ax.set_xlim([0,width])
 ax.set_ylim([0,height])
 
-N = int(resolution/4)
-tr1 = [(x,3) for x in np.linspace(1,3,N)]
-tr2 = [(3,y) for y in np.linspace(3,1,N)]
-tr3 = [(x,1) for x in np.linspace(3,1,N)]
-tr4 = [(1,y) for y in np.linspace(1,3,N)]
-trajectory = tr1+tr2+tr3+tr4
+x = 1
+y = 2
+m = 0.2 
+v = np.array([0,0],dtype=float)
 
 # Simulate the wind in the field
-def simulate_wind_field(t):
+def simulate_wind_field(t): # t = 1ms
     # Total wind speed in each position
+    global x
+    global y
+    global v
+    # print(x,y,v)
     ax.clear()
     ax.set_xlim([0,width])
     ax.set_ylim([0,height])
-    x = trajectory[t][0]
-    y = trajectory[t][1]
     total_speed = np.array([0,0],dtype=float)
     for fan in fans:
         ax.quiver(fan.p0[0],fan.p0[1],fan.u0[0],fan.u0[1],color='k',scale=10)
@@ -71,6 +71,14 @@ def simulate_wind_field(t):
         total_speed+=speed
     ax.quiver(x,y,total_speed[0],total_speed[1],color='r',scale=20)
     ax.plot(x,y,'ko',markersize=5)
+    # Simple Physics simulation
+    # p = 1/2at^2+v0t+p0
+    t = t/1000
+    F = 3.77*10**(-4)*total_speed**2*np.sign(total_speed) # wind force
+    a = F/m
+    x = 0.5*a[0]*t**2+v[0]*t+x
+    y = 0.5*a[1]*t**2+v[1]*t+y
+    v = a*t+v
 
 anim = animation.FuncAnimation(fig,simulate_wind_field,frames=resolution,interval=10)
 plt.show()
