@@ -22,6 +22,7 @@ for fan in data["fans"]:
     alpha = np.deg2rad(float(fan["alpha"]))
     theta = float(fan["theta"])
     v0 = float(fan["v0"])
+    noise_var = float(fan['noise_var'])
 
     # Comptute the fan direction given the rotation angle alpha
     if x0==0 and y0!=0:
@@ -41,25 +42,25 @@ for fan in data["fans"]:
     ux = (ux0*np.cos(alpha))-(uy0*np.sin(alpha))
     uy = (ux0*np.sin(alpha))+(uy0*np.cos(alpha))
 
-    f = Fan(x0,y0,ux,uy,theta,v0)
+    f = Fan(x0,y0,ux,uy,theta,v0,noise_var)
     fans.append(f)
 
 # Setup the wind field
 ax.set_xlim([0,width])
 ax.set_ylim([0,height])
 
-x = 1
-y = 2
-m = 0.2 
+x = 2
+y = 3
+m = 0.0001
 v = np.array([0,0],dtype=float)
+forces = []
 
 # Simulate the wind in the field
-def simulate_wind_field(t): # t = 1ms
+def simulate_wind_field(t): # t = 100 ms
     # Total wind speed in each position
     global x
     global y
     global v
-    # print(x,y,v)
     ax.clear()
     ax.set_xlim([0,width])
     ax.set_ylim([0,height])
@@ -71,14 +72,18 @@ def simulate_wind_field(t): # t = 1ms
         total_speed+=speed
     ax.quiver(x,y,total_speed[0],total_speed[1],color='r',scale=20)
     ax.plot(x,y,'ko',markersize=5)
-    # Simple Physics simulation
-    # p = 1/2at^2+v0t+p0
-    t = t/1000
+    # Simple simulation discete
+    t = t/10
     F = 3.77*10**(-4)*total_speed**2*np.sign(total_speed) # wind force
-    a = F/m
-    x = 0.5*a[0]*t**2+v[0]*t+x
-    y = 0.5*a[1]*t**2+v[1]*t+y
-    v = a*t+v
+    # print(F)
+    x = x + 10**(-3)*v[0]
+    y = y + 10**(-3)*v[1]
+    v = v + 1/m*10**(-3)*F
+    forces.append(F.copy())
 
-anim = animation.FuncAnimation(fig,simulate_wind_field,frames=resolution,interval=10)
+anim = animation.FuncAnimation(fig,simulate_wind_field,frames=resolution,interval=10, repeat=False)
 plt.show()
+
+print(f'Average Force = {np.mean(np.array(forces),axis=0)}')
+print(f'Max Force = {np.max(np.array(forces),axis=0)}')
+print(f'Min Force = {np.min(np.array(forces),axis=0)}')
