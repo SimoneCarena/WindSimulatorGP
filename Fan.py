@@ -29,7 +29,7 @@ class Fan:
         distance_scale = 1+d
         # Check if the point is inside the cone
         p = np.sqrt(d)*self.u0+np.array([self.p0[0],self.p0[1]])
-        # The angle is computed using traingles properties
+        ## The angle is computed using traingles properties
         alpha = 2*np.arcsin(np.sqrt((x-p[0])**2+(y-p[1])**2)/(2*np.sqrt(d)))
         if alpha < self.theta:
             speed = self.v0/distance_scale*np.copy(self.u0)
