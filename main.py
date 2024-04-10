@@ -24,23 +24,15 @@ for fan in data["fans"]:
     v0 = float(fan["v0"])
     noise_var = float(fan['noise_var'])
 
-    # Comptute the fan direction given the rotation angle alpha
-    if x0==0 and y0!=0:
-        ux0 = 1
-        uy0 = 0
-    elif x0!=0 and y0==0:
-        ux0 = 0
-        uy0 = 1
-    elif x0==width and y0!=height:
-        ux0 = -1
-        uy0 = 0
-    elif x0!=width and y0==height:
-        ux0 = 0
-        uy0 = -1
-
-    # Rotate the original versor to et the desired direction
-    ux = (ux0*np.cos(alpha))-(uy0*np.sin(alpha))
-    uy = (ux0*np.sin(alpha))+(uy0*np.cos(alpha))
+    u0 = np.array([1,0,0])
+    rot_mat = np.array([
+        [np.cos(alpha),-np.sin(alpha),0],
+        [np.sin(alpha),np.cos(alpha),0],
+        [0,0,1]
+    ],dtype=float)
+    u0 = rot_mat@u0
+    ux = u0[0]
+    uy = u0[1]
 
     f = Fan(x0,y0,ux,uy,theta,v0,noise_var)
     fans.append(f)
@@ -50,7 +42,7 @@ ax.set_xlim([0,width])
 ax.set_ylim([0,height])
 
 x = 2
-y = 3
+y = 1
 m = 0.0001
 v = np.array([0,0],dtype=float)
 forces = []
@@ -72,8 +64,8 @@ def simulate_wind_field(t): # t = 100 ms
         total_speed+=speed
     ax.quiver(x,y,total_speed[0],total_speed[1],color='r',scale=20)
     ax.plot(x,y,'ko',markersize=5)
+    
     # Simple simulation discete
-    t = t/10
     F = 3.77*10**(-4)*total_speed**2*np.sign(total_speed) # wind force
     # print(F)
     x = x + 10**(-3)*v[0]
