@@ -24,10 +24,12 @@ elif args.save_plots == 'full':
 file = open('configs/wind_field.json')
 data = json.load(file)
 
-# Parse wind field data
+# Parse wind field and simulation data
 width = data["width"]
 height = data["height"]
-duration = data["duration"]
+duration = data["duration"] # Number of steps taken
+dt = data["dt"] # Sampling time
+air_density = data["air_density"] 
 
 # Parse fans' data
 fans = []
@@ -51,28 +53,38 @@ for fan in data["fans"]:
 
     f = Fan(x0,y0,ux,uy,theta,v0,noise_var)
     fans.append(f)
+file.close()
 
+# Parse system data
+file = open('configs/mass.json')
+data = json.load(file)
+m = data["m"]
+r = data["r"]
+x0 = data["x0"]
+y0 = data["y0"]
+v0x = data["v0x"]
+v0y = data["v0y"]
 
-air_density = 1.2
-system = System(1,0.1,2,1,0,0,0.01)
+system = System(m,r,x0,y0,v0x,v0y,dt)
 # The controller's parameter were retrieved using MATLAB
 pid = PID(
     2.09666862414187, # Proportional
     0.347675754694788, # Integral
     3.12100832597623, # Derivative
-    0.01 # Sampling time
+    dt # Sampling time
 )
-target = np.array([3.5,3.5])
+
+target = np.array([2.5,2.5]) # Target Position
 xs = [] # List of x positions
 ys = [] # List of y positions
 vxs = [] # List of x velocities
 vys = [] # List of y velocities
-ctl_forces_x = []
-ctl_forces_y = []
-wind_force_x = []
-wind_force_y = []
-ex = []
-ey = []
+ctl_forces_x = [] # List of x control forces
+ctl_forces_y = [] # List of y control forces
+wind_force_x = [] # List of x wind forces
+wind_force_y = [] # List of y wind forces
+ex = [] # List of x position traking errors
+ey = [] # List of y position traking errors
 
 # Simulate the wind in the field
 def simulate_wind_field(): 
@@ -105,7 +117,7 @@ def simulate_wind_field():
 
 for t in range(duration):
     simulate_wind_field()
-T = [t*0.001 for t in range(duration)]
+T = [t*dt for t in range(duration)]
 
 fig, ax = plt.subplots(1,2)
 ax[0].plot(T,xs,label='Object Position')
@@ -187,10 +199,13 @@ def animation_function(t):
     ax.clear()
     ax.set_xlim([0,width])
     ax.set_ylim([0,height])
-    ax.plot(target[0],target[1],'go',markersize=7) # Traget Location
-    ax.plot(xs[t],ys[t],'ko',markersize=5,label='t={0:.2f} s'.format(t*0.01)) # Object Moving
-    ax.quiver(xs[t],ys[t],wind_force_x[t],wind_force_y[t],scale=10,width=0.005,headlength=4,color='r',label='Wind Force=[{0:.2f},{0:.2f}] N'.format(wind_force_x[t],wind_force_y[t])) # Wind Force
-    ax.quiver(xs[t],ys[t],ctl_forces_x[t],ctl_forces_y[t],scale=10,width=0.005,headlength=4,color='b',label='Control Force=[{0:.2f},{0:.2f}] N'.format(ctl_forces_x[t],ctl_forces_y[t])) # Control Force
+    ax.plot(xs[t],ys[t],'ko',markersize=5,label='t={0:.2f} s'.format(t*dt)) # Object Moving
+    ax.plot(target[0],target[1],'go',markersize=7,label='Target Distance=[{0:.2f},{0:.2f}] m'.format(ex[t],ey[t])) # Traget Location
+    ax.quiver(xs[t],ys[t],wind_force_x[t],wind_force_y[t],scale=20,width=0.003,color='r',label='Wind Force=[{0:.2f},{0:.2f}] N'.format(wind_force_x[t],wind_force_y[t])) # Wind Force
+    ax.quiver(xs[t],ys[t],ctl_forces_x[t],ctl_forces_y[t],scale=20,width=0.003,color='b',label='Control Force=[{0:.2f},{0:.2f}] N'.format(ctl_forces_x[t],ctl_forces_y[t])) # Control Force
+    # Plot fans
+    for fan in fans:
+        ax.quiver(fan.p0[0],fan.p0[1],fan.u0[0],fan.u0[1],scale=10,color='k')
     ax.legend()
 
 anim = animation.FuncAnimation(fig,animation_function,frames=duration,interval=10,repeat=False)
