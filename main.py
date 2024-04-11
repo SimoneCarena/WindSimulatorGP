@@ -41,17 +41,14 @@ for fan in data["fans"]:
     v0 = float(fan["v0"])
     noise_var = float(fan['noise_var'])
 
-    u0 = np.array([1,0,0])
+    u0 = np.array([1,0])
     rot_mat = np.array([
-        [np.cos(alpha),-np.sin(alpha),0],
-        [np.sin(alpha),np.cos(alpha),0],
-        [0,0,1]
+        [np.cos(alpha),-np.sin(alpha)],
+        [np.sin(alpha),np.cos(alpha)]
     ],dtype=float)
     u0 = rot_mat@u0
-    ux = u0[0]
-    uy = u0[1]
 
-    f = Fan(x0,y0,ux,uy,theta,v0,noise_var)
+    f = Fan(x0,y0,u0[0],u0[1],theta,v0,noise_var)
     fans.append(f)
 file.close()
 
@@ -68,9 +65,9 @@ v0y = data["v0y"]
 system = System(m,r,x0,y0,v0x,v0y,dt)
 # The controller's parameter were retrieved using MATLAB
 pid = PID(
-    2.09666862414187, # Proportional
-    0.347675754694788, # Integral
-    3.12100832597623, # Derivative
+    16.255496588371, # Proportional
+    6.40173078542831, # Integral
+    9.79714803790873, # Derivative
     dt # Sampling time
 )
 

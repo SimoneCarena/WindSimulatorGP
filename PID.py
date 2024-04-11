@@ -15,6 +15,9 @@ class PID:
         self.lower_bound = -1
     
     def step(self, error):
+        '''
+        Generate control command
+        '''
         self.integral += self.dt*error
         derivative = (error-self.error)/self.dt
         output = self.Kp@error + self.Ki@self.integral + self.Kd@derivative

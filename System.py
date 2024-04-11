@@ -31,6 +31,3 @@ class System:
         x = x+(k1+2*k2+2*k3+k4)/6
         self.p = x[0:2]
         self.v = x[2:]
-
-        #self.p = self.p+self.dt*self.v
-        #self.v = self.v+1/self.m*self.dt*force
