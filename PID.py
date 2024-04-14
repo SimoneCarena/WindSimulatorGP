@@ -11,8 +11,8 @@ class PID:
         self.dt = dt
         self.error = np.zeros((2,))
         self.integral = np.zeros((2,))
-        self.upper_bound = 1
-        self.lower_bound = -1
+        self.upper_bound = 2
+        self.lower_bound = -2
     
     def step(self, error):
         '''

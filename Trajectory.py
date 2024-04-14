@@ -1,9 +1,11 @@
 from scipy.io import loadmat
-import numpy as np
 
 class Trajectory:
-    def __init__(self, file):
-        mat = loadmat(file) # Load Trajectory File
+    '''
+    Iterator used to descrbe the trajectory at each time step
+    '''
+    def __init__(self, path):
+        mat = loadmat(path) # Load Trajectory File
         self.q = mat.get('q')
         self.current = 0 # Iterator counter
         self.size = len(self.q[0,:])
@@ -20,3 +22,9 @@ class Trajectory:
 
     def __len__(self):
         return self.size
+    
+    def trajectory(self):
+        '''
+        Returns the whole trajectory
+        '''
+        return self.q.copy()

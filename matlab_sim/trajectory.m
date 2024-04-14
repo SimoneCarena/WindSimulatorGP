@@ -138,8 +138,8 @@ save('../trajectories/circle.mat','q','-v4')
 
 %% Lemniscate Trajectory
 
-a = 1;
-c = [2,2];
+a = 1.5;
+c = [2;2];
 wayPoints = [];
 i=1;
 R = [
@@ -148,10 +148,10 @@ R = [
 ];
 for theta=linspace(0,2*pi,100)
     p = [
-        c(1)+a*cos(theta)/(1+sin(theta)^2);
-        c(2)+a*sin(theta)*cos(theta)/(1+sin(theta)^2)
+        a*cos(theta)/(1+sin(theta)^2);
+        a*sin(theta)*cos(theta)/(1+sin(theta)^2)
     ];
-    p = R*p;
+    p = R*p+c;
     wayPoints(:,i) = p;
     i=i+1;
 end
