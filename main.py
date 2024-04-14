@@ -21,12 +21,20 @@ def simulate_wind_field():
         # Generate control force
         error = target - system.p
         control_force = pid.step(error)
+        # Only apply the control force to the model
+        p_pred, _ = model.discrete_dynamics(control_force)
+        x_pred.append(p_pred[0]) # For GP training
+        y_pred.append(p_pred[1]) # For GP training
         # Generate wind force
         wind_force = (0.5*air_density*system.surf)*total_speed**2*np.sign(total_speed)
+        f_x.append(wind_force[0]) # For GP training
+        f_y.append(wind_force[1]) # For GP training
         # Total force
         force = wind_force + control_force
         # Simulate Dynamics
-        system.discrete_dynamics(force)
+        p_true, v_true = system.discrete_dynamics(force)
+        x_true.append(p_true[0]) # For GP training
+        y_true.append(p_true[1]) # For GP training
         xs.append(system.p[0])
         ys.append(system.p[1])
         vxs.append(system.v[0])
@@ -37,6 +45,9 @@ def simulate_wind_field():
         ey.append(error[1])
         wind_force_x.append(wind_force[0])
         wind_force_y.append(wind_force[1])
+
+        # Update the model to its true new state
+        model.set_state(p_true,v_true)
 
 # Argument Parser
 parser = argparse.ArgumentParser()
@@ -90,6 +101,15 @@ for fan in data["fans"]:
     fans.append(f)
 file.close()
 
+# Create arrays to train the GP model
+x_pred = [] # Predicted x position (no wind)
+y_pred = [] # Predicted y position (no wind)
+x_true = [] # Actual x positon (with wind)
+y_true = [] # Actual y position (with wind)
+f_x = [] # Wind force x
+f_y = [] # Wind force y
+
+# Run the simulation for the different trajectories
 for file in os.listdir('trajectories'):
 
     # Get Trajectory Data
@@ -119,8 +139,15 @@ for file in os.listdir('trajectories'):
     r = data["r"]
     v0x = data["v0x"]
     v0y = data["v0y"]
+    x0 = tr[0,0]
+    y0 = tr[1,0]
 
+    # Actual system moving in the wind-field
     system = System(m,r,x0,y0,v0x,v0y,dt)
+    # Model of the system, used to predict next postion and velocity
+    # to train the GP. The model predicts the next state without
+    # considering the effect of the wind
+    model = System(m,r,x0,y0,v0x,v0y,dt)
     # The controller's parameter were retrieved using MATLAB
     pid = PID(
         16.255496588371, # Proportional
@@ -128,14 +155,14 @@ for file in os.listdir('trajectories'):
         9.79714803790873, # Derivative
         dt # Sampling time
     )
-    system.p = tr[:,0] # Set the system's initial position
+
     simulate_wind_field()
 
     # Plots
     T = [t*dt for t in range(duration)]
     fig, ax = plt.subplots(1,2)
     ax[0].plot(T,xs,label='Object Position')
-    ax[0].plot(T,tr[0,:],label='Reference Position')
+    ax[0].plot(T,tr[0,:],'--',label='Reference Position')
     ax[0].title.set_text(r'Position ($x$)')
     ax[0].legend()
     ax[0].set_xlabel(r'$t$ $[s]$')
@@ -153,7 +180,7 @@ for file in os.listdir('trajectories'):
 
     fig, ax = plt.subplots(1,2)
     ax[0].plot(T,ys,label='Object Position')
-    ax[0].plot(T,tr[1,:],label='Reference Position')
+    ax[0].plot(T,tr[1,:],'--',label='Reference Position')
     ax[0].title.set_text(r'Position ($y$)')
     ax[0].legend()
     ax[0].set_xlabel(r'$t$ $[s]$')
@@ -240,10 +267,13 @@ for file in os.listdir('trajectories'):
             ax.clear()
             ax.set_xlim([0,width])
             ax.set_ylim([0,height])
-            ax.plot(xs[t],ys[t],'ko',markersize=5,label='t={0:.2f} s'.format(t*dt)) # Object Moving
-            ax.plot(tr[0,t],tr[1,t],'go',markersize=7,label='Target Distance=[{0:.2f},{0:.2f}] m'.format(ex[t],ey[t])) # Traget Location
+            ax.plot(np.NaN, np.NaN, '-', color='none', label='t={0:.2f} s'.format(t*dt))
+            ax.plot(tr[0,t],tr[1,t],'o',color='orange',markersize=7,label='Target Distance=[{0:.2f},{0:.2f}] m'.format(ex[t],ey[t])) # Traget Location
+            ax.plot(xs[t],ys[t],'bo',markersize=5) # Object Moving
             ax.quiver(xs[t],ys[t],wind_force_x[t],wind_force_y[t],scale=20,width=0.003,color='r',label='Wind Force=[{0:.2f},{0:.2f}] N'.format(wind_force_x[t],wind_force_y[t])) # Wind Force
-            ax.quiver(xs[t],ys[t],ctl_forces_x[t],ctl_forces_y[t],scale=20,width=0.003,color='b',label='Control Force=[{0:.2f},{0:.2f}] N'.format(ctl_forces_x[t],ctl_forces_y[t])) # Control Force
+            ax.quiver(xs[t],ys[t],ctl_forces_x[t],ctl_forces_y[t],scale=20,width=0.003,color="#4DBEEE",label='Control Force=[{0:.2f},{0:.2f}] N'.format(ctl_forces_x[t],ctl_forces_y[t])) # Control Force
+            ax.plot(xs[:t],ys[:t],'b')
+            ax.plot(tr[0,:t],tr[1,:t],'--',color='orange')
             # Plot fans
             for fan in fans:
                 ax.quiver(fan.p0[0],fan.p0[1],fan.u0[0],fan.u0[1],scale=10,color='k')
@@ -253,3 +283,5 @@ for file in os.listdir('trajectories'):
         if save_plots == 'full':
             anim.save(f'imgs/{file_name}-trajectory-simulation.gif', fps=30)
         plt.show()
+
+# GP Training

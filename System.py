@@ -31,3 +31,13 @@ class System:
         x = x+(k1+2*k2+2*k3+k4)/6
         self.p = x[0:2]
         self.v = x[2:]
+
+        return self.p.copy(), self.v.copy()
+    
+    def set_state(self,p,v):
+        '''
+        Set the postion and velocity of the system based on the actual
+        statse of the system
+        '''
+        self.p = p
+        self.v = v
