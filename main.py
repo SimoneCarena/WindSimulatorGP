@@ -9,10 +9,14 @@ import argparse
 from Trajectory import Trajectory
 import os
 from pathlib import Path
+from ExactGPModel import ExactGPModel
+import gpytorch
+import torch
+import random
 
 # Simulate the wind in the field
 def simulate_wind_field(): 
-    for target in trajectory:
+    for (t,target) in enumerate(trajectory):
         total_speed = np.array([0,0],dtype=float)
         for fan in fans:
             speed = fan.generate_wind(system.p[0],system.p[1])
@@ -21,20 +25,14 @@ def simulate_wind_field():
         # Generate control force
         error = target - system.p
         control_force = pid.step(error)
-        # Only apply the control force to the model
-        p_pred, _ = model.discrete_dynamics(control_force)
-        x_pred.append(p_pred[0]) # For GP training
-        y_pred.append(p_pred[1]) # For GP training
+        # Apply only the control force to the model
+        p_pred, v_pred = model.discrete_dynamics(control_force)
         # Generate wind force
         wind_force = (0.5*air_density*system.surf)*total_speed**2*np.sign(total_speed)
-        f_x.append(wind_force[0]) # For GP training
-        f_y.append(wind_force[1]) # For GP training
         # Total force
         force = wind_force + control_force
         # Simulate Dynamics
         p_true, v_true = system.discrete_dynamics(force)
-        x_true.append(p_true[0]) # For GP training
-        y_true.append(p_true[1]) # For GP training
         xs.append(system.p[0])
         ys.append(system.p[1])
         vxs.append(system.v[0])
@@ -45,6 +43,16 @@ def simulate_wind_field():
         ey.append(error[1])
         wind_force_x.append(wind_force[0])
         wind_force_y.append(wind_force[1])
+
+        if t == 0:  
+            train_data.append([p_true[0]-p_pred[0],p_true[1]-p_pred[1],v_true[0]-v_pred[0],v_true[1]-v_pred[1]])
+        elif t == duration-1:
+            train_label_x.append(wind_force[0])
+            train_label_y.append(wind_force[1])
+        else:
+            train_data.append([p_true[0]-p_pred[0],p_true[1]-p_pred[1],v_true[0]-v_pred[0],v_true[1]-v_pred[1]])
+            train_label_x.append(wind_force[0])
+            train_label_y.append(wind_force[1])
 
         # Update the model to its true new state
         model.set_state(p_true,v_true)
@@ -102,12 +110,9 @@ for fan in data["fans"]:
 file.close()
 
 # Create arrays to train the GP model
-x_pred = [] # Predicted x position (no wind)
-y_pred = [] # Predicted y position (no wind)
-x_true = [] # Actual x positon (with wind)
-y_true = [] # Actual y position (with wind)
-f_x = [] # Wind force x
-f_y = [] # Wind force y
+train_data = []
+train_label_x = []
+train_label_y = []
 
 # Run the simulation for the different trajectories
 for file in os.listdir('trajectories'):
@@ -156,7 +161,20 @@ for file in os.listdir('trajectories'):
         dt # Sampling time
     )
 
+    # Save Initial Conditions
+    xs.append(x0)
+    ys.append(y0)
+    vxs.append(v0x)
+    vys.append(v0y)
+
     simulate_wind_field()
+
+    # Discard the last position and velocity 
+    # (p[N+1] and v[N+1])
+    xs.pop()
+    ys.pop()
+    vxs.pop()
+    vys.pop()
 
     # Plots
     T = [t*dt for t in range(duration)]
@@ -285,3 +303,100 @@ for file in os.listdir('trajectories'):
         plt.show()
 
 # GP Training
+
+# The model is trained as
+# (v(k)-v_h(k),p(k)-p_h(k)) -> f(k) = wind force
+
+points = 50 # Number of used training points 
+
+train_data = torch.FloatTensor(train_data)
+train_label_x = torch.FloatTensor(train_label_x)
+train_label_y = torch.FloatTensor(train_label_y)
+train_label_x_2 = torch.clone(train_label_x)
+train_label_y_2 = torch.clone(train_label_y)
+# Randomly select a certain number of data points
+x_idxs = random.sample(range(0,len(train_data)),points)
+y_idxs = random.sample(range(0,len(train_data)),points)
+train_data_x = train_data.index_select(0,torch.IntTensor(x_idxs))
+train_data_y = train_data.index_select(0,torch.IntTensor(y_idxs))
+train_label_x = train_label_x.index_select(0,torch.IntTensor(x_idxs))
+train_label_y = train_label_y.index_select(0,torch.IntTensor(y_idxs))
+
+# Build the models
+likelihood_x = gpytorch.likelihoods.GaussianLikelihood()
+likelihood_y = gpytorch.likelihoods.GaussianLikelihood()
+model_x = ExactGPModel(train_data_x, train_label_x, likelihood_x)
+model_y = ExactGPModel(train_data_y, train_label_y, likelihood_y)
+
+training_iter = 500
+model_x.train()
+model_y.train()
+likelihood_x.train()
+likelihood_y.train()
+optimizer_x = torch.optim.Adam(model_x.parameters(), lr=0.01)
+optimizer_y = torch.optim.Adam(model_y.parameters(), lr=0.01)
+mll_x = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood_x, model_x)
+mll_y = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood_y, model_y)
+
+for i in range(training_iter):
+    # Zero gradients from the previous iteration
+    optimizer_x.zero_grad()
+    optimizer_y.zero_grad()
+    # Output from the model
+    output_x = model_x(train_data_x)
+    output_y = model_y(train_data_y)
+    # Compute the loss and backpropagate the gradients
+    loss_x = -mll_x(output_x, train_label_x)
+    loss_y = -mll_y(output_y, train_label_y)
+    loss_x.backward()
+    loss_y.backward()
+    optimizer_x.step()
+    optimizer_y.step()
+    # print('Terminated Iteration {} out of {}'.format(i+1,training_iter))
+
+model_x.eval()
+model_y.eval()
+likelihood_x.eval()
+likelihood_y.eval()
+
+with torch.no_grad(), gpytorch.settings.fast_pred_var():
+    idxs = [i for i in range(0,3000)]
+    test_data = train_data.index_select(0,torch.IntTensor(idxs))
+    test_labels_x = train_label_x_2.index_select(0,torch.IntTensor(idxs))
+    test_labels_y = train_label_y_2.index_select(0,torch.IntTensor(idxs))
+    pred_x = model_x(test_data)
+    pred_y = model_y(test_data)
+
+# Initialize x plot
+fig, ax = plt.subplots()
+fig.set_size_inches(16,9)
+
+# Get upper and lower confidence bounds
+lower, upper = pred_x.confidence_region()
+# Plot training data as black stars
+ax.plot(T,test_labels_x,color='orange')
+# Plot predictive means as blue line
+ax.plot(T,pred_x.mean.numpy(), 'b')
+# Shade between the lower and upper confidence bounds
+ax.fill_between(T, lower.numpy(), upper.numpy(), alpha=0.5, color='c')
+ax.legend(['Real Data','Mean', 'Confidence'])
+ax.set_xlabel(r'$t$ $[s]$')
+ax.set_ylabel(r'$F_{wx}$')
+plt.savefig(f'imgs/wind-gp-test-x.png',dpi=300)
+
+# Initialize y plot
+fig, ax = plt.subplots()
+fig.set_size_inches(16,9)
+
+# Get upper and lower confidence bounds
+lower, upper = pred_y.confidence_region()
+# Plot training data as black stars
+ax.plot(T,test_labels_y, color='orange')
+# Plot predictive means as blue line
+ax.plot(T,pred_y.mean.numpy(), 'b')
+# Shade between the lower and upper confidence bounds
+ax.fill_between(T, lower.numpy(), upper.numpy(), alpha=0.5, color='c')
+ax.legend(['Real Data','Mean','Confidence'])
+ax.set_xlabel(r'$t$ $[s]$')
+ax.set_ylabel(r'$F_{wy}$')
+plt.savefig(f'imgs/wind-gp-test-y.png',dpi=300)
