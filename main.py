@@ -61,7 +61,7 @@ def simulate_wind_field():
 parser = argparse.ArgumentParser()
 parser.add_argument('--save_plots',default='None')
 parser.add_argument('--show_plots',default='None')
-parser.add_argument('--test','-t',default=False)
+parser.add_argument('--test','-t',action='store_true')
 
 # Parse Arguments
 args = parser.parse_args()
