@@ -47,12 +47,14 @@ def simulate_wind_field():
         wind_force_y.append(wind_force[1])
 
         if t == 0:  
-            train_data.append([p_true[0]-p_pred[0],p_true[1]-p_pred[1],v_true[0]-v_pred[0],v_true[1]-v_pred[1]])
+            train_data_x.append([p_true[0]-p_pred[0],v_true[0]-v_pred[0]])
+            train_data_y.append([p_true[1]-p_pred[1],v_true[1]-v_pred[1]])
         elif t == duration-1:
             train_label_x.append(wind_force[0])
             train_label_y.append(wind_force[1])
         else:
-            train_data.append([p_true[0]-p_pred[0],p_true[1]-p_pred[1],v_true[0]-v_pred[0],v_true[1]-v_pred[1]])
+            train_data_x.append([p_true[0]-p_pred[0],v_true[0]-v_pred[0]])
+            train_data_y.append([p_true[1]-p_pred[1],v_true[1]-v_pred[1]])
             train_label_x.append(wind_force[0])
             train_label_y.append(wind_force[1])
 
@@ -105,7 +107,8 @@ for fan in data["fans"]:
 file.close()
 
 # Create arrays to train the GP model
-train_data = []
+train_data_x = []
+train_data_y = []
 train_label_x = []
 train_label_y = []
 
@@ -312,14 +315,15 @@ for file in os.listdir('trajectories'):
 
 points = 200 # Number of used training points 
 
-train_data = torch.FloatTensor(train_data)
+train_data_x = torch.FloatTensor(train_data_x)
+train_data_y = torch.FloatTensor(train_data_y)
 train_label_x = torch.FloatTensor(train_label_x)
 train_label_y = torch.FloatTensor(train_label_y)
 # Randomly select a certain number of data points
-x_idxs = random.sample(range(0,len(train_data)),points)
-y_idxs = random.sample(range(0,len(train_data)),points)
-train_data_x = train_data.index_select(0,torch.IntTensor(x_idxs))
-train_data_y = train_data.index_select(0,torch.IntTensor(y_idxs))
+x_idxs = random.sample(range(0,len(train_data_x)),points)
+y_idxs = random.sample(range(0,len(train_data_y)),points)
+train_data_x = train_data_x.index_select(0,torch.IntTensor(x_idxs))
+train_data_y = train_data_y.index_select(0,torch.IntTensor(y_idxs))
 train_label_x = train_label_x.index_select(0,torch.IntTensor(x_idxs))
 train_label_y = train_label_y.index_select(0,torch.IntTensor(y_idxs))
 
@@ -429,7 +433,8 @@ for file in os.listdir('test_trajectories'):
             dt # Sampling time
         )
     # Create arrays to test the GP model
-    test_data = []
+    test_data_x = []
+    test_data_y = []
     test_label_x = []
     test_label_y = []
 
@@ -451,18 +456,21 @@ for file in os.listdir('test_trajectories'):
         # Simulate Dynamics
         p_true, v_true = system.discrete_dynamics(force)
         if t == 0:  
-            test_data.append([p_true[0]-p_pred[0],p_true[1]-p_pred[1],v_true[0]-v_pred[0],v_true[1]-v_pred[1]])
+            test_data_x.append([p_true[0]-p_pred[0],v_true[0]-v_pred[0]])
+            test_data_y.append([p_true[1]-p_pred[1],v_true[1]-v_pred[1]])
         elif t == duration-1:
             test_label_x.append(wind_force[0])
             test_label_y.append(wind_force[1])
         else:
-            test_data.append([p_true[0]-p_pred[0],p_true[1]-p_pred[1],v_true[0]-v_pred[0],v_true[1]-v_pred[1]])
+            test_data_x.append([p_true[0]-p_pred[0],v_true[0]-v_pred[0]])
+            test_data_y.append([p_true[1]-p_pred[1],v_true[1]-v_pred[1]])
             test_label_x.append(wind_force[0])
             test_label_y.append(wind_force[1])
         model.set_state(p_true,v_true)
 
 
-    test_data = torch.FloatTensor(test_data)
+    test_data_x = torch.FloatTensor(test_data_x)
+    test_data_y = torch.FloatTensor(test_data_y)
     test_label_x = torch.FloatTensor(test_label_x)
     test_label_y = torch.FloatTensor(test_label_y)
 
@@ -473,8 +481,8 @@ for file in os.listdir('test_trajectories'):
     likelihood_y.eval()
 
     with torch.no_grad():
-        pred_x = likelihood_x(model_x(test_data))
-        pred_y = likelihood_y(model_y(test_data))
+        pred_x = likelihood_x(model_x(test_data_x))
+        pred_y = likelihood_y(model_y(test_data_y))
         # pred_x = model_x(test_data)
         # pred_y = model_y(test_data)
 
