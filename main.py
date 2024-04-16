@@ -187,7 +187,7 @@ for file in os.listdir('trajectories'):
     fig.suptitle(f'{file_name} Trajectory')
     fig.set_size_inches(16,9)
     if save_plots != 'None':
-        plt.savefig(f'imgs/{file_name}-trajectory-x-position.png',dpi=300)
+        plt.savefig(f'imgs/train_imgs/{file_name}-trajectory-x-position.png',dpi=300)
     if show_plots != 'None':
         plt.show()
     plt.close()
@@ -206,7 +206,7 @@ for file in os.listdir('trajectories'):
     fig.suptitle(f'{file_name} Trajectory')
     fig.set_size_inches(16,9)
     if save_plots != 'None':
-        plt.savefig(f'imgs/{file_name}-trajectory-y-position.png',dpi=300)
+        plt.savefig(f'imgs/train_imgs/{file_name}-trajectory-y-position.png',dpi=300)
     if show_plots != 'None':
         plt.show()
     plt.close()
@@ -221,7 +221,7 @@ for file in os.listdir('trajectories'):
     fig.suptitle(f'{file_name} Trajectory')
     fig.set_size_inches(16,9)
     if save_plots != 'None':
-        plt.savefig(f'imgs/{file_name}-trajectory-traking.png',dpi=300)
+        plt.savefig(f'imgs/train_imgs/{file_name}-trajectory-traking.png',dpi=300)
     if show_plots != 'None':
         plt.show()
     plt.close()
@@ -238,7 +238,7 @@ for file in os.listdir('trajectories'):
     fig.suptitle(f'{file_name} Trajectory')
     fig.set_size_inches(16,9)
     if save_plots != 'None':
-        plt.savefig(f'imgs/{file_name}-trajectory-velocity.png',dpi=300)
+        plt.savefig(f'imgs/train_imgs/{file_name}-trajectory-velocity.png',dpi=300)
     if show_plots != 'None':
         plt.show()
     plt.close()
@@ -255,7 +255,7 @@ for file in os.listdir('trajectories'):
     fig.suptitle(f'{file_name} Trajectory')
     fig.set_size_inches(16,9)
     if save_plots != 'None':
-        plt.savefig(f'imgs/{file_name}-trajectory-control-force.png',dpi=300)
+        plt.savefig(f'imgs/train_imgs/{file_name}-trajectory-control-force.png',dpi=300)
     if show_plots != 'None':
         plt.show()
     plt.close()
@@ -272,7 +272,7 @@ for file in os.listdir('trajectories'):
     fig.suptitle(f'{file_name} Trajectory')
     fig.set_size_inches(16,9)
     if save_plots != 'None':
-        plt.savefig(f'imgs/{file_name}-trajectory-wind-force.png',dpi=300)
+        plt.savefig(f'imgs/train_imgs/{file_name}-trajectory-wind-force.png',dpi=300)
     if show_plots != 'None':
         plt.show()
     plt.close()
@@ -300,7 +300,7 @@ for file in os.listdir('trajectories'):
 
         anim = animation.FuncAnimation(fig,animation_function,frames=duration,interval=1,repeat=False)
         if save_plots == 'full':
-            anim.save(f'imgs/{file_name}-trajectory-simulation.gif', fps=30)
+            anim.save(f'imgs/train_imgs/{file_name}-trajectory-simulation.gif', fps=30)
         plt.show()
 
 #---------------------------------------------------------------------------#
@@ -499,7 +499,7 @@ for file in os.listdir('test_trajectories'):
     ax.set_ylabel(r'$F_{wx}$ $[N]$')
     fig.suptitle(f'GP Wind Estimation on {file_name} Trajectory (x-axis)')
     if save_plots != 'None':
-        plt.savefig(f'imgs/{file_name}-gp-test-x.png',dpi=300)
+        plt.savefig(f'imgs/test_imgs/{file_name}-gp-test-x.png',dpi=300)
     if show_plots != 'None':
         plt.show()
 
@@ -522,7 +522,7 @@ for file in os.listdir('test_trajectories'):
     ax.set_ylabel(r'$F_{wy}$ $[N]$')
     fig.suptitle(f'GP Wind Estimation on {file_name} Trajectory (y-axis)')
     if save_plots != 'None':
-        plt.savefig(f'imgs/{file_name}-gp-test-y.png',dpi=300)
+        plt.savefig(f'imgs/test_imgs/{file_name}-gp-test-y.png',dpi=300)
     if show_plots != 'None':
         plt.show()
     plt.close()
