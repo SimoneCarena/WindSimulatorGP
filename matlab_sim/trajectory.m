@@ -192,6 +192,61 @@ title('y Position tracking performance')
 
 save('../trajectories/lemniscate.mat','q','-v4')
 
+%% Lemniscate Trajectory (2)
+
+a = 1.5;
+c = [2;2];
+wayPoints = [];
+i=1;
+R = [
+    cos(-pi/4) -sin(-pi/4);
+    sin(-pi/4) cos(-pi/4)
+];
+for theta=linspace(0,2*pi,100)
+    p = [
+        a*cos(theta)/(1+sin(theta)^2);
+        a*sin(theta)*cos(theta)/(1+sin(theta)^2)
+    ];
+    p = R*p+c;
+    wayPoints(:,i) = p;
+    i=i+1;
+end
+
+numSamples = 3000;
+[q,qd,qdd,tvec,pp] = trapveltraj(wayPoints,numSamples);
+x0 = [
+    q(1,1);
+    q(2,1);
+    qd(1,1);
+    qd(2,1)
+];
+
+out = sim('trajectory_traking.slx');
+x = out.x;
+y = out.y;
+vx = out.vx;
+vy = out.vy;
+
+figure
+hold on
+plot(x(1:numSamples),y(1:numSamples))
+plot(q(1,:),q(2,:),'--')
+legend('Object Position','Trajectory to Track')
+title('Tracking')
+
+figure
+hold on
+plot(tvec,x(1:numSamples))
+plot(tvec,q(1,:))
+title('x Position tracking performance')
+
+figure
+hold on
+plot(tvec,y(1:numSamples))
+plot(tvec,q(2,:))
+title('y Position tracking performance')
+
+save('../trajectories/lemniscate_test.mat','q','-v4')
 
 
 
