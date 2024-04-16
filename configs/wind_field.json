@@ -11,7 +11,7 @@
             "alpha": -60,
             "theta": 30,
             "v0": 10,
-            "noise_var": 0.1
+            "noise_var": 0.05
         },
         {
             "x0": 4,
@@ -19,7 +19,7 @@
             "alpha": 210,
             "theta": 30,
             "v0": 10,
-            "noise_var": 0.1
+            "noise_var": 0.05
         },
         {
             "x0": 0,
@@ -27,7 +27,7 @@
             "alpha": 30,
             "theta": 30,
             "v0": 10,
-            "noise_var": 0.1
+            "noise_var": 0.05
         },
         {
             "x0": 2,
@@ -35,7 +35,7 @@
             "alpha": 120,
             "theta": 30,
             "v0": 10,
-            "noise_var": 0.1
+            "noise_var": 0.05
         },
         {
             "x0": 2,
@@ -43,7 +43,7 @@
             "alpha": -120,
             "theta": 30,
             "v0": 10,
-            "noise_var": 0.1
+            "noise_var": 0.05
         },
         {
             "x0": 4,
@@ -51,7 +51,7 @@
             "alpha": 150,
             "theta": 30,
             "v0": 10,
-            "noise_var": 0.1
+            "noise_var": 0.05
         },
         {
             "x0": 0,
@@ -59,7 +59,7 @@
             "alpha": -30,
             "theta": 30,
             "v0": 10,
-            "noise_var": 0.1
+            "noise_var": 0.05
         },
         {
             "x0": 2,
@@ -67,7 +67,7 @@
             "alpha": 60,
             "theta": 30,
             "v0": 10,
-            "noise_var": 0.1
+            "noise_var": 0.05
         }
     ]
 }

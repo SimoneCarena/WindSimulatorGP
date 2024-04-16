@@ -14,6 +14,8 @@ import gpytorch
 import torch
 import random
 
+# TODO A big code refactor is in order
+
 # Simulate the wind in the field
 def simulate_wind_field(): 
     for (t,target) in enumerate(trajectory):
@@ -58,6 +60,7 @@ def simulate_wind_field():
         model.set_state(p_true,v_true)
 
 # Argument Parser
+# TODO check for argument correctness
 parser = argparse.ArgumentParser()
 parser.add_argument('--save_plots',default='None')
 parser.add_argument('--show_plots',default='None')
@@ -307,7 +310,7 @@ for file in os.listdir('trajectories'):
 # The model is trained as
 # (v(k)-v_h(k),p(k)-p_h(k)) -> f(k) = wind force
 
-points = 200 # Number of used training points 
+points = 300 # Number of used training points 
 
 train_data = torch.FloatTensor(train_data)
 train_label_x = torch.FloatTensor(train_label_x)
@@ -355,7 +358,7 @@ if not test:
         optimizer_y.step()
         os.system('cls' if os.name == 'nt' else 'clear')
         print("Training the Exact GP model on {} random points for {} iterations\n".format(points,training_iter))
-        print('[{}{}] {:.2f}% ({}/{} iterations)'.format('='*int(20*i/training_iter),' '*(20-int(20*i/training_iter)),100*i/training_iter,i,training_iter))
+        print('[{}{}] {:.2f}% ({}/{} iterations)'.format('='*int(20*(i+1)/training_iter),' '*(20-int(20*(i+1)/training_iter)),100*(i+1)/training_iter,i+1,training_iter))
         print('')
     print('Training Complete!')
 else:
@@ -495,7 +498,10 @@ for file in os.listdir('test_trajectories'):
     ax.set_xlabel(r'$t$ $[s]$')
     ax.set_ylabel(r'$F_{wx}$ $[N]$')
     fig.suptitle(r'GP Wind Estimation on Test Trajectory ($F_{wx}$)')
-    plt.savefig(f'imgs/{file_name}-gp-test-x.png',dpi=300)
+    if save_plots != 'None':
+        plt.savefig(f'imgs/{file_name}-gp-test-x.png',dpi=300)
+    if show_plots != 'None':
+        plt.show()
 
     # Initialize y plot
     fig, ax = plt.subplots()
@@ -515,13 +521,15 @@ for file in os.listdir('test_trajectories'):
     ax.set_xlabel(r'$t$ $[s]$')
     ax.set_ylabel(r'$F_{wy}$ $[N]$')
     fig.suptitle(r'GP Wind Estimation on Test Trajectory ($F_{wy}$)')
-    plt.savefig(f'imgs/{file_name}-gp-test-y.png',dpi=300)
-
-    plt.show()
+    if save_plots != 'None':
+        plt.savefig(f'imgs/{file_name}-gp-test-y.png',dpi=300)
+    if show_plots != 'None':
+        plt.show()
     plt.close()
 
-# Save the models
-torch.save(model_x.state_dict(), 'models/model_x.pth')
-torch.save(model_y.state_dict(), 'models/model_y.pth')
-torch.save(likelihood_x.state_dict(), 'models/likelihood_x.pth')
-torch.save(likelihood_y.state_dict(), 'models/likelihood_y.pth')
+if not test:
+    # Save the models
+    torch.save(model_x.state_dict(), 'models/model_x.pth')
+    torch.save(model_y.state_dict(), 'models/model_y.pth')
+    torch.save(likelihood_x.state_dict(), 'models/likelihood_x.pth')
+    torch.save(likelihood_y.state_dict(), 'models/likelihood_y.pth')
