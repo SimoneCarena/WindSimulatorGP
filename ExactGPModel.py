@@ -6,7 +6,7 @@ class ExactGPModel(gpytorch.models.ExactGP):
         # Mean Function
         self.mean_module = gpytorch.means.ConstantMean()
         # Covariance Function, i.e. kernel specification
-        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.MaternKernel(nu=2.5))
+        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.MaternKernel(nu=1.5))
 
     def forward(self, x):
 		# Compute the mean of the data using the mean function

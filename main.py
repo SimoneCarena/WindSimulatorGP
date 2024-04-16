@@ -310,13 +310,11 @@ for file in os.listdir('trajectories'):
 # The model is trained as
 # (v(k)-v_h(k),p(k)-p_h(k)) -> f(k) = wind force
 
-points = 300 # Number of used training points 
+points = 200 # Number of used training points 
 
 train_data = torch.FloatTensor(train_data)
 train_label_x = torch.FloatTensor(train_label_x)
 train_label_y = torch.FloatTensor(train_label_y)
-train_label_x_2 = torch.clone(train_label_x)
-train_label_y_2 = torch.clone(train_label_y)
 # Randomly select a certain number of data points
 x_idxs = random.sample(range(0,len(train_data)),points)
 y_idxs = random.sample(range(0,len(train_data)),points)
@@ -331,7 +329,7 @@ likelihood_y = gpytorch.likelihoods.GaussianLikelihood()
 model_x = ExactGPModel(train_data_x, train_label_x, likelihood_x)
 model_y = ExactGPModel(train_data_y, train_label_y, likelihood_y)
 
-training_iter = 100000
+training_iter = 200000
 model_x.train()
 model_y.train()
 likelihood_x.train()
@@ -474,7 +472,7 @@ for file in os.listdir('test_trajectories'):
     likelihood_x.eval()
     likelihood_y.eval()
 
-    with torch.no_grad(), gpytorch.settings.fast_pred_var():
+    with torch.no_grad():
         pred_x = likelihood_x(model_x(test_data))
         pred_y = likelihood_y(model_y(test_data))
         # pred_x = model_x(test_data)
@@ -500,8 +498,7 @@ for file in os.listdir('test_trajectories'):
     fig.suptitle(f'GP Wind Estimation on {file_name} Trajectory (x-axis)')
     if save_plots != 'None':
         plt.savefig(f'imgs/test_imgs/{file_name}-gp-test-x.png',dpi=300)
-    if show_plots != 'None':
-        plt.show()
+    plt.show()
 
     # Initialize y plot
     fig, ax = plt.subplots()
@@ -523,8 +520,7 @@ for file in os.listdir('test_trajectories'):
     fig.suptitle(f'GP Wind Estimation on {file_name} Trajectory (y-axis)')
     if save_plots != 'None':
         plt.savefig(f'imgs/test_imgs/{file_name}-gp-test-y.png',dpi=300)
-    if show_plots != 'None':
-        plt.show()
+    plt.show()
     plt.close()
 
 if not test:
