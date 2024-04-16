@@ -206,7 +206,7 @@ for file in os.listdir('trajectories'):
     fig.suptitle(f'{file_name} Trajectory')
     fig.set_size_inches(16,9)
     if save_plots != 'None':
-        plt.savefig(f'imgs/{file_name}-trajectoryy-position.png',dpi=300)
+        plt.savefig(f'imgs/{file_name}-trajectory-y-position.png',dpi=300)
     if show_plots != 'None':
         plt.show()
     plt.close()
@@ -497,7 +497,7 @@ for file in os.listdir('test_trajectories'):
     ax.legend()
     ax.set_xlabel(r'$t$ $[s]$')
     ax.set_ylabel(r'$F_{wx}$ $[N]$')
-    fig.suptitle(r'GP Wind Estimation on Test Trajectory ($F_{wx}$)')
+    fig.suptitle(f'GP Wind Estimation on {file_name} Trajectory (x-axis)')
     if save_plots != 'None':
         plt.savefig(f'imgs/{file_name}-gp-test-x.png',dpi=300)
     if show_plots != 'None':
@@ -520,7 +520,7 @@ for file in os.listdir('test_trajectories'):
     ax.legend()
     ax.set_xlabel(r'$t$ $[s]$')
     ax.set_ylabel(r'$F_{wy}$ $[N]$')
-    fig.suptitle(r'GP Wind Estimation on Test Trajectory ($F_{wy}$)')
+    fig.suptitle(f'GP Wind Estimation on {file_name} Trajectory (y-axis)')
     if save_plots != 'None':
         plt.savefig(f'imgs/{file_name}-gp-test-y.png',dpi=300)
     if show_plots != 'None':

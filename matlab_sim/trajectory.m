@@ -246,10 +246,67 @@ plot(tvec,y(1:numSamples))
 plot(tvec,q(2,:))
 title('y Position tracking performance')
 
-save('../trajectories/lemniscate_test.mat','q','-v4')
+save('../test_trajectories/lemniscate.mat','q','-v4')
 
 
+%% Diamond Trajectory
 
+wayPoints = [
+   0.5 2.0 3.5 2.0 0.5;
+   2.0 3.5 2.0 0.5 2.0
+];
+
+numSamples = 3000;
+
+[q,qd,qdd,tvec,pp] = trapveltraj(wayPoints,numSamples,EndTime=30);
+
+x0 = [
+    q(1,1);
+    q(2,1);
+    qd(1,1);
+    qd(2,1)
+];
+
+out = sim('trajectory_traking.slx');
+x = out.x;
+y = out.y;
+vx = out.vx;
+vy = out.vy;
+
+figure
+hold on
+plot(x(1:numSamples),y(1:numSamples))
+plot(q(1,:),q(2,:),'--')
+legend('Object Position','Trajectory to Track')
+title('Tracking')
+
+figure
+hold on
+plot(tvec,x(1:numSamples))
+plot(tvec,q(1,:))
+title('x Position tracking performance')
+
+figure
+hold on
+plot(tvec,y(1:numSamples))
+plot(tvec,q(2,:))
+title('y Position tracking performance')
+
+% figure
+% hold on
+% plot(tvec,vx(1:numSamples))
+% plot(tvec,qd(1,:))
+% title('Vx Speed tracking performance')
+% 
+% figure
+% hold on
+% plot(tvec,vy(1:numSamples))
+% plot(tvec,qd(2,:))
+% title('Vy Speed tracking performance')
+
+% Write Trajectory
+
+save('../test_trajectories/diamond.mat','q','-v4')
 
 
 
