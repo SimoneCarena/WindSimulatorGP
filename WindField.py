@@ -103,6 +103,11 @@ class WindField:
         self.__ey = [] # List of y position traking errors
 
     def simulate_wind_field(self): 
+        '''
+        Runs the wind simulation. The wind field should be reset every time a new simulation.
+        In case a GP model is being trained, the GP data should not be reset, as it stacks the subsequent
+        measurements which can be used for training.
+        '''
         # Set the mass initial conditions
         tr = self.__trajectory.trajectory()
         x0 = tr[0,0]
@@ -146,7 +151,8 @@ class WindField:
 
     def reset(self, wind_field_conf_file=None, mass_conf_file=None, trajectory_file=None):
         '''
-        Resets the Wind Field, based on the files that are passes.\\
+        Resets the Wind Field, based on the files that are passes, if something is omitted,
+        the prviously used configuration file will be considered.\\
         This should be executed before every new test is run.\\
         This does not reset the GP files.
         '''
@@ -172,8 +178,8 @@ class WindField:
 
     def get_gp_data(self):
         '''
-        The files are returned in the form 
-        (x,y), Fx, Fy
+        Returns the GP data needed for training or testing.\\
+        The data is in the form (x,y), Fx, Fy
         '''
         return self.__gp_data.deepcopy(), self.__gp_label_x.deepcopy(), self.__gp_label_y.deepcopy()
     
@@ -184,6 +190,12 @@ class WindField:
         self.__setup_gp()
 
     def plot(self, save=False):
+        '''
+        Plots the data related to the previosly run simulation.\\
+        If the save parameter is set to `True`, the files are stored in the
+        `imgs/trajectories_plots` folder
+        '''
+
         T = [t*self.__dt for t in range(self.__duration)]
         tr = self.__trajectory.trajectory()
         file_name = os.path.basename(self.__trajectory_file)
@@ -202,7 +214,7 @@ class WindField:
         fig.suptitle(f'{file_name} Trajectory')
         fig.set_size_inches(16,9)
         if save:
-            plt.savefig(f'imgs/train_imgs/{file_name}-trajectory-x-position.png',dpi=300)
+            plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-x-position.png',dpi=300)
 
         fig, ax = plt.subplots(1,2)
         ax[0].plot(T,self.__ys,label='Object Position')
@@ -218,7 +230,7 @@ class WindField:
         fig.suptitle(f'{file_name} Trajectory')
         fig.set_size_inches(16,9)
         if save:
-            plt.savefig(f'imgs/train_imgs/{file_name}-trajectory-y-position.png',dpi=300)
+            plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-y-position.png',dpi=300)
 
         fig, ax = plt.subplots()
         ax.plot(self.__xs,self.__ys,label='System Trajectory')
@@ -230,7 +242,7 @@ class WindField:
         fig.suptitle(f'{file_name} Trajectory')
         fig.set_size_inches(16,9)
         if save:
-            plt.savefig(f'imgs/train_imgs/{file_name}-trajectory-traking.png',dpi=300)
+            plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-traking.png',dpi=300)
 
         fig, ax = plt.subplots(1,2)
         ax[0].plot(T,self.__vxs)
@@ -244,7 +256,7 @@ class WindField:
         fig.suptitle(f'{file_name} Trajectory')
         fig.set_size_inches(16,9)
         if save:
-            plt.savefig(f'imgs/train_imgs/{file_name}-trajectory-velocity.png',dpi=300)
+            plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-velocity.png',dpi=300)
 
         fig, ax = plt.subplots(1,2)
         ax[0].plot(T,self.__ctl_forces_x)
@@ -258,7 +270,7 @@ class WindField:
         fig.suptitle(f'{file_name} Trajectory')
         fig.set_size_inches(16,9)
         if save:
-            plt.savefig(f'imgs/train_imgs/{file_name}-trajectory-control-force.png',dpi=300)
+            plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-control-force.png',dpi=300)
 
         fig, ax = plt.subplots(1,2)
         ax[0].plot(T,self.__wind_force_x)
@@ -272,12 +284,16 @@ class WindField:
         fig.suptitle(f'{file_name} Trajectory')
         fig.set_size_inches(16,9)
         if save:
-            plt.savefig(f'imgs/train_imgs/{file_name}-trajectory-wind-force.png',dpi=300)
+            plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-wind-force.png',dpi=300)
 
         plt.show()
         plt.close()
 
     def animate(self):
+        '''
+        Plots the animation showing the evolution of the system following the trajectory
+        in the wind field
+        '''
         file_name = os.path.basename(self.__trajectory_file)
 
         fig, ax = plt.subplots()

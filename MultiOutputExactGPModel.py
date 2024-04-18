@@ -1,8 +1,8 @@
 import gpytorch
 
-class MultiOutputGPModel:
+class MultiOutputExactGPModel:
     def __init__(self, train_x, train_y, likelihood):
-        super(MultiOutputGPModel, self).__init__(train_x, train_y, likelihood)
+        super(MultiOutputExactGPModel, self).__init__(train_x, train_y, likelihood)
         self.mean_module = gpytorch.means.MultitaskMean(
             gpytorch.means.ConstantMean(), num_tasks=2
         )
