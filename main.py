@@ -23,18 +23,19 @@ def simulate_wind_field():
         for fan in fans:
             speed = fan.generate_wind(system.p[0],system.p[1])
             total_speed+=speed
+
+        train_data_x.append([system.p[0],system.p[1]])
+        train_data_y.append([system.p[0],system.p[1]])
         
         # Generate control force
         error = target - system.p
         control_force = pid.step(error)
-        # Apply only the control force to the model
-        p_pred, v_pred = model.discrete_dynamics(control_force)
         # Generate wind force
         wind_force = (0.5*air_density*system.surf)*total_speed**2*np.sign(total_speed)
         # Total force
         force = wind_force + control_force
         # Simulate Dynamics
-        p_true, v_true = system.discrete_dynamics(force)
+        system.discrete_dynamics(force)
         xs.append(system.p[0])
         ys.append(system.p[1])
         vxs.append(system.v[0])
@@ -46,20 +47,8 @@ def simulate_wind_field():
         wind_force_x.append(wind_force[0])
         wind_force_y.append(wind_force[1])
 
-        if t == 0:  
-            train_data_x.append([p_true[0]-p_pred[0],v_true[0]-v_pred[0]])
-            train_data_y.append([p_true[1]-p_pred[1],v_true[1]-v_pred[1]])
-        elif t == duration-1:
-            train_label_x.append(wind_force[0])
-            train_label_y.append(wind_force[1])
-        else:
-            train_data_x.append([p_true[0]-p_pred[0],v_true[0]-v_pred[0]])
-            train_data_y.append([p_true[1]-p_pred[1],v_true[1]-v_pred[1]])
-            train_label_x.append(wind_force[0])
-            train_label_y.append(wind_force[1])
-
-        # Update the model to its true new state
-        model.set_state(p_true,v_true)
+        train_label_x.append(wind_force[0])
+        train_label_y.append(wind_force[1])
 
 # Argument Parser
 # TODO check for argument correctness
@@ -147,10 +136,6 @@ for file in os.listdir('trajectories'):
 
     # Actual system moving in the wind-field
     system = System(m,r,x0,y0,v0x,v0y,dt)
-    # Model of the system, used to predict next postion and velocity
-    # to train the GP. The model predicts the next state without
-    # considering the effect of the wind
-    model = System(m,r,x0,y0,v0x,v0y,dt)
     # The controller's parameter were retrieved using MATLAB
     pid = PID(
         16.255496588371, # Proportional
@@ -333,7 +318,7 @@ likelihood_y = gpytorch.likelihoods.GaussianLikelihood()
 model_x = ExactGPModel(train_data_x, train_label_x, likelihood_x)
 model_y = ExactGPModel(train_data_y, train_label_y, likelihood_y)
 
-training_iter = 200000
+training_iter = 100000
 model_x.train()
 model_y.train()
 likelihood_x.train()
@@ -444,29 +429,20 @@ for file in os.listdir('test_trajectories'):
         for fan in fans:
             speed = fan.generate_wind(system.p[0],system.p[1])
             total_speed+=speed
+        test_data_x.append([system.p[0],system.p[1]])
+        test_data_y.append([system.p[0],system.p[1]])
         # Generate control force
         error = target - system.p
         control_force = pid.step(error)
-        # Apply only the control force to the model
-        p_pred, v_pred = model.discrete_dynamics(control_force)
         # Generate wind force
         wind_force = (0.5*air_density*system.surf)*total_speed**2*np.sign(total_speed)
         # Total force
         force = wind_force + control_force
         # Simulate Dynamics
-        p_true, v_true = system.discrete_dynamics(force)
-        if t == 0:  
-            test_data_x.append([p_true[0]-p_pred[0],v_true[0]-v_pred[0]])
-            test_data_y.append([p_true[1]-p_pred[1],v_true[1]-v_pred[1]])
-        elif t == duration-1:
-            test_label_x.append(wind_force[0])
-            test_label_y.append(wind_force[1])
-        else:
-            test_data_x.append([p_true[0]-p_pred[0],v_true[0]-v_pred[0]])
-            test_data_y.append([p_true[1]-p_pred[1],v_true[1]-v_pred[1]])
-            test_label_x.append(wind_force[0])
-            test_label_y.append(wind_force[1])
-        model.set_state(p_true,v_true)
+        system.discrete_dynamics(force)
+
+        test_label_x.append(wind_force[0])
+        test_label_y.append(wind_force[1])
 
 
     test_data_x = torch.FloatTensor(test_data_x)
@@ -481,10 +457,10 @@ for file in os.listdir('test_trajectories'):
     likelihood_y.eval()
 
     with torch.no_grad():
-        pred_x = likelihood_x(model_x(test_data_x))
-        pred_y = likelihood_y(model_y(test_data_y))
-        # pred_x = model_x(test_data)
-        # pred_y = model_y(test_data)
+        # pred_x = likelihood_x(model_x(test_data_x))
+        # pred_y = likelihood_y(model_y(test_data_y))
+        pred_x = model_x(test_data_x)
+        pred_y = model_y(test_data_y)
 
     # Initialize x plot
     fig, ax = plt.subplots()
@@ -495,11 +471,13 @@ for file in os.listdir('test_trajectories'):
     lower, upper = pred_x.confidence_region()
     ax.plot(np.NaN, np.NaN, '-', color='none', label='RMSE={0:.2f} N'.format(rmse))
     # Plot training data as black stars
-    ax.plot(T[1:],test_label_x,color='orange',label='Real Data')
+    ax.plot(T,test_label_x,color='orange',label='Real Data')
     # Plot predictive means as blue line
-    ax.plot(T[1:],pred_x.mean.numpy(), 'b',label='Mean')
+    ax.plot(T,pred_x.mean.numpy(), 'b',label='Mean')
     # Shade between the lower and upper confidence bounds
-    ax.fill_between(T[1:], lower.numpy(), upper.numpy(), alpha=0.5, color='c',label='Confidence')
+    ax.fill_between(T, lower.numpy(), upper.numpy(), alpha=0.5, color='c',label='Confidence')
+    # Plot training points
+    ax.plot([T[idx] for idx in x_idxs],train_label_x,'k*',label='Training Points')
     ax.legend()
     ax.set_xlabel(r'$t$ $[s]$')
     ax.set_ylabel(r'$F_{wx}$ $[N]$')
@@ -517,11 +495,13 @@ for file in os.listdir('test_trajectories'):
     lower, upper = pred_y.confidence_region()
     ax.plot(np.NaN, np.NaN, '-', color='none', label='RMSE={0:.2f} N'.format(rmse))
     # Plot training data as black stars
-    ax.plot(T[1:],test_label_y, color='orange',label='Real Data')
+    ax.plot(T,test_label_y, color='orange',label='Real Data')
     # Plot predictive means as blue line
-    ax.plot(T[1:],pred_y.mean.numpy(), 'b',label='Mean')
+    ax.plot(T,pred_y.mean.numpy(), 'b',label='Mean')
     # Shade between the lower and upper confidence bounds
-    ax.fill_between(T[1:], lower.numpy(), upper.numpy(), alpha=0.5, color='c',label='Confidence')
+    ax.fill_between(T, lower.numpy(), upper.numpy(), alpha=0.5, color='c',label='Confidence')
+    # Plot training points
+    ax.plot([T[idx] for idx in y_idxs],train_label_y,'k*',label='Training Points')
     ax.legend()
     ax.set_xlabel(r'$t$ $[s]$')
     ax.set_ylabel(r'$F_{wy}$ $[N]$')

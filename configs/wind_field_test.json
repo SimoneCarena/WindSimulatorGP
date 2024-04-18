@@ -8,34 +8,66 @@
         {
             "x0": 2,
             "y0": 4,
-            "alpha": -90,
+            "alpha": -60,
             "theta": 30,
             "v0": 10,
-            "noise_var": 0.05
+            "noise_var": 0.01
         },
         {
             "x0": 4,
             "y0": 2,
-            "alpha": 180,
+            "alpha": 210,
             "theta": 30,
             "v0": 10,
-            "noise_var": 0.05
+            "noise_var": 0.01
         },
         {
             "x0": 0,
             "y0": 2,
-            "alpha": 0,
+            "alpha": 30,
             "theta": 30,
             "v0": 10,
-            "noise_var": 0.05
+            "noise_var": 0.01
         },
         {
             "x0": 2,
             "y0": 0,
-            "alpha": 90,
+            "alpha": 120,
             "theta": 30,
             "v0": 10,
-            "noise_var": 0.05
+            "noise_var": 0.01
+        },
+        {
+            "x0": 2,
+            "y0": 4,
+            "alpha": -120,
+            "theta": 30,
+            "v0": 10,
+            "noise_var": 0.01
+        },
+        {
+            "x0": 4,
+            "y0": 2,
+            "alpha": 150,
+            "theta": 30,
+            "v0": 10,
+            "noise_var": 0.01
+        },
+        {
+            "x0": 0,
+            "y0": 2,
+            "alpha": -30,
+            "theta": 30,
+            "v0": 10,
+            "noise_var": 0.01
+        },
+        {
+            "x0": 2,
+            "y0": 0,
+            "alpha": 60,
+            "theta": 30,
+            "v0": 10,
+            "noise_var": 0.01
         }
     ]
 }
