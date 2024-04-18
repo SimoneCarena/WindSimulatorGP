@@ -6,11 +6,11 @@ class System:
     The object consist of a sphere of mass m and radius r\\
     The sampling time dt is specified to compute the dynamics of the system
     '''
-    def __init__(self, m, r, x0, y0, v0x, v0y, dt):
+    def __init__(self, m, r, dt):
         self.m = m
         self.surf = 2*np.pi*r**2 # Surface of half a sphere, hit by the wind
-        self.p = np.array([x0,y0],dtype=float)
-        self.v = np.array([v0x,v0y],dtype=float)
+        self.p = np.array([0.0,0.0],dtype=float)
+        self.v = np.array([0.0,0.0],dtype=float)
         self.dt = dt
     
     def __continuos_dynamics(self,x,u):
@@ -31,13 +31,3 @@ class System:
         x = x+(k1+2*k2+2*k3+k4)/6
         self.p = x[0:2]
         self.v = x[2:]
-
-        return self.p.copy(), self.v.copy()
-    
-    def set_state(self,p,v):
-        '''
-        Set the postion and velocity of the system based on the actual
-        statse of the system
-        '''
-        self.p = p
-        self.v = v

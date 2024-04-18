@@ -1,12 +1,12 @@
 import gpytorch
 
 class ExactGPModel(gpytorch.models.ExactGP):
-    def __init__(self, train_x, train_y, likelihood):
+    def __init__(self, train_x, train_y, likelihood, kernel):
         super(ExactGPModel, self).__init__(train_x, train_y, likelihood)
         # Mean Function
         self.mean_module = gpytorch.means.ConstantMean()
         # Covariance Function, i.e. kernel specification
-        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel()+gpytorch.kernels.PeriodicKernel())
+        self.covar_module = kernel
 
     def forward(self, x):
 		# Compute the mean of the data using the mean function
