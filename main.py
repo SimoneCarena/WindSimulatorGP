@@ -462,6 +462,8 @@ for file in os.listdir('test_trajectories'):
         pred_x = model_x(test_data_x)
         pred_y = model_y(test_data_y)
 
+    kernel = 'RBF-Periodic'
+
     # Initialize x plot
     fig, ax = plt.subplots()
     fig.set_size_inches(16,9)
@@ -483,7 +485,7 @@ for file in os.listdir('test_trajectories'):
     ax.set_ylabel(r'$F_{wx}$ $[N]$')
     fig.suptitle(f'GP Wind Estimation on {file_name} Trajectory (x-axis)')
     if save_plots != 'None':
-        plt.savefig(f'imgs/test_imgs/{file_name}-gp-test-x.png',dpi=300)
+        plt.savefig(f'imgs/test_imgs/{file_name}-{kernel}-x.png',dpi=300)
     plt.show()
 
     # Initialize y plot
@@ -507,7 +509,7 @@ for file in os.listdir('test_trajectories'):
     ax.set_ylabel(r'$F_{wy}$ $[N]$')
     fig.suptitle(f'GP Wind Estimation on {file_name} Trajectory (y-axis)')
     if save_plots != 'None':
-        plt.savefig(f'imgs/test_imgs/{file_name}-gp-test-y.png',dpi=300)
+        plt.savefig(f'imgs/test_imgs/{file_name}-{kernel}-y.png',dpi=300)
     plt.show()
     plt.close()
 
