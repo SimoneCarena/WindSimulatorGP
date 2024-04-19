@@ -16,14 +16,12 @@ class WindField:
     The Wind Field is constructed by passing it the wind field configuration file, and the 
     mass configuration file.
     '''
-    def __init__(self, wind_field_conf_file, mass_conf_file, trajectory_file):
+    def __init__(self, wind_field_conf_file, mass_conf_file):
         self.__wind_field_conf_file = wind_field_conf_file
         self.__mass_config_file = mass_conf_file
-        self.__trajectory_file = trajectory_file
 
         self.__setup_wind_field(wind_field_conf_file)
         self.__setup_system(mass_conf_file)
-        self.__setup_trajectory(trajectory_file)
         self.__setup_gp()
         self.__setup_plots()
 
@@ -63,13 +61,13 @@ class WindField:
 
     def __setup_system(self, mass_conf_file):
         # Parse system data
-        file = open('configs/mass.json')
+        file = open(mass_conf_file)
         data = json.load(file)
         m = data["m"]
         r = data["r"]
 
         # Actual system moving in the wind-field
-        self.__system = System(m,r)
+        self.__system = System(m,r,self.__dt)
 
         # The controller's parameter were retrieved using MATLAB
         pid = PID(
@@ -78,10 +76,6 @@ class WindField:
             9.79714803790873, # Derivative
             self.__dt # Sampling time
         )
-    
-    def __setup_trajectory(self, trajectory_file):
-        # Generate Trajectory
-        self.__trajectory = Trajectory(trajectory_file)
         
     def __setup_gp(self):
         # Create arrays to train the GP model
@@ -101,6 +95,9 @@ class WindField:
         self.__wind_force_y = [] # List of y wind forces
         self.__ex = [] # List of x position traking errors
         self.__ey = [] # List of y position traking errors
+
+    def set_trajectory(self, trajectory_file):
+        
 
     def simulate_wind_field(self): 
         '''
@@ -149,7 +146,7 @@ class WindField:
             self.__gp_label_x.append(wind_force[0])
             self.__gp_label_y.append(wind_force[1])
 
-    def reset(self, wind_field_conf_file=None, mass_conf_file=None, trajectory_file=None):
+    def reset(self, wind_field_conf_file=None, mass_conf_file=None):
         '''
         Resets the Wind Field, based on the files that are passes, if something is omitted,
         the prviously used configuration file will be considered.\\
@@ -167,12 +164,6 @@ class WindField:
             self.__mass_config_file = mass_conf_file
         else:
             self.__setup_system(self.__mass_config_file)
-
-        if trajectory_file is not None:
-            self.__setup_trajectory(trajectory_file)
-            self.__trajectory_file = trajectory_file
-        else:
-            self.__setup_trajectory(trajectory_file)
 
         self.__setup_plots()
 
