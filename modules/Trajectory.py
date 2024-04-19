@@ -2,7 +2,7 @@ from scipy.io import loadmat
 
 class Trajectory:
     '''
-    Iterator used to descrbe the trajectory at each time step
+    Iterator used to describe the trajectory at each time step
     '''
     def __init__(self, path):
         mat = loadmat(path) # Load Trajectory File

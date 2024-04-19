@@ -1,14 +1,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import json
-import os
 
 from matplotlib import animation
 
-from Fan import Fan
-from System import System
-from Trajectory import Trajectory
-from PID import PID
+from modules.Fan import Fan
+from modules.System import System
+from modules.Trajectory import Trajectory
+from modules.PID import PID
+from utils.exceptions import MissingTrajectory
 
 class WindField:
     '''
@@ -19,6 +19,7 @@ class WindField:
     def __init__(self, wind_field_conf_file, mass_conf_file):
         self.__wind_field_conf_file = wind_field_conf_file
         self.__mass_config_file = mass_conf_file
+        self.__trajectory = None
 
         self.__setup_wind_field(wind_field_conf_file)
         self.__setup_system(mass_conf_file)
@@ -70,7 +71,7 @@ class WindField:
         self.__system = System(m,r,self.__dt)
 
         # The controller's parameter were retrieved using MATLAB
-        pid = PID(
+        self.__pid = PID(
             16.255496588371, # Proportional
             6.40173078542831, # Integral
             9.79714803790873, # Derivative
@@ -96,8 +97,11 @@ class WindField:
         self.__ex = [] # List of x position traking errors
         self.__ey = [] # List of y position traking errors
 
-    def set_trajectory(self, trajectory_file):
-        
+    def set_trajectory(self, trajectory_file,trajectory_name):
+        # Generate Trajectory
+        self.__trajectory = Trajectory(trajectory_file)
+        self.__trajectory_name = trajectory_name
+        self.__tr = self.__trajectory.trajectory()
 
     def simulate_wind_field(self): 
         '''
@@ -105,6 +109,9 @@ class WindField:
         In case a GP model is being trained, the GP data should not be reset, as it stacks the subsequent
         measurements which can be used for training.
         '''
+        if self.__trajectory is None:
+            raise MissingTrajectory()
+
         # Set the mass initial conditions
         tr = self.__trajectory.trajectory()
         x0 = tr[0,0]
@@ -170,9 +177,9 @@ class WindField:
     def get_gp_data(self):
         '''
         Returns the GP data needed for training or testing.\\
-        The data is in the form (x,y), Fx, Fy
+        The data is in the form (x,y), Fx, Fy, T
         '''
-        return self.__gp_data.deepcopy(), self.__gp_label_x.deepcopy(), self.__gp_label_y.deepcopy()
+        return self.__gp_data.copy(), self.__gp_label_x.copy(), self.__gp_label_y.copy(), [t*self.__dt for t in range(self.__duration)]
     
     def reset_gp(self):
         '''
@@ -186,10 +193,13 @@ class WindField:
         If the save parameter is set to `True`, the files are stored in the
         `imgs/trajectories_plots` folder
         '''
+        if not self.__xs:
+            print('No data to plot!')
+            return
 
         T = [t*self.__dt for t in range(self.__duration)]
         tr = self.__trajectory.trajectory()
-        file_name = os.path.basename(self.__trajectory_file)
+        file_name = self.__trajectory_name
 
         fig, ax = plt.subplots(1,2)
         ax[0].plot(T,self.__xs,label='Object Position')
@@ -285,7 +295,11 @@ class WindField:
         Plots the animation showing the evolution of the system following the trajectory
         in the wind field
         '''
-        file_name = os.path.basename(self.__trajectory_file)
+        if not self.__xs:
+            print('No data to plot!')
+            return
+        
+        file_name = self.__trajectory_name
 
         fig, ax = plt.subplots()
         fig.suptitle(f'{file_name} Trajectory')
