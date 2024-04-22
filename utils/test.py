@@ -109,4 +109,56 @@ def test_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots):
     likelihood.load_state_dict(likelihood_dict)
     test_ExactMultiOutputExactGP__(test_data,[test_x_labels,test_y_labels],model,likelihood,'RBF',T,save=save_plots)
 
+    # RBF+Periodic
+    test_data = torch.DoubleTensor(gp_data)
+    test_x_labels = torch.DoubleTensor(x_labels)
+    test_y_labels = torch.DoubleTensor(y_labels)
+    test_labels = torch.stack([test_x_labels,test_y_labels],dim=1)
+    likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=2)
+    model = MultiOutputExactGPModelRBFPeriodic(test_data,test_labels,likelihood)
+    model_dict = torch.load(f'models/MultiOutputExactGP/model-RBF-Periodic.pth')
+    likelihood_dict = torch.load(f'models/MultiOutputExactGP/likelihood-RBF-Periodic.pth')
+    model.load_state_dict(model_dict)
+    likelihood.load_state_dict(likelihood_dict)
+    test_ExactMultiOutputExactGP__(test_data,[test_x_labels,test_y_labels],model,likelihood,'RBF-Periodic',T,save=save_plots)
+
+    # Matern 3/2
+    test_data = torch.DoubleTensor(gp_data)
+    test_x_labels = torch.DoubleTensor(x_labels)
+    test_y_labels = torch.DoubleTensor(y_labels)
+    test_labels = torch.stack([test_x_labels,test_y_labels],dim=1)
+    likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=2)
+    model = MultiOutputExactGPModelMatern_32(test_data,test_labels,likelihood)
+    model_dict = torch.load(f'models/MultiOutputExactGP/model-Matern-32.pth')
+    likelihood_dict = torch.load(f'models/MultiOutputExactGP/likelihood-Matern-32.pth')
+    model.load_state_dict(model_dict)
+    likelihood.load_state_dict(likelihood_dict)
+    test_ExactMultiOutputExactGP__(test_data,[test_x_labels,test_y_labels],model,likelihood,'Matern-32',T,save=save_plots)
+
+    # Matern 5/2
+    test_data = torch.DoubleTensor(gp_data)
+    test_x_labels = torch.DoubleTensor(x_labels)
+    test_y_labels = torch.DoubleTensor(y_labels)
+    test_labels = torch.stack([test_x_labels,test_y_labels],dim=1)
+    likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=2)
+    model = MultiOutputExactGPModelMatern_52(test_data,test_labels,likelihood)
+    model_dict = torch.load(f'models/MultiOutputExactGP/model-Matern-52.pth')
+    likelihood_dict = torch.load(f'models/MultiOutputExactGP/likelihood-Matern-52.pth')
+    model.load_state_dict(model_dict)
+    likelihood.load_state_dict(likelihood_dict)
+    test_ExactMultiOutputExactGP__(test_data,[test_x_labels,test_y_labels],model,likelihood,'Matern-52',T,save=save_plots)
+
+    # Spectral Mixture 3
+    test_data = torch.DoubleTensor(gp_data)
+    test_x_labels = torch.DoubleTensor(x_labels)
+    test_y_labels = torch.DoubleTensor(y_labels)
+    test_labels = torch.stack([test_x_labels,test_y_labels],dim=1)
+    likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=2)
+    model = MultiOutputExactGPModelSpectralMixture_3(test_data,test_labels,likelihood)
+    model_dict = torch.load(f'models/MultiOutputExactGP/model-SpectralMixture-3.pth')
+    likelihood_dict = torch.load(f'models/MultiOutputExactGP/likelihood-SpectralMixture-3.pth')
+    model.load_state_dict(model_dict)
+    likelihood.load_state_dict(likelihood_dict)
+    test_ExactMultiOutputExactGP__(test_data,[test_x_labels,test_y_labels],model,likelihood,'SpectralMixture-3',T,save=save_plots)
+
 

@@ -2,7 +2,7 @@ import gpytorch
 import torch
 import matplotlib.pyplot as plt
 
-def train_ExactGP__(train_data, train_labels, models, likelihoods, name, training_iter=10000):
+def train_ExactGP__(train_data, train_labels, models, likelihoods, name, training_iter):
     '''
     Trains the exact GP model given the specified kernel.\\
     The trained model is saved in the `models/ExactGP` folder
@@ -68,7 +68,7 @@ def test_ExactGP__(test_data, test_labels, models, likelihoods, name, T, save=Fa
     plt.close()
 
 
-def train_ExactMultiOutputExactGP__(train_data, train_labels, model, likelihood, name, training_iter=10000):
+def train_ExactMultiOutputExactGP__(train_data, train_labels, model, likelihood, name, training_iter):
     model.train()
     likelihood.train()
 
@@ -102,7 +102,7 @@ def test_ExactMultiOutputExactGP__(test_data, test_labels, model, likelihood, na
     # x-axis plot
     fig, ax = plt.subplots()
     fig.set_size_inches(16,9)
-    fig.suptitle(f'ExactGP Wind Estimation (x-axis) with {name} kernel')
+    fig.suptitle(f'MultiOutputExactGP Wind Estimation (x-axis) with {name} kernel')
     ax.plot(T,test_labels[0],color='orange',label='True Data')
     ax.plot(T,observed_pred.mean[:,0],'b-',label="Estimated Data")
     ax.fill_between(T, lower[:,0].numpy(), upper[:,0].numpy(), alpha=0.5, color='cyan',label='Confidence')
@@ -113,7 +113,7 @@ def test_ExactMultiOutputExactGP__(test_data, test_labels, model, likelihood, na
     # y-axis plot
     fig, ax = plt.subplots()
     fig.set_size_inches(16,9)
-    fig.suptitle(f'ExactGP Wind Estimation (y-axis) with {name} kernel')
+    fig.suptitle(f'MultiOutputExactGP Wind Estimation (y-axis) with {name} kernel')
     ax.plot(T,test_labels[1],color='orange',label='True Data')
     ax.plot(T,observed_pred.mean[:,1],'b-',label="Estimated Data")
     ax.fill_between(T, lower[:,1].numpy(), upper[:,1].numpy(), alpha=0.5, color='cyan',label='Confidence')

@@ -1,6 +1,5 @@
 import argparse
 import os
-import random
 
 from WindField import WindField
 from utils.train import *
