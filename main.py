@@ -7,7 +7,7 @@ from utils.test import *
 
 # Argument Parser
 # TODO check for argument correctness and maybe add Exceptions
-parser = argparse.ArgumentParser()#
+parser = argparse.ArgumentParser()
 parser.add_argument('--save_plots',action='store_true')
 parser.add_argument('--show_plots',action='store_true')
 parser.add_argument('--test','-t',action='store_true')
@@ -25,9 +25,6 @@ for file in os.listdir('trajectories'):
     wind_field.set_trajectory('trajectories/'+file,file)
     wind_field.simulate_wind_field()
 
-wind_field.plot(True)
-exit()
-
 # Get GP data
 gp_data, x_labels, y_labels, T = wind_field.get_gp_data()
 
@@ -37,12 +34,13 @@ gp_data, x_labels, y_labels, T = wind_field.get_gp_data()
 
 if not test:
     # train_ExactGP(gp_data,x_labels,y_labels)
-    train_MultiOutputExactGP(gp_data,x_labels,y_labels)
-
+    # train_MultiOutputExactGP(gp_data,x_labels,y_labels)
+    train_SVGP(gp_data,x_labels,y_labels)
 
 #----------------------------------------------#
 #                Test GP models                #
 #----------------------------------------------#
 
 # test_ExactGP(gp_data,x_labels,y_labels,T,save_plots)
-test_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots)
+# test_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots)
+test_SVGP(gp_data,x_labels,y_labels,T,save_plots)
