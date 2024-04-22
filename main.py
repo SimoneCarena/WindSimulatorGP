@@ -25,6 +25,9 @@ for file in os.listdir('trajectories'):
     wind_field.set_trajectory('trajectories/'+file,file)
     wind_field.simulate_wind_field()
 
+wind_field.plot(True)
+exit()
+
 # Get GP data
 gp_data, x_labels, y_labels, T = wind_field.get_gp_data()
 

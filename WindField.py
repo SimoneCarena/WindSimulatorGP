@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import json
 
 from matplotlib import animation
+from pathlib import Path
 
 from modules.Fan import Fan
 from modules.System import System
@@ -96,6 +97,27 @@ class WindField:
         self.__wind_force_y = [] # List of y wind forces
         self.__ex = [] # List of x position traking errors
         self.__ey = [] # List of y position traking errors
+
+    def __draw_wind_field_grid(self):
+        vxs = []
+        vys = []
+        vs = []
+        grid_resolution = 50
+        for x in np.linspace(0.1,self.__width-0.1,grid_resolution):
+            vx = []
+            vy = []
+            v = []
+            for y in np.linspace(0.1,self.__height-0.1,grid_resolution):
+                total_speed = 0
+                for fan in self.__fans:
+                    total_speed+=fan.generate_wind(x,y)
+                vx.append(total_speed[0])
+                vy.append(total_speed[1])
+                v.append(np.linalg.norm(total_speed))
+            vxs.append(vx)
+            vys.append(vy)
+            vs.append(v)
+        return np.linspace(0.1,self.__width-0.1,grid_resolution),np.linspace(0.1,self.__height-0.1,grid_resolution),np.array(vxs),np.array(vys), np.array(vs)
 
     def set_trajectory(self, trajectory_file,trajectory_name):
         # Generate Trajectory
@@ -199,7 +221,7 @@ class WindField:
 
         T = [t*self.__dt for t in range(self.__duration)]
         tr = self.__trajectory.trajectory()
-        file_name = self.__trajectory_name
+        file_name = Path(self.__trajectory_name).stem
 
         fig, ax = plt.subplots(1,2)
         ax[0].plot(T,self.__xs,label='Object Position')
@@ -286,6 +308,22 @@ class WindField:
         fig.set_size_inches(16,9)
         if save:
             plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-wind-force.png',dpi=300)
+
+        fig, ax = plt.subplots()
+        fig.set_size_inches(16,9)
+        for fan in self.__fans:
+            ax.quiver(fan.p0[0],fan.p0[1],fan.u0[0],fan.u0[1],color='k',scale=10)
+        xs, ys, vx, vy, v = self.__draw_wind_field_grid()
+        strm = ax.streamplot(xs,ys,vx,vy,color=v, cmap='autumn')
+        cb = fig.colorbar(strm.lines)
+        cb.set_label(r'Velocity $[m/s]$',labelpad=20)
+        ax.set_xlabel(r'$x$ $[m]$')
+        ax.set_ylabel(r'$y$ $[m]$')
+        ax.set_title('Wind Field')
+        ax.set_xlim([0.0,self.__width])
+        ax.set_ylim([0.0,self.__height])
+        if save:
+            plt.savefig(f'imgs/trajectories_plots/wind-field.png',dpi=300)
 
         plt.show()
         plt.close()
