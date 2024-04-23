@@ -246,7 +246,7 @@ plot(tvec,y(1:numSamples))
 plot(tvec,q(2,:))
 title('y Position tracking performance')
 
-save('../test_trajectories/lemniscate.mat','q','-v4')
+save('../trajectories/lemniscate2.mat','q','-v4')
 
 
 %% Diamond Trajectory
@@ -306,7 +306,7 @@ title('y Position tracking performance')
 
 % Write Trajectory
 
-save('../test_trajectories/diamond.mat','q','-v4')
+save('../trajectories/diamond.mat','q','-v4')
 
 
 
