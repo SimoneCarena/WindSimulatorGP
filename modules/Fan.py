@@ -9,13 +9,13 @@ class Fan:
     to the generated wind from the fan. The resulting covariance matrix will be
     noise_var*eye(2,2)
     '''
-    def __init__(self,x0,y0,ux,uy,theta,v0,noise_var=0):
+    def __init__(self,x0,y0,ux,uy,theta,v0,noise_var=0.0):
         self.p0 = np.array([x0,y0],dtype=float)
         self.u0 = np.array([ux,uy],dtype=float)
         self.theta = np.deg2rad(theta)
-        self.v0 = v0
-        self.noise_mean = np.array([0,0],dtype=float)
-        self.noise_cov = np.array([noise_var, noise_var],dtype=float)
+        self.v0 = float(v0)
+        self.noise_mean = 0.0
+        self.noise_cov = noise_var
 
     def generate_wind(self,x,y):
         '''
@@ -26,14 +26,15 @@ class Fan:
         u = np.array([(x-self.p0[0]),(y-self.p0[1])])
         u = u/np.linalg.norm(u)
         # Scale the speed with ditance
-        distance_scale = 1+d
+        distance_scale = (1+d)**2
         # Check if the point is inside the cone
         p = np.sqrt(d)*self.u0+np.array([self.p0[0],self.p0[1]])
         ## The angle is computed using traingles properties
         alpha = 2*np.arcsin(np.sqrt((x-p[0])**2+(y-p[1])**2)/(2*np.sqrt(d)))
+        v0 = self.v0 + np.random.normal(self.noise_mean,self.noise_cov)
         if alpha < self.theta:
-            speed = self.v0/distance_scale*np.copy(self.u0)
+            speed = v0/distance_scale*np.copy(self.u0)
         else:
-            speed = np.array([0,0])
-        return speed + np.random.normal(self.noise_mean,self.noise_cov)
+            speed = np.array([0.0,0.0])
+        return speed
         

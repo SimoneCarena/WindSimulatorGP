@@ -91,7 +91,6 @@ def __test_SVGP(test_data, test_labels, models, likelihoods, name, T, save=False
     plt.close()
 
 
-
 def test_ExactGP(gp_data,x_labels,y_labels,T,save_plots,options):
     # RBF
     if options['RBF'] == True:

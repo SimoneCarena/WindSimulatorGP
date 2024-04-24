@@ -311,17 +311,25 @@ class WindField:
 
         fig, ax = plt.subplots()
         fig.set_size_inches(16,9)
-        for fan in self.__fans:
-            ax.quiver(fan.p0[0],fan.p0[1],fan.u0[0],fan.u0[1],color='k',scale=10)
-        xs, ys, vx, vy, v = self.__draw_wind_field_grid()
-        strm = ax.streamplot(xs,ys,vx,vy,color=v, cmap='autumn')
-        cb = fig.colorbar(strm.lines)
-        cb.set_label(r'Velocity $[m/s]$',labelpad=20)
+        xs, ys, vx, vy, _ = self.__draw_wind_field_grid()
+        
+        # strm = ax.streamplot(xs,ys,vx,vy,color=v, cmap='autumn')
+        # cb = fig.colorbar(strm.lines)
+        # cb.set_label(r'Velocity $[m/s]$',labelpad=20)
+        # ax.quiver(xs,ys,vx,vy)
+        for i in range(len(xs)):
+            for j in range(len(ys)):
+                v =  np.linalg.norm(np.array([vx[i,j],vy[i,j]]))
+                if v>0.2:
+                    ax.arrow(xs[i],ys[j],vx[i,j]/50,vy[i,j]/50,length_includes_head=False,head_width=0.015,head_length=0.015,width=0.003,color='orange')
+                else:
+                    ax.plot(xs[i],ys[j],'o',color='orange',markersize=5*v)
         ax.set_xlabel(r'$x$ $[m]$')
         ax.set_ylabel(r'$y$ $[m]$')
         ax.set_title('Wind Field')
         ax.set_xlim([0.0,self.__width])
         ax.set_ylim([0.0,self.__height])
+        fig.legend(['Wind Speed'])
         if save:
             plt.savefig(f'imgs/trajectories_plots/wind-field.png',dpi=300)
 

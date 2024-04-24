@@ -69,8 +69,6 @@ wind_field.simulate_wind_field()
 
 # Get GP data
 gp_data, x_labels, y_labels, T = wind_field.get_gp_data()
-# wind_field.plot(True)
-
 #-----------------------------------------------#
 #                Train GP models                #
 #-----------------------------------------------#

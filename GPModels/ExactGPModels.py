@@ -116,7 +116,7 @@ class ExactGPModelSpectralMixture_10(gpytorch.models.ExactGP):
         # Return a multivariate normal with mean and covariance just computed
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
     
-class FeatureExtractor(torch.nn.Module):
+class _FeatureExtractor(torch.nn.Module):
     def __init__(self):
         super().__init__()
         self.layers = torch.nn.Sequential(
@@ -135,19 +135,12 @@ class ExactGPModelDeepKernel(gpytorch.models.ExactGP):
     def __init__(self, gp_data, labels, likelihood):
         super(ExactGPModelDeepKernel, self).__init__(gp_data, labels, likelihood)
         self.mean_module = gpytorch.means.ConstantMean()
-        self.covar_module = gpytorch.kernels.GridInterpolationKernel(
-            gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel(ard_num_dims=2)),
-            num_dims=2, grid_size=100
-        )
-        self.feature_extractor = FeatureExtractor()
-
-        # This module will scale the NN features so that they're nice values
-        self.scale_to_bounds = gpytorch.utils.grid.ScaleToBounds(0., 4.)
+        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel(ard_num_dims=2))
+        self.feature_extractor = _FeatureExtractor()
 
     def forward(self, x):
         # We're first putting our data through a deep net (feature extractor)
         projected_x = self.feature_extractor(x)
-        projected_x = self.scale_to_bounds(projected_x)
 
         mean_x = self.mean_module(projected_x)
         covar_x = self.covar_module(projected_x)
