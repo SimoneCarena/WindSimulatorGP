@@ -203,6 +203,21 @@ class WindField:
         '''
         return self.__gp_data.copy(), self.__gp_label_x.copy(), self.__gp_label_y.copy(), [t*self.__dt for t in range(self.__duration)]
     
+    def get_wind_field_data(self):
+        
+        x, y, vx, vy, _ = self.__draw_wind_field_grid()
+        fx = (0.5*self.__air_density*self.__system.surf)*vx**2*np.sign(vx)
+        fy = (0.5*self.__air_density*self.__system.surf)*vy**2*np.sign(vy)
+        f = np.sqrt(np.power(fx+fy,2))
+
+        return {
+            'x': x,
+            'y': y,
+            'fx': fx,
+            'fy': fy,
+            'f': f
+        }
+    
     def reset_gp(self):
         '''
         Resets the GP data
@@ -311,7 +326,7 @@ class WindField:
 
         fig, ax = plt.subplots()
         fig.set_size_inches(16,9)
-        xs, ys, vx, vy, _ = self.__draw_wind_field_grid()
+        xs, ys, vx, vy, v = self.__draw_wind_field_grid()
         
         # strm = ax.streamplot(xs,ys,vx,vy,color=v, cmap='autumn')
         # cb = fig.colorbar(strm.lines)
@@ -319,11 +334,10 @@ class WindField:
         # ax.quiver(xs,ys,vx,vy)
         for i in range(len(xs)):
             for j in range(len(ys)):
-                v =  np.linalg.norm(np.array([vx[i,j],vy[i,j]]))
-                if v>0.2:
+                if v[i,j]>0.2:
                     ax.arrow(xs[i],ys[j],vx[i,j]/50,vy[i,j]/50,length_includes_head=False,head_width=0.015,head_length=0.015,width=0.003,color='orange')
                 else:
-                    ax.plot(xs[i],ys[j],'o',color='orange',markersize=5*v)
+                    ax.plot(xs[i],ys[j],'o',color='orange',markersize=5*v[i,j])
         ax.set_xlabel(r'$x$ $[m]$')
         ax.set_ylabel(r'$y$ $[m]$')
         ax.set_title('Wind Field')
