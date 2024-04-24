@@ -3,7 +3,7 @@
     "RBF-Periodic": true,
     "Matern-32": true,
     "Matern-52": true,
-    "SpectralMixture-3": false,
+    "SpectralMixture-3": true,
     "SpectralMixture-5": false,
     "SpectralMixture-10": false,
     "DeepKernel": false

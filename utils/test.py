@@ -32,7 +32,13 @@ def __test_ExactGP(test_data, test_labels, models, likelihoods, name, T, save=Fa
         ax.fill_between(T, lower.numpy(), upper.numpy(), alpha=0.5, color='cyan',label='Confidence')
         ax.legend()
         if save:
-            plt.savefig(f'imgs/gp_plots/ExactGP/{name}-{axis}',dpi=300)
+            plt.savefig(f'imgs/gp_plots/ExactGP/{name}-{axis}.png',dpi=300)
+            plt.savefig(f'imgs/gp_plots/ExactGP/{name}-{axis}.svg',dpi=300)
+        ax.set_xlabel(r'$t$ $[s]$')
+        if axis == 'x':
+            ax.set_ylabel(r'$F_{w_x}$ $[N]$')
+        else:
+            ax.set_ylabel(r'$F_{w_y}$ $[N]$')
         
     f = torch.stack([fx,fy],dim=1).numpy()
     lab = torch.stack([test_labels[0],test_labels[1]],dim=1).numpy()
@@ -41,6 +47,8 @@ def __test_ExactGP(test_data, test_labels, models, likelihoods, name, T, save=Fa
     fig.set_size_inches(16,9)
     fig.suptitle(f'Wind Estimation along Square Trajectory using {name} Kernel')
     ax.plot(np.NaN, np.NaN, '-', color='none')
+    ax.set_xlabel(r'$x$ $[m]$')
+    ax.set_ylabel(r'$y$ $[m]$')
     for i,p in enumerate(test_data):
         if i%10 == 0:
             x = p[0]
@@ -49,7 +57,8 @@ def __test_ExactGP(test_data, test_labels, models, likelihoods, name, T, save=Fa
             ax.arrow(x,y,fx[i],fy[i],length_includes_head=False,head_width=0.01,head_length=0.01,width=0.004,color='b',alpha=0.5)
     fig.legend(['RMSE = {:.2f} N'.format(rmse),'Real Wind Force','Estimated Wind Force'])
     if save:
-        plt.savefig(f'imgs/gp_plots/ExactGP/{name}-full-trajectory',dpi=300)
+        plt.savefig(f'imgs/gp_plots/ExactGP/{name}-full-trajectory.png',dpi=300)
+        plt.savefig(f'imgs/gp_plots/ExactGP/{name}-full-trajectory.svg',dpi=300)
 
     if show:
         plt.show()

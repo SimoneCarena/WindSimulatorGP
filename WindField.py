@@ -39,6 +39,7 @@ class WindField:
         self.__duration = data["duration"] # Number of steps taken
         self.__dt = data["dt"] # Sampling time
         self.__air_density = data["air_density"] 
+        self.__grid_resolution = data["grid_resolution"]
 
         ## Parse fans' data
         self.__fans = []
@@ -49,6 +50,7 @@ class WindField:
             theta = float(fan["theta"])
             v0 = float(fan["v0"])
             noise_var = float(fan['noise_var'])
+            length = float(fan["length"])
 
             u0 = np.array([1,0])
             rot_mat = np.array([
@@ -56,6 +58,11 @@ class WindField:
                 [np.sin(alpha),np.cos(alpha)]
             ],dtype=float)
             u0 = rot_mat@u0
+
+            # Move the fan to increase the spread in the origin
+            h = 0.5*length/np.tan(theta/2)
+            x0 = x0+h*u0[0]
+            y0 = y0+h*u0[1]
 
             f = Fan(x0,y0,u0[0],u0[1],theta,v0,noise_var)
             self.__fans.append(f)
@@ -102,12 +109,11 @@ class WindField:
         vxs = []
         vys = []
         vs = []
-        grid_resolution = 50
-        for x in np.linspace(0.1,self.__width-0.1,grid_resolution):
+        for x in np.linspace(0.1,self.__width-0.1,self.__grid_resolution):
             vx = []
             vy = []
             v = []
-            for y in np.linspace(0.1,self.__height-0.1,grid_resolution):
+            for y in np.linspace(0.1,self.__height-0.1,self.__grid_resolution):
                 total_speed = 0
                 for fan in self.__fans:
                     total_speed+=fan.generate_wind(x,y)
@@ -117,7 +123,7 @@ class WindField:
             vxs.append(vx)
             vys.append(vy)
             vs.append(v)
-        return np.linspace(0.1,self.__width-0.1,grid_resolution),np.linspace(0.1,self.__height-0.1,grid_resolution),np.array(vxs),np.array(vys), np.array(vs)
+        return np.linspace(0.1,self.__width-0.1,self.__grid_resolution),np.linspace(0.1,self.__height-0.1,self.__grid_resolution),np.array(vxs),np.array(vys), np.array(vs)
 
     def set_trajectory(self, trajectory_file,trajectory_name):
         # Generate Trajectory
@@ -253,6 +259,7 @@ class WindField:
         fig.set_size_inches(16,9)
         if save:
             plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-x-position.png',dpi=300)
+            plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-x-position.svg')
 
         fig, ax = plt.subplots(1,2)
         ax[0].plot(T,self.__ys,label='Object Position')
@@ -269,6 +276,7 @@ class WindField:
         fig.set_size_inches(16,9)
         if save:
             plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-y-position.png',dpi=300)
+            plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-y-position.svg')
 
         fig, ax = plt.subplots()
         ax.plot(self.__xs,self.__ys,label='System Trajectory')
@@ -281,6 +289,7 @@ class WindField:
         fig.set_size_inches(16,9)
         if save:
             plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-traking.png',dpi=300)
+            plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-traking.svg')
 
         fig, ax = plt.subplots(1,2)
         ax[0].plot(T,self.__vxs)
@@ -295,6 +304,7 @@ class WindField:
         fig.set_size_inches(16,9)
         if save:
             plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-velocity.png',dpi=300)
+            plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-velocity.svg')
 
         fig, ax = plt.subplots(1,2)
         ax[0].plot(T,self.__ctl_forces_x)
@@ -309,6 +319,7 @@ class WindField:
         fig.set_size_inches(16,9)
         if save:
             plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-control-force.png',dpi=300)
+            plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-control-force.svg')
 
         fig, ax = plt.subplots(1,2)
         ax[0].plot(T,self.__wind_force_x)
@@ -323,19 +334,17 @@ class WindField:
         fig.set_size_inches(16,9)
         if save:
             plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-wind-force.png',dpi=300)
+            plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-wind-force.svg')
 
         fig, ax = plt.subplots()
         fig.set_size_inches(16,9)
         xs, ys, vx, vy, v = self.__draw_wind_field_grid()
-        
-        # strm = ax.streamplot(xs,ys,vx,vy,color=v, cmap='autumn')
-        # cb = fig.colorbar(strm.lines)
-        # cb.set_label(r'Velocity $[m/s]$',labelpad=20)
-        # ax.quiver(xs,ys,vx,vy)
+        ax.set_xlim([0.0,self.__width])
+        ax.set_ylim([0.0,self.__height])
         for i in range(len(xs)):
             for j in range(len(ys)):
                 if v[i,j]>0.2:
-                    ax.arrow(xs[i],ys[j],vx[i,j]/50,vy[i,j]/50,length_includes_head=False,head_width=0.015,head_length=0.015,width=0.003,color='orange')
+                    ax.arrow(xs[i],ys[j],vx[i,j]/40,vy[i,j]/40,length_includes_head=False,head_width=0.015,head_length=0.015,width=0.003,color='orange')
                 else:
                     ax.plot(xs[i],ys[j],'o',color='orange',markersize=5*v[i,j])
         ax.set_xlabel(r'$x$ $[m]$')
@@ -346,6 +355,7 @@ class WindField:
         fig.legend(['Wind Speed'])
         if save:
             plt.savefig(f'imgs/trajectories_plots/wind-field.png',dpi=300)
+            plt.savefig(f'imgs/trajectories_plots/wind-field.svg')
 
         plt.show()
         plt.close()
