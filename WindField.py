@@ -61,8 +61,8 @@ class WindField:
 
             # Move the fan to increase the spread in the origin
             h = 0.5*length/np.tan(theta/2)
-            x0 = x0+h*u0[0]
-            y0 = y0+h*u0[1]
+            x0 = x0-h*u0[0]
+            y0 = y0-h*u0[1]
 
             f = Fan(x0,y0,u0[0],u0[1],theta,v0,noise_var)
             self.__fans.append(f)

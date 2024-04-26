@@ -37,9 +37,14 @@ def __train_ExactGP(train_data, train_labels, models, likelihoods, name, trainin
             print('|{}{}| {:.2f}% (Iteration {}/{})'.format('█'*int(20*(i+1)/training_iter),' '*(20-int(20*(i+1)/training_iter)),(i+1)*100/training_iter,i+1,training_iter),end='\r')
         print('')
 
-        # Save the model
+        # Save the model and Train labels
         torch.save(model.state_dict(),f'models/ExactGP/model-{axis}-{name}.pth')
         torch.save(likelihood.state_dict(),f'models/ExactGP/likelihood-{axis}-{name}.pth')
+
+    # Save the train data and labels 
+    torch.save(train_data.clone(),f'data/ExactGP/train_data-{name}.pt')
+    torch.save(train_labels[0].clone(),f'data/ExactGP/train_labels-x-{name}.pt')
+    torch.save(train_labels[1].clone(),f'data/ExactGP/train_labels-y-{name}.pt')
 
     print(f'Training of ExactGP model with {name} kernel complete!\n')
 
@@ -65,6 +70,9 @@ def __train_ExactMultiOutputExactGP(train_data, train_labels, model, likelihood,
     # Save the model
     torch.save(model.state_dict(),f'models/MultiOutputExactGP/model-{name}.pth')
     torch.save(likelihood.state_dict(),f'models/MultiOutputExactGP/likelihood-{name}.pth')
+    # Save the train data and labels 
+    torch.save(train_data.clone(),f'data/MultiOutputExactGP/train_data-{name}.pt')
+    torch.save(train_labels.clone(),f'data/MultiOutputExactGP/train_labels-{name}.pt')
 
 def __train_SVGP(train_data, train_labels, models, likelihoods, name, training_iter):
     axis = ['x','y']
@@ -150,6 +158,11 @@ def __train_ExactDeepKernel(train_data, x_labels, y_labels, training_iter, devic
     torch.save(likelihood_x.state_dict(),f'models/ExactGP/likelihood-x-deep-kernel.pth')
     torch.save(model_y.state_dict(),f'models/ExactGP/model-y-deep-kernel.pth')
     torch.save(likelihood_y.state_dict(),f'models/ExactGP/likelihood-y-deep-kernel.pth')
+
+    # Save the train data and labels 
+    torch.save(train_data.clone(),f'data/ExactGP/train_data-deep-kernel.pt')
+    torch.save(x_labels.clone(),f'data/ExactGP/train_labels-x-deep-kernel.pt')
+    torch.save(y_labels.clone(),f'data/ExactGP/train_labels-y-deep-kernel.pt')
 
 
 def train_ExactGP(gp_data, x_labels, y_labels, options, device, training_iter=10000):
@@ -325,7 +338,7 @@ def train_MultiOutputExactGP(gp_data, x_labels, y_labels, options, device, train
 def train_SVGP(gp_data, x_labels, y_labels, options, device, training_iter=10000):
     # RBF kernel
     if options['RBF']:
-        inducing_points = torch.FloatTensor(gp_data[:200]).clone().to(device)
+        inducing_points = torch.FloatTensor(gp_data[:200]).to(device)
         train_data = torch.FloatTensor(gp_data).clone().to(device)
         train_x_labels = torch.FloatTensor(x_labels).clone().to(device)
         train_y_labels = torch.FloatTensor(y_labels).clone().to(device)
@@ -334,10 +347,12 @@ def train_SVGP(gp_data, x_labels, y_labels, options, device, training_iter=10000
         model_x = SVGPModelRBF(inducing_points).to(device)
         model_y = SVGPModelRBF(inducing_points).to(device)
         __train_SVGP(train_data,[train_x_labels,train_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'RBF',training_iter)
+        # Save Training Inducing Points
+        torch.save(inducing_points,'data/SVGP/inducing_points-RBF.pt')
 
     # RBF + Periodic kernel
     if options['RBF-Periodic']:
-        inducing_points = torch.FloatTensor(gp_data[:200]).clone().to(device)
+        inducing_points = torch.FloatTensor(gp_data[:200]).to(device)
         train_data = torch.FloatTensor(gp_data).clone().to(device)
         train_x_labels = torch.FloatTensor(x_labels).clone().to(device)
         train_y_labels = torch.FloatTensor(y_labels).clone().to(device)
@@ -346,10 +361,11 @@ def train_SVGP(gp_data, x_labels, y_labels, options, device, training_iter=10000
         model_x = SVGPModelRBFPeriodic(inducing_points).to(device)
         model_y = SVGPModelRBFPeriodic(inducing_points).to(device)
         __train_SVGP(train_data,[train_x_labels,train_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'RBF-Periodic',training_iter)
+        torch.save(inducing_points,'data/SVGP/inducing_points-RBF-Periodic.pt')
 
     # Matern 3/2 kernel
     if options['Matern-32']:
-        inducing_points = torch.FloatTensor(gp_data[:200]).clone().to(device)
+        inducing_points = torch.FloatTensor(gp_data[:200]).to(device)
         train_data = torch.FloatTensor(gp_data).clone().to(device)
         train_x_labels = torch.FloatTensor(x_labels).clone().to(device)
         train_y_labels = torch.FloatTensor(y_labels).clone().to(device)
@@ -358,10 +374,11 @@ def train_SVGP(gp_data, x_labels, y_labels, options, device, training_iter=10000
         model_x = SVGPModelMatern_32(inducing_points).to(device)
         model_y = SVGPModelMatern_32(inducing_points).to(device)
         __train_SVGP(train_data,[train_x_labels,train_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'Matern-32',training_iter)
+        torch.save(inducing_points,'data/SVGP/inducing_points-Matern-32.pt')
 
     # Matern 5/2 kernel
     if options['Matern-52']:
-        inducing_points = torch.FloatTensor(gp_data[:200]).clone().to(device)
+        inducing_points = torch.FloatTensor(gp_data[:200]).to(device)
         train_data = torch.FloatTensor(gp_data).clone().to(device)
         train_x_labels = torch.FloatTensor(x_labels).clone().to(device)
         train_y_labels = torch.FloatTensor(y_labels).clone().to(device)
@@ -370,10 +387,11 @@ def train_SVGP(gp_data, x_labels, y_labels, options, device, training_iter=10000
         model_x = SVGPModelMatern_52(inducing_points).to(device)
         model_y = SVGPModelMatern_52(inducing_points).to(device)
         __train_SVGP(train_data,[train_x_labels,train_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'Matern-52',training_iter)
+        torch.save(inducing_points,'data/SVGP/inducing_points-Matern-52.pt')
 
     # SpectralMixture-3 kernel
     if options['SpectralMixture-3']:
-        inducing_points = torch.FloatTensor(gp_data[:200]).clone().to(device)
+        inducing_points = torch.FloatTensor(gp_data[:200]).to(device)
         train_data = torch.FloatTensor(gp_data).clone().to(device)
         train_x_labels = torch.FloatTensor(x_labels).clone().to(device)
         train_y_labels = torch.FloatTensor(y_labels).clone().to(device)
@@ -382,10 +400,11 @@ def train_SVGP(gp_data, x_labels, y_labels, options, device, training_iter=10000
         model_x = SVGPModelSpectralMixture_3(inducing_points).to(device)
         model_y = SVGPModelSpectralMixture_3(inducing_points).to(device)
         __train_SVGP(train_data,[train_x_labels,train_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'SpectralMixture-3',training_iter)
+        torch.save(inducing_points,'data/SVGP/inducing_points-SpectralMixture-3.pt')
 
     # SpectralMixture-5 kernel
     if options['SpectralMixture-5']:
-        inducing_points = torch.FloatTensor(gp_data[:200]).clone().to(device)
+        inducing_points = torch.FloatTensor(gp_data[:200]).to(device)
         train_data = torch.FloatTensor(gp_data).clone().to(device)
         train_x_labels = torch.FloatTensor(x_labels).clone().to(device)
         train_y_labels = torch.FloatTensor(y_labels).clone().to(device)
@@ -394,10 +413,11 @@ def train_SVGP(gp_data, x_labels, y_labels, options, device, training_iter=10000
         model_x = SVGPModelSpectralMixture_5(inducing_points).to(device)
         model_y = SVGPModelSpectralMixture_5(inducing_points).to(device)
         __train_SVGP(train_data,[train_x_labels,train_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'SpectralMixture-5',training_iter)
+        torch.save(inducing_points,'data/SVGP/inducing_points-SpectralMixture-5.pt')
 
-    # SpectralMixture-5 kernel
+    # SpectralMixture-10 kernel
     if options['SpectralMixture-10']:
-        inducing_points = torch.FloatTensor(gp_data[:200]).clone().to(device)
+        inducing_points = torch.FloatTensor(gp_data[:200]).to(device)
         train_data = torch.FloatTensor(gp_data).clone().to(device)
         train_x_labels = torch.FloatTensor(x_labels).clone().to(device)
         train_y_labels = torch.FloatTensor(y_labels).clone().to(device)
@@ -406,3 +426,4 @@ def train_SVGP(gp_data, x_labels, y_labels, options, device, training_iter=10000
         model_x = SVGPModelSpectralMixture_10(inducing_points).to(device)
         model_y = SVGPModelSpectralMixture_10(inducing_points).to(device)
         __train_SVGP(train_data,[train_x_labels,train_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'SpectralMixture-10',training_iter)
+        torch.save(inducing_points,'data/SVGP/inducing_points-SpectralMixture-10.pt')
