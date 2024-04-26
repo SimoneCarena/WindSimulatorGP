@@ -26,7 +26,7 @@ class Fan:
         u = np.array([(x-self.p0[0]),(y-self.p0[1])])
         u = u/np.linalg.norm(u)
         # Scale the speed with ditance
-        distance_scale = (1+d)**2
+        distance_scale = (1+d)**1.5
         # Check if the point is inside the cone
         p = np.sqrt(d)*self.u0+np.array([self.p0[0],self.p0[1]])
         ## The angle is computed using traingles properties
@@ -36,7 +36,7 @@ class Fan:
         # Add noise
         v0 = self.v0 + np.random.normal(self.noise_mean,self.noise_cov)
         if alpha < self.theta/2:
-            speed =radial_scale*v0/distance_scale*np.copy(u)
+            speed = radial_scale*v0/distance_scale*np.copy(u)
         else:
             speed = np.array([0.0,0.0])
         return speed

@@ -55,8 +55,6 @@ wind_field = WindField('configs/wind_field.json','configs/mass.json')
 for file in os.listdir('trajectories'):
     wind_field.set_trajectory('trajectories/'+file,file)
     wind_field.simulate_wind_field()
-    wind_field.plot()
-    exit()
     if show_plots:  
         wind_field.plot(save_plots)
     wind_field.reset()
@@ -86,4 +84,4 @@ wind_field_data = wind_field.get_wind_field_data()
 
 # test_ExactGP(gp_data,x_labels,y_labels,T,save_plots,exact_gp_options)
 # test_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots,mo_exact_gp_options)
-# test_SVGP(gp_data,x_labels,y_labels,T,save_plots,svgp_options)
+test_SVGP(gp_data,x_labels,y_labels,T,save_plots,svgp_options)
