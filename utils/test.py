@@ -54,7 +54,7 @@ def __test_ExactGP(test_data, test_labels, models, likelihoods, name, T, save=Fa
             x = p[0]
             y = p[1]
             ax.arrow(x,y,test_labels[0][i],test_labels[1][i],length_includes_head=False,head_width=0.01,head_length=0.01,width=0.004,color='orange')
-            ax.arrow(x,y,fx[i],fy[i],length_includes_head=False,head_width=0.01,head_length=0.01,width=0.004,color='b',alpha=0.5)
+            ax.arrow(x,y,fx[i],fy[i],length_includes_head=False,head_width=0.01,head_length=0.01,width=0.004,color='cyan',alpha=0.5)
     fig.legend(['RMSE = {:.2f} N'.format(rmse),'Real Wind Force','Estimated Wind Force'])
     if save:
         plt.savefig(f'imgs/gp_plots/ExactGP/{name}-full-trajectory.png',dpi=300)
@@ -107,7 +107,7 @@ def __test_ExactMultiOutputExactGP(test_data, test_labels, model, likelihood, na
             x = p[0]
             y = p[1]
             ax.arrow(x,y,test_labels[0][i],test_labels[1][i],length_includes_head=False,head_width=0.01,head_length=0.01,width=0.004,color='orange')
-            ax.arrow(x,y,observed_pred.mean[i][0],observed_pred.mean[i][0],length_includes_head=False,head_width=0.01,head_length=0.01,width=0.004,color='b',alpha=0.5)
+            ax.arrow(x,y,observed_pred.mean[i][0],observed_pred.mean[i][0],length_includes_head=False,head_width=0.01,head_length=0.01,width=0.004,color='cyan',alpha=0.5)
     fig.legend(['RMSE = {:.2f} N'.format(rmse),'Real Wind Force','Estimated Wind Force'])
     if save:
         plt.savefig(f'imgs/gp_plots/MultiOutputExactGP/{name}-full-trajectory.png',dpi=300)
@@ -160,7 +160,7 @@ def __test_SVGP(test_data, test_labels, models, likelihoods, name, T, save=False
             x = p[0]
             y = p[1]
             ax.arrow(x,y,test_labels[0][i],test_labels[1][i],length_includes_head=False,head_width=0.01,head_length=0.01,width=0.004,color='orange')
-            ax.arrow(x,y,fx[i],fy[i],length_includes_head=False,head_width=0.01,head_length=0.01,width=0.004,color='b',alpha=0.5)
+            ax.arrow(x,y,fx[i],fy[i],length_includes_head=False,head_width=0.01,head_length=0.01,width=0.004,color='cyan',alpha=0.5)
     fig.legend(['RMSE = {:.2f} N'.format(rmse),'Real Wind Force','Estimated Wind Force'])
     if save:
         plt.savefig(f'imgs/gp_plots/SVGP/{name}-full-trajectory.png',dpi=300)

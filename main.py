@@ -69,19 +69,20 @@ gp_data, x_labels, y_labels, T = wind_field.get_gp_data()
 if not test:
     # train_ExactGP(gp_data,x_labels,y_labels,exact_gp_options,device,20000)
     # train_MultiOutputExactGP(gp_data,x_labels,y_labels,mo_exact_gp_options,device,20000)
-    train_SVGP(gp_data,x_labels,y_labels,svgp_options,device,20000)
+    train_SVGP(gp_data,x_labels,y_labels,svgp_options,device,50000)
 
 #----------------------------------------------#
 #                Test GP models                #
 #----------------------------------------------#
 
-wind_field.reset()
-wind_field.reset_gp()
-wind_field.set_trajectory('trajectories/lemniscate.mat','lemniscate.mat')
-wind_field.simulate_wind_field()
-gp_data, x_labels, y_labels, T = wind_field.get_gp_data()
-wind_field_data = wind_field.get_wind_field_data()
+for file in os.listdir('trajectories'):
+    wind_field.reset()
+    wind_field.reset_gp()
+    wind_field.set_trajectory('trajectories/'+file,file)
+    wind_field.simulate_wind_field()
+    gp_data, x_labels, y_labels, T = wind_field.get_gp_data()
+    wind_field_data = wind_field.get_wind_field_data()
 
-# test_ExactGP(gp_data,x_labels,y_labels,T,save_plots,exact_gp_options)
-# test_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots,mo_exact_gp_options)
-test_SVGP(gp_data,x_labels,y_labels,T,save_plots,svgp_options)
+    # test_ExactGP(gp_data,x_labels,y_labels,T,save_plots,exact_gp_options)
+    # test_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots,mo_exact_gp_options)
+    test_SVGP(gp_data,x_labels,y_labels,T,save_plots,svgp_options)
