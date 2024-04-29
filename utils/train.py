@@ -107,6 +107,9 @@ def __train_SVGP(train_data, train_labels, models, likelihoods, name, training_i
         # Save the model
         torch.save(model.state_dict(),f'models/SVGP/model-{axis}-{name}.pth')
         torch.save(likelihood.state_dict(),f'models/SVGP/likelihood-{axis}-{name}.pth')
+        # Save Training Inducing Points
+        inducing_points = model.variational_strategy.inducing_points
+        torch.save(inducing_points,f'data/SVGP/inducing_points_{axis}-{name}.pt')
 
     print(f'Training of SVGP model with {name} kernel complete!\n')
 
@@ -338,8 +341,8 @@ def train_MultiOutputExactGP(gp_data, x_labels, y_labels, options, device, train
 def train_SVGP(gp_data, x_labels, y_labels, options, device, training_iter=10000):
     # RBF kernel
     if options['RBF']:
-        inducing_points = torch.FloatTensor(gp_data[:200]).to(device)
-        train_data = torch.FloatTensor(gp_data).clone().to(device)
+        train_data = torch.FloatTensor(gp_data).to(device)
+        inducing_points = train_data[:200]
         train_x_labels = torch.FloatTensor(x_labels).clone().to(device)
         train_y_labels = torch.FloatTensor(y_labels).clone().to(device)
         likelihood_x = gpytorch.likelihoods.GaussianLikelihood().to(device)
@@ -347,8 +350,6 @@ def train_SVGP(gp_data, x_labels, y_labels, options, device, training_iter=10000
         model_x = SVGPModelRBF(inducing_points).to(device)
         model_y = SVGPModelRBF(inducing_points).to(device)
         __train_SVGP(train_data,[train_x_labels,train_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'RBF',training_iter)
-        # Save Training Inducing Points
-        torch.save(inducing_points,'data/SVGP/inducing_points-RBF.pt')
 
     # RBF + Periodic kernel
     if options['RBF-Periodic']:
