@@ -1,10 +1,10 @@
 {
-    "RBF": true,
-    "RBF-Periodic": true,
-    "Matern-32": true,
-    "Matern-52": true,
-    "SpectralMixture-3": true,
-    "SpectralMixture-5": true,
-    "SpectralMixture-10": true,
+    "RBF": false,
+    "RBF-Periodic": false,
+    "Matern-32": false,
+    "Matern-52": false,
+    "SpectralMixture-3": false,
+    "SpectralMixture-5": false,
+    "SpectralMixture-10": false,
     "DeepKernel": true
 }

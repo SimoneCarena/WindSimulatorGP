@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import json
+import torch
 
 from matplotlib import animation
 from pathlib import Path
@@ -17,10 +18,15 @@ class WindField:
     The Wind Field is constructed by passing it the wind field configuration file, and the 
     mass configuration file.
     '''
-    def __init__(self, wind_field_conf_file, mass_conf_file):
+    def __init__(self, wind_field_conf_file, mass_conf_file, gp_predictor_x=None, gp_predictor_y=None):
         self.__wind_field_conf_file = wind_field_conf_file
         self.__mass_config_file = mass_conf_file
         self.__trajectory = None
+        self.__gp_predictor_x = gp_predictor_x
+        self.__gp_predictor_y = gp_predictor_y
+        if gp_predictor_x is not None and gp_predictor_y is not None:
+            self.__gp_predictor_x.eval()
+            self.__gp_predictor_y.eval()
 
         self.__setup_wind_field(wind_field_conf_file)
         self.__setup_system(mass_conf_file)
@@ -164,6 +170,14 @@ class WindField:
             wind_force = (0.5*self.__air_density*self.__system.surf)*total_speed**2*np.sign(total_speed)
             # Total force
             force = wind_force + control_force
+            # Add GP prediction wind force
+            if self.__gp_predictor_x is not None and self.__gp_predictor_y is not None:
+                with torch.no_grad():
+                    p = torch.FloatTensor([[self.__system.p[0],self.__system.p[1]]])
+                    predicted_wind_force_x = self.__gp_predictor_x(p).mean.item()
+                    predicted_wind_force_y = self.__gp_predictor_y(p).mean.item()
+                force -= np.array([predicted_wind_force_x,predicted_wind_force_y],dtype=float)
+                print(wind_force, np.array([predicted_wind_force_x,predicted_wind_force_y],dtype=float))
             # Simulate Dynamics
             self.__system.discrete_dynamics(force)
             self.__xs.append(self.__system.p[0])
@@ -243,6 +257,8 @@ class WindField:
         T = [t*self.__dt for t in range(self.__duration)]
         tr = self.__trajectory.trajectory()
         file_name = Path(self.__trajectory_name).stem
+        sys_tr = np.stack([self.__xs,self.__ys])
+        rmse = np.sqrt(1/len(tr)*np.linalg.norm(sys_tr-tr)**2)
 
         fig, ax = plt.subplots(1,2)
         ax[0].plot(T,self.__xs,label='Object Position')
@@ -279,6 +295,7 @@ class WindField:
             plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-y-position.svg')
 
         fig, ax = plt.subplots()
+        ax.plot(np.NaN, np.NaN, '-', color='none', label='RMSE={:.2f}'.format(rmse))
         ax.plot(self.__xs,self.__ys,label='System Trajectory')
         ax.plot(tr[0,:],tr[1,:],'--',label='Trajectory to Track')
         ax.title.set_text(r'Trajectory')
