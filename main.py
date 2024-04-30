@@ -59,8 +59,6 @@ for file in os.listdir('trajectories'):
         wind_field.plot(save_plots)
     wind_field.reset()
 
-exit()
-
 
 # Get GP data
 gp_data, x_labels, y_labels, T = wind_field.get_gp_data()

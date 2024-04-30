@@ -7,76 +7,13 @@
     "air_density": 1.2,
     "fans": [
         {
-            "x0": 0,
-            "y0": 3,
-            "alpha": 0,
-            "theta": 120,
-            "v0": 50,
-            "noise_var": 0.01,
-            "length": 0.5
-        },
-        {
-            "x0": 0,
-            "y0": 1,
-            "alpha": 0,
-            "theta": 120,
-            "v0": 50,
-            "noise_var": 0.01,
-            "length": 0.5
-        },
-        {
-            "x0": 3,
+            "x0": 2,
             "y0": 0,
             "alpha": 90,
             "theta": 120,
-            "v0": 50,
+            "v0": 14,
             "noise_var": 0.01,
-            "length": 0.5
-        },
-        {
-            "x0": 1,
-            "y0": 0,
-            "alpha": 90,
-            "theta": 120,
-            "v0": 50,
-            "noise_var": 0.01,
-            "length": 0.5
-        },
-        {
-            "x0": 4,
-            "y0": 3,
-            "alpha": 180,
-            "theta": 120,
-            "v0": 50,
-            "noise_var": 0.01,
-            "length": 0.5
-        },
-        {
-            "x0": 4,
-            "y0": 1,
-            "alpha": 180,
-            "theta": 120,
-            "v0": 50,
-            "noise_var": 0.01,
-            "length": 0.5
-        },
-        {
-            "x0": 3,
-            "y0": 4,
-            "alpha": -90,
-            "theta": 120,
-            "v0": 50,
-            "noise_var": 0.01,
-            "length": 0.5
-        },
-        {
-            "x0": 1,
-            "y0": 4,
-            "alpha": -90,
-            "theta": 120,
-            "v0": 50,
-            "noise_var": 0.01,
-            "length": 0.5
+            "length": 1
         }
     ]
 }

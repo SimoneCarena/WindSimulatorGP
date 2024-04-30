@@ -179,14 +179,13 @@ class WindField:
                     predicted_wind_force_y = self.__gp_predictor_y(p).mean.item()
                 force -= np.array([predicted_wind_force_x,predicted_wind_force_y],dtype=float)
                 print(wind_force, np.array([predicted_wind_force_x,predicted_wind_force_y],dtype=float))
-            # Simulate Dynamics
-            self.__system.discrete_dynamics(force)
+            
             self.__xs.append(self.__system.p[0])
             self.__ys.append(self.__system.p[1])
             self.__vxs.append(self.__system.v[0])
             self.__vys.append(self.__system.v[1])
             self.__ctl_forces_x.append(control_force[0])
-            self.__ctl_forces_y.append(control_force[0])
+            self.__ctl_forces_y.append(control_force[1])
             self.__ex.append(ep[0])
             self.__ey.append(ep[1])
             self.__evx.append(ev[0])
@@ -197,6 +196,9 @@ class WindField:
             # Collect labels for GP
             self.__gp_label_x.append(wind_force[0])
             self.__gp_label_y.append(wind_force[1])
+
+            # Simulate Dynamics
+            self.__system.discrete_dynamics(force)
 
     def reset(self, wind_field_conf_file=None, mass_conf_file=None):
         '''
@@ -298,13 +300,15 @@ class WindField:
             plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-y-position.svg')
 
         fig, ax = plt.subplots()
-        ax.plot(np.NaN, np.NaN, '-', color='none', label='RMSE={:.2f}'.format(rmse))
+        ax.plot(np.NaN, np.NaN, '-', color='none', label='RMSE={:.2f} m'.format(rmse))
         ax.plot(self.__xs,self.__ys,label='System Trajectory')
         ax.plot(p[0,:],p[1,:],'--',label='Trajectory to Track')
         ax.title.set_text(r'Trajectory')
         ax.legend()
         ax.set_xlabel(r'$x$ $[m]$')
         ax.set_ylabel(r'$y$ $[m]$')
+        ax.set_xlim([0.0,self.__width])
+        ax.set_ylim([0.0,self.__height])
         fig.suptitle(f'{file_name} Trajectory')
         fig.set_size_inches(16,9)
         if save:
