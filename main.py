@@ -59,6 +59,8 @@ for file in os.listdir('trajectories'):
         wind_field.plot(save_plots)
     wind_field.reset()
 
+exit()
+
 
 # Get GP data
 gp_data, x_labels, y_labels, T = wind_field.get_gp_data()
@@ -69,7 +71,7 @@ gp_data, x_labels, y_labels, T = wind_field.get_gp_data()
 if not test:
     # train_ExactGP(gp_data,x_labels,y_labels,exact_gp_options,device,10000)
     # train_MultiOutputExactGP(gp_data,x_labels,y_labels,mo_exact_gp_options,device,20000)
-    train_SVGP(gp_data,x_labels,y_labels,svgp_options,device,10000)
+    train_SVGP(gp_data,x_labels,y_labels,svgp_options,device,20000)
 
 #----------------------------------------------#
 #                Test GP models                #

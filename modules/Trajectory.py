@@ -5,19 +5,22 @@ class Trajectory:
     Iterator used to describe the trajectory at each time step
     '''
     def __init__(self, path):
-        mat = loadmat(path) # Load Trajectory File
-        self.q = mat.get('q')
+        mat = loadmat(path)
+        data = mat.get('data')
+        self.p = data[:2,:]
+        self.v = data[2:,:]
         self.current = 0 # Iterator counter
-        self.size = len(self.q[0,:])
+        self.size = len(data[0,:])
 
     def __iter__(self):
         return self
 
     def __next__(self):
         if self.current < self.size:
-            val = self.q[:,self.current]
+            p = self.p[:,self.current]
+            v = self.v[:,self.current]
             self.current += 1
-            return val
+            return p,v
         raise StopIteration
 
     def __len__(self):
@@ -27,4 +30,4 @@ class Trajectory:
         '''
         Returns the whole trajectory
         '''
-        return self.q.copy()
+        return self.p.copy(), self.v.copy()

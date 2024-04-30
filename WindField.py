@@ -9,7 +9,7 @@ from pathlib import Path
 from modules.Fan import Fan
 from modules.System import System
 from modules.Trajectory import Trajectory
-from modules.PID import PID
+from modules.PD import PD
 from utils.exceptions import MissingTrajectory
 
 class WindField:
@@ -84,13 +84,11 @@ class WindField:
         # Actual system moving in the wind-field
         self.__system = System(m,r,self.__dt)
 
+        # Controller Matrices
+        Kp = np.diag([506.0,420.0])
+        Kd = np.diag([45.0,41.0])
         # The controller's parameter were retrieved using MATLAB
-        self.__pid = PID(
-            16.255496588371, # Proportional
-            6.40173078542831, # Integral
-            9.79714803790873, # Derivative
-            self.__dt # Sampling time
-        )
+        self.__pd = PD(Kp,Kd)
         
     def __setup_gp(self):
         # Create arrays to train the GP model
@@ -110,6 +108,8 @@ class WindField:
         self.__wind_force_y = [] # List of y wind forces
         self.__ex = [] # List of x position traking errors
         self.__ey = [] # List of y position traking errors
+        self.__evx = [] # List of x velocity traking errors
+        self.__evy = [] # List of y velocity traking errors
 
     def __draw_wind_field_grid(self):
         vxs = []
@@ -120,7 +120,7 @@ class WindField:
             vy = []
             v = []
             for y in np.linspace(0.1,self.__height-0.1,self.__grid_resolution):
-                total_speed = 0
+                total_speed = np.zeros((2,),dtype=float)
                 for fan in self.__fans:
                     total_speed+=fan.generate_wind(x,y)
                 vx.append(total_speed[0])
@@ -135,7 +135,7 @@ class WindField:
         # Generate Trajectory
         self.__trajectory = Trajectory(trajectory_file)
         self.__trajectory_name = trajectory_name
-        self.__tr = self.__trajectory.trajectory()
+        self.__tr_p, self.__tr_v = self.__trajectory.trajectory()
 
     def simulate_wind_field(self): 
         '''
@@ -147,14 +147,14 @@ class WindField:
             raise MissingTrajectory()
 
         # Set the mass initial conditions
-        tr = self.__trajectory.trajectory()
-        x0 = tr[0,0]
-        y0 = tr[1,0]
+        p,v = self.__trajectory.trajectory()
+        x0 = p[0,0]
+        y0 = p[1,0]
         self.__system.p[0] = x0
         self.__system.p[1] = y0
 
         # Simulate the field 
-        for target in self.__trajectory:
+        for target_p, target_v in self.__trajectory:
             total_speed = np.array([0,0],dtype=float)
             for fan in self.__fans:
                 speed = fan.generate_wind(self.__system.p[0],self.__system.p[1])
@@ -164,8 +164,9 @@ class WindField:
             self.__gp_data.append([self.__system.p[0],self.__system.p[1]])
             
             # Generate control force
-            error = target - self.__system.p
-            control_force = self.__pid.step(error)
+            ep = target_p - self.__system.p
+            ev = target_v - self.__system.v
+            control_force = self.__pd.step(ep,ev)
             # Generate wind force
             wind_force = (0.5*self.__air_density*self.__system.surf)*total_speed**2*np.sign(total_speed)
             # Total force
@@ -186,8 +187,10 @@ class WindField:
             self.__vys.append(self.__system.v[1])
             self.__ctl_forces_x.append(control_force[0])
             self.__ctl_forces_y.append(control_force[0])
-            self.__ex.append(error[0])
-            self.__ey.append(error[1])
+            self.__ex.append(ep[0])
+            self.__ey.append(ep[1])
+            self.__evx.append(ev[0])
+            self.__evy.append(ev[1])
             self.__wind_force_x.append(wind_force[0])
             self.__wind_force_y.append(wind_force[1])
 
@@ -255,14 +258,14 @@ class WindField:
             return
 
         T = [t*self.__dt for t in range(self.__duration)]
-        tr = self.__trajectory.trajectory()
+        p,v = self.__trajectory.trajectory()
         file_name = Path(self.__trajectory_name).stem
         sys_tr = np.stack([self.__xs,self.__ys])
-        rmse = np.sqrt(1/len(tr)*np.linalg.norm(sys_tr-tr)**2)
+        rmse = np.sqrt(1/len(p)*np.linalg.norm(sys_tr-p)**2)
 
         fig, ax = plt.subplots(1,2)
         ax[0].plot(T,self.__xs,label='Object Position')
-        ax[0].plot(T,tr[0,:],'--',label='Reference Position')
+        ax[0].plot(T,p[0,:],'--',label='Reference Position')
         ax[0].title.set_text(r'Position ($x$)')
         ax[0].legend()
         ax[0].set_xlabel(r'$t$ $[s]$')
@@ -279,7 +282,7 @@ class WindField:
 
         fig, ax = plt.subplots(1,2)
         ax[0].plot(T,self.__ys,label='Object Position')
-        ax[0].plot(T,tr[1,:],'--',label='Reference Position')
+        ax[0].plot(T,p[1,:],'--',label='Reference Position')
         ax[0].title.set_text(r'Position ($y$)')
         ax[0].legend()
         ax[0].set_xlabel(r'$t$ $[s]$')
@@ -297,7 +300,7 @@ class WindField:
         fig, ax = plt.subplots()
         ax.plot(np.NaN, np.NaN, '-', color='none', label='RMSE={:.2f}'.format(rmse))
         ax.plot(self.__xs,self.__ys,label='System Trajectory')
-        ax.plot(tr[0,:],tr[1,:],'--',label='Trajectory to Track')
+        ax.plot(p[0,:],p[1,:],'--',label='Trajectory to Track')
         ax.title.set_text(r'Trajectory')
         ax.legend()
         ax.set_xlabel(r'$x$ $[m]$')
@@ -396,12 +399,12 @@ class WindField:
             ax.set_xlim([0,self.__width])
             ax.set_ylim([0,self.__height])
             ax.plot(np.NaN, np.NaN, '-', color='none', label='t={0:.2f} s'.format(t*self.__dt))
-            ax.plot(self.__tr[0,t],self.__tr[1,t],'o',color='orange',markersize=7,label='Target Distance=[{0:.2f},{0:.2f}] m'.format(self.__ex[t],self.__ey[t])) # Traget Location
+            ax.plot(self.__tr_p[0,t],self.__tr_p[1,t],'o',color='orange',markersize=7,label='Target Distance=[{0:.2f},{0:.2f}] m'.format(self.__ex[t],self.__ey[t])) # Traget Location
             ax.plot(self.__xs[t],self.__ys[t],'bo',markersize=5) # Object Moving
             ax.quiver(self.__xs[t],self.__ys[t],self.__wind_force_x[t],self.__wind_force_y[t],scale=20,width=0.003,color='r',label='Wind Force=[{0:.2f},{0:.2f}] N'.format(self.__wind_force_x[t],self.__wind_force_y[t])) # Wind Force
             ax.quiver(self.__xs[t],self.__ys[t],self.__ctl_forces_x[t],self.__ctl_forces_y[t],scale=20,width=0.003,color="#4DBEEE",label='Control Force=[{0:.2f},{0:.2f}] N'.format(self.__ctl_forces_x[t],self.__ctl_forces_y[t])) # Control Force
             ax.plot(self.__xs[:t],self.__ys[:t],'b')
-            ax.plot(self.__tr[0,:t],self.__tr[1,:t],'--',color='orange')
+            ax.plot(self.__tr_p[0,:t],self.__tr_p[1,:t],'--',color='orange')
             # Plot fans
             for fan in self.__fans:
                 ax.quiver(fan.p0[0],fan.p0[1],fan.u0[0],fan.u0[1],scale=10,color='k')

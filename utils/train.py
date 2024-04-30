@@ -85,7 +85,7 @@ def __train_SVGP(train_data, train_labels, models, likelihoods, name, training_i
         optimizer = torch.optim.Adam([
             {'params': model.parameters()},
             {'params': likelihood.parameters()},
-        ], lr=0.01)
+        ], lr=0.001)
         mll=gpytorch.mlls.VariationalELBO(likelihood, model, num_data=labels.size(0))
 
         # Train each model
