@@ -178,7 +178,6 @@ class WindField:
                     predicted_wind_force_x = self.__gp_predictor_x(p).mean.item()
                     predicted_wind_force_y = self.__gp_predictor_y(p).mean.item()
                 force -= np.array([predicted_wind_force_x,predicted_wind_force_y],dtype=float)
-                print(wind_force, np.array([predicted_wind_force_x,predicted_wind_force_y],dtype=float))
             
             self.__xs.append(self.__system.p[0])
             self.__ys.append(self.__system.p[1])
