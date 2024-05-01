@@ -1,9 +1,9 @@
 {
     "RBF": true,
     "RBF-Periodic": false,
-    "Matern-32": false,
+    "Matern-32": true,
     "Matern-52": false,
-    "SpectralMixture-3": false,
+    "SpectralMixture-3": true,
     "SpectralMixture-5": false,
     "SpectralMixture-10": false
 }

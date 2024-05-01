@@ -248,7 +248,7 @@ class WindField:
         '''
         self.__setup_gp()
 
-    def plot(self, save=False):
+    def plot(self, save=False, folder='imgs/trajectories_plots'):
         '''
         Plots the data related to the previosly run simulation.\\
         If the save parameter is set to `True`, the files are stored in the
@@ -278,8 +278,8 @@ class WindField:
         fig.suptitle(f'{file_name} Trajectory')
         fig.set_size_inches(16,9)
         if save:
-            plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-x-position.png',dpi=300)
-            plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-x-position.svg')
+            plt.savefig(folder+f'/{file_name}-trajectory-x-position.png',dpi=300)
+            plt.savefig(folder+f'/{file_name}-trajectory-x-position.svg')
 
         fig, ax = plt.subplots(1,2)
         ax[0].plot(T,self.__ys,label='Object Position')
@@ -295,8 +295,8 @@ class WindField:
         fig.suptitle(f'{file_name} Trajectory')
         fig.set_size_inches(16,9)
         if save:
-            plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-y-position.png',dpi=300)
-            plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-y-position.svg')
+            plt.savefig(folder+f'/{file_name}-trajectory-y-position.png',dpi=300)
+            plt.savefig(folder+f'/{file_name}-trajectory-y-position.svg')
 
         fig, ax = plt.subplots()
         ax.plot(np.NaN, np.NaN, '-', color='none', label='RMSE={:.2f} m'.format(rmse))
@@ -311,8 +311,8 @@ class WindField:
         fig.suptitle(f'{file_name} Trajectory')
         fig.set_size_inches(16,9)
         if save:
-            plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-traking.png',dpi=300)
-            plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-traking.svg')
+            plt.savefig(folder+f'/{file_name}-trajectory-traking.png',dpi=300)
+            plt.savefig(folder+f'/{file_name}-trajectory-traking.svg')
 
         fig, ax = plt.subplots(1,2)
         ax[0].plot(T,self.__vxs)
@@ -326,8 +326,8 @@ class WindField:
         fig.suptitle(f'{file_name} Trajectory')
         fig.set_size_inches(16,9)
         if save:
-            plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-velocity.png',dpi=300)
-            plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-velocity.svg')
+            plt.savefig(folder+f'/{file_name}-trajectory-velocity.png',dpi=300)
+            plt.savefig(folder+f'/{file_name}-trajectory-velocity.svg')
 
         fig, ax = plt.subplots(1,2)
         ax[0].plot(T,self.__ctl_forces_x)
@@ -341,8 +341,8 @@ class WindField:
         fig.suptitle(f'{file_name} Trajectory')
         fig.set_size_inches(16,9)
         if save:
-            plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-control-force.png',dpi=300)
-            plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-control-force.svg')
+            plt.savefig(folder+f'/{file_name}-trajectory-control-force.png',dpi=300)
+            plt.savefig(folder+f'/{file_name}-trajectory-control-force.svg')
 
         fig, ax = plt.subplots(1,2)
         ax[0].plot(T,self.__wind_force_x)
@@ -356,8 +356,8 @@ class WindField:
         fig.suptitle(f'{file_name} Trajectory')
         fig.set_size_inches(16,9)
         if save:
-            plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-wind-force.png',dpi=300)
-            plt.savefig(f'imgs/trajectories_plots/{file_name}-trajectory-wind-force.svg')
+            plt.savefig(folder+f'/{file_name}-trajectory-wind-force.png',dpi=300)
+            plt.savefig(folder+f'/{file_name}-trajectory-wind-force.svg')
 
         fig, ax = plt.subplots()
         fig.set_size_inches(16,9)
@@ -377,8 +377,8 @@ class WindField:
         ax.set_ylim([0.0,self.__height])
         fig.legend(['Wind Speed'])
         if save:
-            plt.savefig(f'imgs/trajectories_plots/wind-field.png',dpi=300)
-            plt.savefig(f'imgs/trajectories_plots/wind-field.svg')
+            plt.savefig(folder+f'/wind-field.png',dpi=300)
+            plt.savefig(folder+f'/wind-field.svg')
 
         plt.show()
         plt.close()

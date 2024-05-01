@@ -4,6 +4,8 @@ import torch
 import warnings
 import os
 
+from pathlib import Path
+
 from WindField import WindField
 from utils.train import *
 from utils.test import *
@@ -74,36 +76,37 @@ if not test:
 #----------------------------------------------#
 #                Test GP models                #
 #----------------------------------------------#
-
-wind_field.reset()
-wind_field.reset_gp()
-wind_field.set_trajectory('trajectories/lemniscate.mat','lemniscate.mat')
-wind_field.simulate_wind_field()
-gp_data, x_labels, y_labels, T = wind_field.get_gp_data()
-wind_field_data = wind_field.get_wind_field_data()
-
-# test_ExactGP(gp_data,x_labels,y_labels,T,save_plots,exact_gp_options)
-# test_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots,mo_exact_gp_options)
-test_SVGP(gp_data,x_labels,y_labels,T,save_plots,svgp_options)
-
-likelihood_x = gpytorch.likelihoods.GaussianLikelihood()
-likelihood_y = gpytorch.likelihoods.GaussianLikelihood()
-likelihood_x_dict = torch.load(f'models/SVGP/likelihood-x-RBF.pth')
-likelihood_y_dict = torch.load(f'models/SVGP/likelihood-y-RBF.pth')
-likelihood_x.load_state_dict(likelihood_x_dict)
-likelihood_y.load_state_dict(likelihood_y_dict)
-inducing_points_x = torch.load('data/SVGP/inducing_points_x-RBF.pt')
-inducing_points_y = torch.load('data/SVGP/inducing_points_y-RBF.pt')
-model_x = SVGPModelRBF(inducing_points_x)
-model_y = SVGPModelRBF(inducing_points_y)
-model_x_dict = torch.load(f'models/SVGP/model-x-RBF.pth')
-model_y_dict = torch.load(f'models/SVGP/model-y-RBF.pth')
-model_x.load_state_dict(model_x_dict)
-model_y.load_state_dict(model_y_dict)
-
-wind_field = WindField('configs/wind_field.json','configs/mass.json',model_x,model_y)
 for file in os.listdir('trajectories'):
-    wind_field.set_trajectory('trajectories/'+file,file)
-    wind_field.simulate_wind_field()  
-    wind_field.plot()
     wind_field.reset()
+    wind_field.reset_gp()
+    wind_field.set_trajectory('trajectories/'+file,file)
+    wind_field.simulate_wind_field()
+    gp_data, x_labels, y_labels, T = wind_field.get_gp_data()
+    wind_field_data = wind_field.get_wind_field_data()
+    trajectory_name = Path(file).stem
+
+    # test_ExactGP(gp_data,x_labels,y_labels,T,save_plots,exact_gp_options)
+    # test_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots,mo_exact_gp_options)
+    test_SVGP(gp_data,x_labels,y_labels,T,save_plots,svgp_options,trajectory_name)
+
+# likelihood_x = gpytorch.likelihoods.GaussianLikelihood()
+# likelihood_y = gpytorch.likelihoods.GaussianLikelihood()
+# likelihood_x_dict = torch.load(f'models/SVGP/likelihood-x-RBF.pth')
+# likelihood_y_dict = torch.load(f'models/SVGP/likelihood-y-RBF.pth')
+# likelihood_x.load_state_dict(likelihood_x_dict)
+# likelihood_y.load_state_dict(likelihood_y_dict)
+# inducing_points_x = torch.load('data/SVGP/inducing_points_x-RBF.pt')
+# inducing_points_y = torch.load('data/SVGP/inducing_points_y-RBF.pt')
+# model_x = SVGPModelRBF(inducing_points_x)
+# model_y = SVGPModelRBF(inducing_points_y)
+# model_x_dict = torch.load(f'models/SVGP/model-x-RBF.pth')
+# model_y_dict = torch.load(f'models/SVGP/model-y-RBF.pth')
+# model_x.load_state_dict(model_x_dict)
+# model_y.load_state_dict(model_y_dict)
+
+# wind_field = WindField('configs/wind_field.json','configs/mass.json',model_x,model_y)
+# for file in os.listdir('trajectories'):
+#     wind_field.set_trajectory('trajectories/'+file,file)
+#     wind_field.simulate_wind_field()  
+#     wind_field.plot(True,'imgs/gp_plots/SVGP')
+#     wind_field.reset()

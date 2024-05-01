@@ -118,7 +118,7 @@ def __test_ExactMultiOutputExactGP(test_data, test_labels, model, likelihood, na
     plt.close()
 
 @torch.no_grad
-def __test_SVGP(test_data, test_labels, models, likelihoods, name, T, save=False, show=True):
+def __test_SVGP(test_data, test_labels, models, likelihoods, name, T, trajectory_name, save=False, show=True):
     axis = ['x','y']
     l = [(models[i], likelihoods[i], test_labels[i], axis[i]) for i in range(2)]
 
@@ -133,13 +133,14 @@ def __test_SVGP(test_data, test_labels, models, likelihoods, name, T, save=False
         lower, upper = observed_pred.confidence_region()
         fig, ax = plt.subplots()
         fig.set_size_inches(16,9)
-        fig.suptitle(f'SVGP Wind Estimation ({axis}-axis) with {name} kernel')
+        fig.suptitle(f'SVGP Wind Estimation ({axis}-axis) with {name} kernel along {trajectory_name} Trajectory')
         ax.plot(T,labels,color='orange',label='True Data')
         ax.plot(T,observed_pred.mean.numpy(),'b-',label="Estimated Data")
         ax.fill_between(T, lower.numpy(), upper.numpy(), alpha=0.5, color='cyan',label='Confidence')
         ax.legend()
         if save:
-            plt.savefig(f'imgs/gp_plots/SVGP/{name}-{axis}',dpi=300)
+            plt.savefig(f'imgs/gp_plots/SVGP/{name}-{axis}-{trajectory_name}-trajectory.png',dpi=300)
+            plt.savefig(f'imgs/gp_plots/SVGP/{name}-{axis}-{trajectory_name}-trajectory.svg',dpi=300)
         ax.set_xlabel(r'$t$ $[s]$')
         if axis == 'x':
             ax.set_ylabel(r'$F_{w_x}$ $[N]$')
@@ -151,7 +152,7 @@ def __test_SVGP(test_data, test_labels, models, likelihoods, name, T, save=False
     rmse = np.sqrt(1/len(f)*np.linalg.norm(f-lab)**2)
     fig, ax = plt.subplots()
     fig.set_size_inches(16,9)
-    fig.suptitle(f'Wind Estimation along Square Trajectory using {name} Kernel')
+    fig.suptitle(f'Wind Estimation along {trajectory_name} Trajectory using {name} Kernel')
     ax.plot(np.NaN, np.NaN, '-', color='none')
     ax.set_xlabel(r'$x$ $[m]$')
     ax.set_ylabel(r'$y$ $[m]$')
@@ -159,12 +160,28 @@ def __test_SVGP(test_data, test_labels, models, likelihoods, name, T, save=False
         if i%10 == 0:
             x = p[0]
             y = p[1]
-            ax.arrow(x,y,test_labels[0][i],test_labels[1][i],length_includes_head=False,head_width=0.01,head_length=0.01,width=0.004,color='orange')
-            ax.arrow(x,y,fx[i],fy[i],length_includes_head=False,head_width=0.01,head_length=0.01,width=0.004,color='cyan',alpha=0.5)
+            ax.arrow(x,y,test_labels[0][i]/5,test_labels[1][i]/5,length_includes_head=False,head_width=0.01,head_length=0.01,width=0.004,color='orange')
+            ax.arrow(x,y,fx[i]/5,fy[i]/5,length_includes_head=False,head_width=0.01,head_length=0.01,width=0.004,color='cyan',alpha=0.5)
     fig.legend(['RMSE = {:.2f} N'.format(rmse),'Real Wind Force','Estimated Wind Force'])
     if save:
-        plt.savefig(f'imgs/gp_plots/SVGP/{name}-full-trajectory.png',dpi=300)
-        plt.savefig(f'imgs/gp_plots/SVGP/{name}-full-trajectory.svg',dpi=300)
+        plt.savefig(f'imgs/gp_plots/SVGP/{name}-{trajectory_name}-trajectory.png',dpi=300)
+        plt.savefig(f'imgs/gp_plots/SVGP/{name}-{trajectory_name}-trajectory.svg',dpi=300)
+
+    # Plot Kernel Heatmap
+    fig, ax = plt.subplots(1,2)
+    fig.set_size_inches(16,9)
+    fig.suptitle(f'Kernel Heatmap Using the {name} Kernel')
+    # Obtain the Gram matrix associated to the kernel evaluated in the inducing points
+    gram_x = models[0].covar_module(models[0].variational_strategy.inducing_points).evaluate()
+    gram_y = models[1].covar_module(models[1].variational_strategy.inducing_points).evaluate()
+    cb1 = ax[0].imshow(gram_x, cmap='autumn', interpolation='nearest')
+    cb2 = ax[1].imshow(gram_y, cmap='autumn', interpolation='nearest')
+    fig.colorbar(cb1,fraction=0.046, pad=0.04, label='Correrlation')
+    fig.colorbar(cb2,fraction=0.046, pad=0.04, label='Correrlation')
+    ax[0].title.set_text(r'Kernel Heatmap $x$-axis')
+    ax[1].title.set_text(r'Kernel Heatmap $y$-axis')
+    plt.savefig(f'imgs/gp_plots/SVGP/{name}-heatmap.png',dpi=300)
+    plt.savefig(f'imgs/gp_plots/SVGP/{name}-heatmap.svg',dpi=300)
 
     if show:
         plt.show()
@@ -461,7 +478,7 @@ def test_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots,options):
         model.load_state_dict(model_dict)
         __test_ExactMultiOutputExactGP(test_data,[test_x_labels,test_y_labels],model,likelihood,'SpectralMixture-10',T,save=save_plots)
 
-def test_SVGP(gp_data,x_labels,y_labels,T,save_plots,options):
+def test_SVGP(gp_data,x_labels,y_labels,T,save_plots,options,trajectory_name):
     # RBF
     if options['RBF']:
         test_data = torch.FloatTensor(gp_data)
@@ -481,7 +498,7 @@ def test_SVGP(gp_data,x_labels,y_labels,T,save_plots,options):
         model_y_dict = torch.load(f'models/SVGP/model-y-RBF.pth')
         model_x.load_state_dict(model_x_dict)
         model_y.load_state_dict(model_y_dict)
-        __test_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'RBF',T,save=save_plots)
+        __test_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'RBF',T,trajectory_name,save=save_plots)
 
     # RBF+Periodic
     if options['RBF-Periodic']:
@@ -502,7 +519,7 @@ def test_SVGP(gp_data,x_labels,y_labels,T,save_plots,options):
         model_y_dict = torch.load(f'models/SVGP/model-y-RBF-Periodic.pth')
         model_x.load_state_dict(model_x_dict)
         model_y.load_state_dict(model_y_dict)
-        __test_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'RBF-Periodic',T,save=save_plots)
+        __test_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'RBF-Periodic',T,trajectory_name,save=save_plots)
 
     # Matern 3/2
     if options['Matern-32']:
@@ -523,7 +540,7 @@ def test_SVGP(gp_data,x_labels,y_labels,T,save_plots,options):
         model_y_dict = torch.load(f'models/SVGP/model-y-Matern-32.pth')
         model_x.load_state_dict(model_x_dict)
         model_y.load_state_dict(model_y_dict)
-        __test_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'Matern-32',T,save=save_plots)
+        __test_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'Matern-32',T,trajectory_name,save=save_plots)
 
     # Matern 5/2
     if options['Matern-52']:
@@ -544,7 +561,7 @@ def test_SVGP(gp_data,x_labels,y_labels,T,save_plots,options):
         model_y_dict = torch.load(f'models/SVGP/model-y-Matern-52.pth')
         model_x.load_state_dict(model_x_dict)
         model_y.load_state_dict(model_y_dict)
-        __test_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'Matern-52',T,save=save_plots)
+        __test_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'Matern-52',T,trajectory_name,save=save_plots)
 
     # SpectralMixture-3
     if options['SpectralMixture-3']:
@@ -565,7 +582,7 @@ def test_SVGP(gp_data,x_labels,y_labels,T,save_plots,options):
         model_y_dict = torch.load(f'models/SVGP/model-y-SpectralMixture-3.pth')
         model_x.load_state_dict(model_x_dict)
         model_y.load_state_dict(model_y_dict)
-        __test_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'SpectralMixture-3',T,save=save_plots)
+        __test_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'SpectralMixture-3',T,trajectory_name,save=save_plots)
 
     # SpectralMixture-5
     if options['SpectralMixture-5']:
@@ -586,7 +603,7 @@ def test_SVGP(gp_data,x_labels,y_labels,T,save_plots,options):
         model_y_dict = torch.load(f'models/SVGP/model-y-SpectralMixture-5.pth')
         model_x.load_state_dict(model_x_dict)
         model_y.load_state_dict(model_y_dict)
-        __test_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'SpectralMixture-5',T,save=save_plots)
+        __test_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'SpectralMixture-5',T,trajectory_name,save=save_plots)
 
     # SpectralMixture-10
     if options['SpectralMixture-10']:
@@ -607,4 +624,4 @@ def test_SVGP(gp_data,x_labels,y_labels,T,save_plots,options):
         model_y_dict = torch.load(f'models/SVGP/model-y-SpectralMixture-10.pth')
         model_x.load_state_dict(model_x_dict)
         model_y.load_state_dict(model_y_dict)
-        __test_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'SpectralMixture-10',T,save=save_plots)
+        __test_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'SpectralMixture-10',T,trajectory_name,save=save_plots)

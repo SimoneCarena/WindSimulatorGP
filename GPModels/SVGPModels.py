@@ -85,7 +85,7 @@ class SVGPModelSpectralMixture_5(ApproximateGP):
 class SVGPModelSpectralMixture_10(ApproximateGP):
     def __init__(self, inducing_points):
         variational_distribution = CholeskyVariationalDistribution(inducing_points.size(0))
-        variational_strategy = VariationalStrategy(self, inducing_points, variational_distribution, learn_inducing_locations=True)
+        variational_strategy = VariationalStrategy(self, inducing_points, variational_distribution, learn_inducing_locations=True, jitter_val=1e-2)
         super(SVGPModelSpectralMixture_10, self).__init__(variational_strategy)
         self.mean_module = gpytorch.means.ConstantMean()
         self.covar_module = gpytorch.kernels.SpectralMixtureKernel(num_mixtures=10, ard_num_dims=2)
