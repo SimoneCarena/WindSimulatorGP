@@ -76,18 +76,18 @@ if not test:
 #----------------------------------------------#
 #                Test GP models                #
 #----------------------------------------------#
-for file in os.listdir('trajectories'):
-    wind_field.reset()
-    wind_field.reset_gp()
-    wind_field.set_trajectory('trajectories/'+file,file)
-    wind_field.simulate_wind_field()
-    gp_data, x_labels, y_labels, T = wind_field.get_gp_data()
-    wind_field_data = wind_field.get_wind_field_data()
-    trajectory_name = Path(file).stem
 
-    # test_ExactGP(gp_data,x_labels,y_labels,T,save_plots,exact_gp_options)
-    # test_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots,mo_exact_gp_options)
-    test_SVGP(gp_data,x_labels,y_labels,T,save_plots,svgp_options,trajectory_name)
+wind_field.reset()
+wind_field.reset_gp()
+wind_field.set_trajectory('lemniscate4.mat','lemniscate4')
+wind_field.simulate_wind_field()
+gp_data, x_labels, y_labels, T = wind_field.get_gp_data()
+wind_field_data = wind_field.get_wind_field_data()
+trajectory_name = Path(file).stem
+
+# test_ExactGP(gp_data,x_labels,y_labels,T,save_plots,exact_gp_options)
+# test_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots,mo_exact_gp_options)
+test_SVGP(gp_data,x_labels,y_labels,T,save_plots,svgp_options,'lemniscate4')
 
 # likelihood_x = gpytorch.likelihoods.GaussianLikelihood()
 # likelihood_y = gpytorch.likelihoods.GaussianLikelihood()
@@ -105,8 +105,7 @@ for file in os.listdir('trajectories'):
 # model_y.load_state_dict(model_y_dict)
 
 # wind_field = WindField('configs/wind_field.json','configs/mass.json',model_x,model_y)
-# for file in os.listdir('trajectories'):
-#     wind_field.set_trajectory('trajectories/'+file,file)
-#     wind_field.simulate_wind_field()  
-#     wind_field.plot(True,'imgs/gp_plots/SVGP')
-#     wind_field.reset()
+# wind_field.set_trajectory('lemniscate4.mat','lemniscate4')
+# wind_field.simulate_wind_field()  
+# wind_field.plot(True,'imgs/gp_plots/SVGP')
+# wind_field.reset()
