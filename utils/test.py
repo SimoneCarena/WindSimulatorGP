@@ -174,8 +174,8 @@ def __test_SVGP(test_data, test_labels, models, likelihoods, name, T, trajectory
     # Obtain the Gram matrix associated to the kernel evaluated in the inducing points
     gram_x = models[0].covar_module(models[0].variational_strategy.inducing_points).evaluate()
     gram_y = models[1].covar_module(models[1].variational_strategy.inducing_points).evaluate()
-    cb1 = ax[0].imshow(gram_x, cmap='autumn', interpolation='nearest')
-    cb2 = ax[1].imshow(gram_y, cmap='autumn', interpolation='nearest')
+    cb1 = ax[0].imshow(gram_x, cmap='magma', interpolation='nearest')
+    cb2 = ax[1].imshow(gram_y, cmap='magma', interpolation='nearest')
     fig.colorbar(cb1,fraction=0.046, pad=0.04, label='Correrlation')
     fig.colorbar(cb2,fraction=0.046, pad=0.04, label='Correrlation')
     ax[0].title.set_text(r'Kernel Heatmap $x$-axis')
