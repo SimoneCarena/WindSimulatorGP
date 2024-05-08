@@ -10,7 +10,7 @@ from modules.Fan import Fan
 from modules.System import System
 from modules.Trajectory import Trajectory
 from modules.PD import PD
-from utils.exceptions import MissingTrajectory
+from utils.exceptions import MissingTrajectoryException, NoModelException
 
 class WindField:
     '''
@@ -83,6 +83,8 @@ class WindField:
 
         # Actual system moving in the wind-field
         self.__system = System(m,r,self.__dt)
+        # Idel system
+        self.__id_sys = System(m,r,self.__dt)
 
         # Controller Matrices
         Kp = np.diag([506.0,420.0])
@@ -144,7 +146,7 @@ class WindField:
         measurements which can be used for training.
         '''
         if self.__trajectory is None:
-            raise MissingTrajectory()
+            raise MissingTrajectoryException()
 
         # Set the mass initial conditions
         p,v = self.__trajectory.trajectory()
@@ -198,6 +200,84 @@ class WindField:
 
             # Simulate Dynamics
             self.__system.discrete_dynamics(force)
+
+    def simulate_gp(self, max_size = 200):
+        if self.__gp_predictor_x is None or self.__gp_predictor_y is None:
+            raise NoModelException()
+        if self.__trajectory is None:
+            raise MissingTrajectoryException()
+
+        # Set the mass initial conditions
+        p,v = self.__trajectory.trajectory()
+        x0 = p[0,0]
+        y0 = p[1,0]
+        self.__system.p[0] = x0
+        self.__system.p[1] = y0
+
+        # Simulate the field 
+        t = 0
+        for target_p, target_v in self.__trajectory:
+            total_speed = np.array([0,0],dtype=float)
+            for fan in self.__fans:
+                speed = fan.generate_wind(self.__system.p[0],self.__system.p[1])
+                total_speed+=speed
+
+            # Collect inputs for GP
+            self.__gp_data.append([self.__system.p[0],self.__system.p[1]])
+            
+            # Generate control force
+            ep = target_p - self.__system.p
+            ev = target_v - self.__system.v
+            control_force = self.__pd.step(ep,ev)
+            # Generate wind force
+            wind_force = (0.5*self.__air_density*self.__system.surf)*total_speed**2*np.sign(total_speed)
+            # Total force
+            force = wind_force + control_force
+            # Include force in the computation
+            p = torch.FloatTensor([[self.__system.p[0],self.__system.p[1]]])
+            if t>=max_size:
+                predicted_wind_force_x = self.__gp_predictor_x(p).mean.item()
+                predicted_wind_force_y = self.__gp_predictor_y(p).mean.item()
+                force -= np.array([predicted_wind_force_x,predicted_wind_force_y],dtype=float)
+            
+            self.__xs.append(self.__system.p[0])
+            self.__ys.append(self.__system.p[1])
+            self.__vxs.append(self.__system.v[0])
+            self.__vys.append(self.__system.v[1])
+            self.__ctl_forces_x.append(control_force[0])
+            self.__ctl_forces_y.append(control_force[1])
+            self.__ex.append(ep[0])
+            self.__ey.append(ep[1])
+            self.__evx.append(ev[0])
+            self.__evy.append(ev[1])
+            self.__wind_force_x.append(wind_force[0])
+            self.__wind_force_y.append(wind_force[1])
+
+            # Collect labels for GP
+            self.__gp_label_x.append(wind_force[0])
+            self.__gp_label_y.append(wind_force[1])
+
+            # Simulate Dynamics
+            self.__system.discrete_dynamics(force)
+
+            # Update GP Model
+            if t==0:
+                self.__gp_predictor_x.set_train_data(p,torch.FloatTensor([wind_force[0]]),strict=False)
+                self.__gp_predictor_y.set_train_data(p,torch.FloatTensor([wind_force[1]]),strict=False)
+
+            elif t>=max_size:
+                gp_data = self.__gp_predictor_x.train_inputs[0]
+                gp_labels_x = self.__gp_predictor_x.train_targets
+                gp_labels_y = self.__gp_predictor_y.train_targets
+                self.__gp_predictor_x.set_train_data(torch.cat([gp_data[1:,],p],dim=0),torch.cat([gp_labels_x[1:],torch.FloatTensor([wind_force[0]])]),strict=False)
+                self.__gp_predictor_y.set_train_data(torch.cat([gp_data[1:,],p],dim=0),torch.cat([gp_labels_y[1:],torch.FloatTensor([wind_force[1]])]),strict=False)
+            else:
+                gp_data = self.__gp_predictor_x.train_inputs[0]
+                gp_labels_x = self.__gp_predictor_x.train_targets
+                gp_labels_y = self.__gp_predictor_y.train_targets
+                self.__gp_predictor_x.set_train_data(torch.cat([gp_data,p],dim=0),torch.cat([gp_labels_x,torch.FloatTensor([wind_force[0]])]),strict=False)
+                self.__gp_predictor_y.set_train_data(torch.cat([gp_data,p],dim=0),torch.cat([gp_labels_y,torch.FloatTensor([wind_force[1]])]),strict=False)
+            t+=1
 
     def reset(self, wind_field_conf_file=None, mass_conf_file=None):
         '''

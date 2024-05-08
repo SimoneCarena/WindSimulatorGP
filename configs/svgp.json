@@ -1,5 +1,5 @@
 {
-    "RBF": true,
+    "RBF": false,
     "RBF-Periodic": false,
     "Matern-32": false,
     "Matern-52": false,
