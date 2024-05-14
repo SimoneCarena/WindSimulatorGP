@@ -116,6 +116,7 @@ model_y = model
 
 wind_field = WindField('configs/wind_field_test.json','configs/mass.json',model_x,model_y)
 wind_field.set_trajectory('lemniscate4.mat','lemniscate4')
-wind_field.simulate_gp(50)  
+wind_field.simulate_gp(10,True)  
 wind_field.plot(False,'imgs/gp_plots/SVGP')
 # wind_field.reset()
+# wind_field.reset_gp()

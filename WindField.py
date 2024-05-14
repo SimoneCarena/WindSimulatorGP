@@ -201,14 +201,23 @@ class WindField:
             # Simulate Dynamics
             self.__system.discrete_dynamics(force)
 
-    def simulate_gp(self, max_size = 200):
+    @torch.no_grad
+    def simulate_gp(self, max_size = 200, plot=False, save=None):
         if self.__gp_predictor_x is None or self.__gp_predictor_y is None:
             raise NoModelException()
         if self.__trajectory is None:
             raise MissingTrajectoryException()
+        
+        x_pred = []
+        y_pred = []
+        x_lower = []
+        x_upper = []
+        y_lower = []
+        y_upper = []
+        num_updates = 0
 
         # Set the mass initial conditions
-        p,v = self.__trajectory.trajectory()
+        p,_ = self.__trajectory.trajectory()
         x0 = p[0,0]
         y0 = p[1,0]
         self.__system.p[0] = x0
@@ -236,9 +245,18 @@ class WindField:
             # Include force in the computation
             p = torch.FloatTensor([[self.__system.p[0],self.__system.p[1]]])
             if t>=max_size:
-                predicted_wind_force_x = self.__gp_predictor_x(p).mean.item()
-                predicted_wind_force_y = self.__gp_predictor_y(p).mean.item()
-                force -= np.array([predicted_wind_force_x,predicted_wind_force_y],dtype=float)
+                predicted_wind_force_x = self.__gp_predictor_x(p)
+                predicted_wind_force_y = self.__gp_predictor_y(p)
+                force -= np.array([predicted_wind_force_x.mean.item(),predicted_wind_force_y.mean.item()],dtype=float)
+                # Collect Data For Plot
+                x_pred.append(predicted_wind_force_x.mean.item())
+                y_pred.append(predicted_wind_force_y.mean.item())
+                lower, upper = predicted_wind_force_x.confidence_region()
+                x_lower.append(lower.item())
+                x_upper.append(upper.item())
+                lower, upper = predicted_wind_force_y.confidence_region()
+                y_lower.append(lower.item())
+                y_upper.append(upper.item())
             
             self.__xs.append(self.__system.p[0])
             self.__ys.append(self.__system.p[1])
@@ -264,7 +282,15 @@ class WindField:
             if t==0:
                 self.__gp_predictor_x.set_train_data(p,torch.FloatTensor([wind_force[0]]),strict=False)
                 self.__gp_predictor_y.set_train_data(p,torch.FloatTensor([wind_force[1]]),strict=False)
-
+            # # Update the model if the actual wind force is out of the confidence bound
+            # elif t>=max_size and (
+            #     wind_force[0]>x_upper[-1] or
+            #     wind_force[0]<x_lower[-1] or
+            #     wind_force[1]>y_upper[-1] or
+            #     wind_force[1]<y_lower[-1]
+            # ):
+            #     num_updates+=1
+            #     print(f'Performed {num_updates} updates',end='\r')
             elif t>=max_size:
                 gp_data = self.__gp_predictor_x.train_inputs[0]
                 gp_labels_x = self.__gp_predictor_x.train_targets
@@ -278,6 +304,65 @@ class WindField:
                 self.__gp_predictor_x.set_train_data(torch.cat([gp_data,p],dim=0),torch.cat([gp_labels_x,torch.FloatTensor([wind_force[0]])]),strict=False)
                 self.__gp_predictor_y.set_train_data(torch.cat([gp_data,p],dim=0),torch.cat([gp_labels_y,torch.FloatTensor([wind_force[1]])]),strict=False)
             t+=1
+
+        # Plots
+        T = [t*self.__dt for t in range(self.__duration)]
+
+        # Plot x prediction
+        fig, ax = plt.subplots(2,1)
+        fig.set_size_inches(16,9)
+        fig.suptitle('One Step-Ahead Prediction (x-axis)')
+        fig.tight_layout(pad=3.0)
+        ax[0].set_xlim([0,T[-1]])
+        ax[0].plot(T[max_size:],x_pred,'b-',label="estimated Wind Force")
+        ax[0].plot(T,self.__wind_force_x,'--',color='orange',label='Real Wind Force')
+        ax[0].axvline(x=T[max_size],color='k',label=f'Start of GP Prediction (t={max_size*self.__dt} s)')
+        ax[0].fill_between(T[max_size:], x_lower, x_upper, alpha=0.5, color='cyan',label='Confidence')
+        ax[0].legend()
+        ax[0].set_xlabel(r'$t$ $[s]$')
+        ax[0].set_ylabel(r'$F_{wx}$ $[N]$')
+        ax[0].title.set_text('GP Wind Prediction')
+        ## Plot Estimation Error
+        ax[1].set_xlim([0,T[-1]])
+        ax[1].plot(T[max_size:],self.__wind_force_x[max_size:]-np.array(x_pred),label='Prediction Error')
+        ax[1].axvline(x=T[max_size],color='k',label=f'Start of GP Prediction (t={max_size*self.__dt} s)')
+        ax[1].legend()
+        ax[1].set_xlabel(r'$t$ $[s]$')
+        ax[1].set_ylabel(r'$e_{F_{wx}}$ $[N]$')
+        ax[1].title.set_text('GP Prediction Error')
+
+        if save is not None:
+            fig.savefig(save)
+
+        # Plot y prediction
+        fig, ax = plt.subplots(2,1)
+        fig.set_size_inches(16,9)
+        fig.suptitle('One Step-Ahead Prediction (y-axis)')
+        fig.tight_layout(pad=3.0)
+        ax[0].set_xlim([0,T[-1]])
+        ax[0].plot(T[max_size:],y_pred,'b-',label="estimated Wind Force")
+        ax[0].plot(T,self.__wind_force_y,'--',color='orange',label='Real Wind Force')
+        ax[0].axvline(x=T[max_size],color='k',label=f'Start of GP Prediction (t={max_size*self.__dt} s)')
+        ax[0].fill_between(T[max_size:], y_lower, y_upper, alpha=0.5, color='cyan',label='Confidence')
+        ax[0].legend()
+        ax[0].set_xlabel(r'$t$ $[s]$')
+        ax[0].set_ylabel(r'$F_{wy}$ $[N]$')
+        ax[0].title.set_text('GP Wind Prediction')
+        ## Plot Estimation Error
+        ax[1].set_xlim([0,T[-1]])
+        ax[1].plot(T[max_size:],self.__wind_force_y[max_size:]-np.array(y_pred),label='Prediction Error')
+        ax[1].axvline(x=T[max_size],color='k',label=f'Start of GP Prediction (t={max_size*self.__dt} s)')
+        ax[1].legend()
+        ax[1].set_xlabel(r'$t$ $[s]$')
+        ax[1].set_ylabel(r'$e_{F_{wy}}$ $[N]$')
+        ax[1].title.set_text('GP Prediction Error')
+
+        if save is not None:
+            fig.savefig(save)
+
+        if plot:
+            plt.show()
+        plt.close()
 
     def reset(self, wind_field_conf_file=None, mass_conf_file=None):
         '''
