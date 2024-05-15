@@ -7,11 +7,20 @@
     "air_density": 1.2,
     "fans": [
         {
-            "x0": 2,
-            "y0": 0,
-            "alpha": 90,
+            "x0": 0,
+            "y0": 2,
+            "alpha": 0,
             "theta": 120,
-            "v0": 14,
+            "v0": 10,
+            "noise_var": 0.01,
+            "length": 1
+        },
+        {
+            "x0": 2,
+            "y0": 4,
+            "alpha": -90,
+            "theta": 120,
+            "v0": 10,
             "noise_var": 0.01,
             "length": 1
         }

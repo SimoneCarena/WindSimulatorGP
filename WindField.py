@@ -133,7 +133,7 @@ class WindField:
             vs.append(v)
         return np.linspace(0.1,self.__width-0.1,self.__grid_resolution),np.linspace(0.1,self.__height-0.1,self.__grid_resolution),np.array(vxs),np.array(vys), np.array(vs)
 
-    def __plot(self, show=False, save=None):
+    def plot(self, show=False, save=None):
         '''
         Plots the data related to the previosly run simulation.\\
         If the save parameter is set to `True`, the files are stored in the
@@ -247,12 +247,13 @@ class WindField:
         fig, ax = plt.subplots()
         fig.set_size_inches(16,9)
         xs, ys, vx, vy, v = self.__draw_wind_field_grid()
+        v_max = np.max(v)
         ax.set_xlim([0.0,self.__width])
         ax.set_ylim([0.0,self.__height])
         for i in range(len(xs)):
             for j in range(len(ys)):
                 if v[i,j]>0.2:
-                    ax.arrow(xs[i],ys[j],vx[i,j]/40,vy[i,j]/40,length_includes_head=False,head_width=0.015,head_length=0.015,width=0.003,color='orange')
+                    ax.arrow(xs[i],ys[j],vx[i,j]/v_max/15,vy[i,j]/v_max/15,length_includes_head=False,head_width=0.015,head_length=0.015,width=0.003,color='orange')
                 else:
                     ax.plot(xs[i],ys[j],'o',color='orange',markersize=5*v[i,j])
         ax.set_xlabel(r'$x$ $[m]$')
@@ -331,7 +332,7 @@ class WindField:
             self.__system.discrete_dynamics(force)
 
         if show or save is not None:
-            self.__plot(show,save)
+            self.plot(show,save)
 
     @torch.no_grad
     def simulate_one_step_gp(self, max_size=50, show=False, save=None):
@@ -461,7 +462,8 @@ class WindField:
         ax[1].title.set_text('GP Prediction Error')
 
         if save is not None:
-            fig.savefig(save)
+            fig.savefig(save+'-x.png')
+            fig.savefig(save+'-x.svg')
 
         # Plot y prediction
         fig, ax = plt.subplots(2,1)
@@ -487,14 +489,12 @@ class WindField:
         ax[1].title.set_text('GP Prediction Error')
 
         if save is not None:
-            fig.savefig(save)
+            fig.savefig(save+'-y.png')
+            fig.savefig(save+'-y.svg')
 
         if show:
             plt.show()
         plt.close()
-
-        if show or save is not None:
-            self.__plot(show,save)
 
     @torch.no_grad
     def simulate_multi_step_gp(self, max_size=50, num_steps=5, show=False, save=None):
@@ -666,8 +666,7 @@ class WindField:
         plt.close()
 
         if show or save is not None:
-            self.__plot(show,save)
-        
+            self.plot(show,save)
 
     def reset(self, wind_field_conf_file=None, mass_conf_file=None):
         '''
