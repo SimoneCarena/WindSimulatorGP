@@ -68,7 +68,7 @@ gp_data, x_labels, y_labels, T = wind_field.get_gp_data()
 if not test:
     train_ExactGP(gp_data,x_labels,y_labels,exact_gp_options,device,10000)
     train_MultiOutputExactGP(gp_data,x_labels,y_labels,mo_exact_gp_options,device,20000)
-    train_SVGP(gp_data,x_labels,y_labels,svgp_options,device,10000)
+    train_SVGP(gp_data,x_labels,y_labels,svgp_options,device,5000)
 
 #----------------------------------------------#
 #                Test GP models                #
@@ -119,7 +119,6 @@ for file in os.listdir('test_trajectories'):
     file_name = Path(file).stem
     wind_field = WindField('configs/wind_field_test.json','configs/mass.json',model_x,model_y)
     wind_field.set_trajectory('test_trajectories/'+file,file_name)
-    wind_field.simulate_one_step_gp(25,show=False,save='imgs/gp_update_plots/RBF-'+file_name)  
-    wind_field.plot(False,'imgs/gp_update_plots')
+    wind_field.simulate_one_step_gp(50,show=False,save='imgs/gp_update_plots/RBF-'+file_name)  
     wind_field.reset()
     wind_field.reset_gp()
