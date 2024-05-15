@@ -133,13 +133,149 @@ class WindField:
             vs.append(v)
         return np.linspace(0.1,self.__width-0.1,self.__grid_resolution),np.linspace(0.1,self.__height-0.1,self.__grid_resolution),np.array(vxs),np.array(vys), np.array(vs)
 
+    def __plot(self, show=False, save=None):
+        '''
+        Plots the data related to the previosly run simulation.\\
+        If the save parameter is set to `True`, the files are stored in the
+        `imgs/trajectories_plots` folder
+        '''
+        if not self.__xs:
+            print('No data to plot!')
+            return
+
+        T = [t*self.__dt for t in range(self.__duration)]
+        p,v = self.__trajectory.trajectory()
+        file_name = Path(self.__trajectory_name).stem
+        sys_tr = np.stack([self.__xs,self.__ys])
+        rmse = np.sqrt(1/len(p)*np.linalg.norm(sys_tr-p)**2)
+
+        fig, ax = plt.subplots(1,2)
+        ax[0].plot(T,self.__xs,label='Object Position')
+        ax[0].plot(T,p[0,:],'--',label='Reference Position')
+        ax[0].title.set_text(r'Position ($x$)')
+        ax[0].legend()
+        ax[0].set_xlabel(r'$t$ $[s]$')
+        ax[0].set_ylabel(r'$x$ $[m]$')
+        ax[1].plot(T,self.__ex)
+        ax[1].title.set_text(r'Traking error ($e_x$)')
+        ax[1].set_xlabel(r'$t$ $[s]$')
+        ax[1].set_ylabel(r'$e_x$ $[m]$')
+        fig.suptitle(f'{file_name} Trajectory')
+        fig.set_size_inches(16,9)
+        if save is not None:
+            plt.savefig(save+f'/{file_name}-trajectory-x-position.png',dpi=300)
+            plt.savefig(save+f'/{file_name}-trajectory-x-position.svg')
+
+        fig, ax = plt.subplots(1,2)
+        ax[0].plot(T,self.__ys,label='Object Position')
+        ax[0].plot(T,p[1,:],'--',label='Reference Position')
+        ax[0].title.set_text(r'Position ($y$)')
+        ax[0].legend()
+        ax[0].set_xlabel(r'$t$ $[s]$')
+        ax[0].set_ylabel(r'$y$ $[m]$')
+        ax[1].plot(T,self.__ey)
+        ax[1].title.set_text(r'Traking error ($e_y$)')
+        ax[1].set_xlabel(r'$t$ $[s]$')
+        ax[1].set_ylabel(r'$e_y$ $[m]$')
+        fig.suptitle(f'{file_name} Trajectory')
+        fig.set_size_inches(16,9)
+        if save is not None:
+            plt.savefig(save+f'/{file_name}-trajectory-y-position.png',dpi=300)
+            plt.savefig(save+f'/{file_name}-trajectory-y-position.svg')
+
+        fig, ax = plt.subplots()
+        ax.plot(np.NaN, np.NaN, '-', color='none', label='RMSE={:.2f} m'.format(rmse))
+        ax.plot(self.__xs,self.__ys,label='System Trajectory')
+        ax.plot(p[0,:],p[1,:],'--',label='Trajectory to Track')
+        ax.title.set_text(r'Trajectory')
+        ax.legend()
+        ax.set_xlabel(r'$x$ $[m]$')
+        ax.set_ylabel(r'$y$ $[m]$')
+        ax.set_xlim([0.0,self.__width])
+        ax.set_ylim([0.0,self.__height])
+        fig.suptitle(f'{file_name} Trajectory')
+        fig.set_size_inches(16,9)
+        if save is not None:
+            plt.savefig(save+f'/{file_name}-trajectory-traking.png',dpi=300)
+            plt.savefig(save+f'/{file_name}-trajectory-traking.svg')
+
+        fig, ax = plt.subplots(1,2)
+        ax[0].plot(T,self.__vxs)
+        ax[0].set_xlabel(r'$t$ $[s]$')
+        ax[0].set_ylabel(r'$V_x$ $[m/s]$')
+        ax[0].title.set_text(r'Velocity ($V_x$)')
+        ax[1].plot(T,self.__vys)
+        ax[1].set_xlabel(r'$t$ $[s]$')
+        ax[1].set_ylabel(r'$V_y$ $[m/s]$')
+        ax[1].title.set_text(r'Velocity ($V_y$)')
+        fig.suptitle(f'{file_name} Trajectory')
+        fig.set_size_inches(16,9)
+        if save is not None:
+            plt.savefig(save+f'/{file_name}-trajectory-velocity.png',dpi=300)
+            plt.savefig(save+f'/{file_name}-trajectory-velocity.svg')
+
+        fig, ax = plt.subplots(1,2)
+        ax[0].plot(T,self.__ctl_forces_x)
+        ax[0].set_xlabel(r'$t$ $[s]$')
+        ax[0].set_ylabel(r'$u_x$ $[N]$')
+        ax[0].title.set_text(r'Control Force ($u_x$)')
+        ax[1].plot(T,self.__ctl_forces_y)
+        ax[1].set_xlabel(r'$t$ $[s]$')
+        ax[1].set_ylabel(r'$u_y$ $[N]$')
+        ax[1].title.set_text(r'Control Force ($u_y$)')
+        fig.suptitle(f'{file_name} Trajectory')
+        fig.set_size_inches(16,9)
+        if save is not None:
+            plt.savefig(save+f'/{file_name}-trajectory-control-force.png',dpi=300)
+            plt.savefig(save+f'/{file_name}-trajectory-control-force.svg')
+
+        fig, ax = plt.subplots(1,2)
+        ax[0].plot(T,self.__wind_force_x)
+        ax[0].set_xlabel(r'$t$ $[s]$')
+        ax[0].set_ylabel(r'$F_{wx}$ $[N]$')
+        ax[0].title.set_text(r'Wind Force ($F_{wx}$)')
+        ax[1].plot(T,self.__wind_force_y)
+        ax[1].set_xlabel(r'$t$ $[s]$')
+        ax[1].set_ylabel(r'$F_{wy}$ $[N]$')
+        ax[1].title.set_text(r'Wind Force ($F_{wy}$)')
+        fig.suptitle(f'{file_name} Trajectory')
+        fig.set_size_inches(16,9)
+        if save is not None:
+            plt.savefig(save+f'/{file_name}-trajectory-wind-force.png',dpi=300)
+            plt.savefig(save+f'/{file_name}-trajectory-wind-force.svg')
+
+        fig, ax = plt.subplots()
+        fig.set_size_inches(16,9)
+        xs, ys, vx, vy, v = self.__draw_wind_field_grid()
+        ax.set_xlim([0.0,self.__width])
+        ax.set_ylim([0.0,self.__height])
+        for i in range(len(xs)):
+            for j in range(len(ys)):
+                if v[i,j]>0.2:
+                    ax.arrow(xs[i],ys[j],vx[i,j]/40,vy[i,j]/40,length_includes_head=False,head_width=0.015,head_length=0.015,width=0.003,color='orange')
+                else:
+                    ax.plot(xs[i],ys[j],'o',color='orange',markersize=5*v[i,j])
+        ax.set_xlabel(r'$x$ $[m]$')
+        ax.set_ylabel(r'$y$ $[m]$')
+        ax.set_title('Wind Field')
+        ax.set_xlim([0.0,self.__width])
+        ax.set_ylim([0.0,self.__height])
+        fig.legend(['Wind Speed'])
+        if save is not None:
+            plt.savefig(save+f'/wind-field.png',dpi=300)
+            plt.savefig(save+f'/wind-field.svg')
+
+        if show:    
+            plt.show()
+        plt.close()
+
     def set_trajectory(self, trajectory_file,trajectory_name):
         # Generate Trajectory
         self.__trajectory = Trajectory(trajectory_file)
         self.__trajectory_name = trajectory_name
         self.__tr_p, self.__tr_v = self.__trajectory.trajectory()
 
-    def simulate_wind_field(self): 
+    def simulate_wind_field(self, show=False, save=None): 
         '''
         Runs the wind simulation. The wind field should be reset every time a new simulation.
         In case a GP model is being trained, the GP data should not be reset, as it stacks the subsequent
@@ -173,13 +309,6 @@ class WindField:
             wind_force = (0.5*self.__air_density*self.__system.surf)*total_speed**2*np.sign(total_speed)
             # Total force
             force = wind_force + control_force
-            # Add GP prediction wind force
-            if self.__gp_predictor_x is not None and self.__gp_predictor_y is not None:
-                with torch.no_grad():
-                    p = torch.FloatTensor([[self.__system.p[0],self.__system.p[1]]])
-                    predicted_wind_force_x = self.__gp_predictor_x(p).mean.item()
-                    predicted_wind_force_y = self.__gp_predictor_y(p).mean.item()
-                force -= np.array([predicted_wind_force_x,predicted_wind_force_y],dtype=float)
             
             self.__xs.append(self.__system.p[0])
             self.__ys.append(self.__system.p[1])
@@ -201,8 +330,11 @@ class WindField:
             # Simulate Dynamics
             self.__system.discrete_dynamics(force)
 
+        if show or save is not None:
+            self.__plot(show,save)
+
     @torch.no_grad
-    def simulate_gp(self, max_size = 200, plot=False, save=None):
+    def simulate_one_step_gp(self, max_size = 50, show=False, save=None):
         if self.__gp_predictor_x is None or self.__gp_predictor_y is None:
             raise NoModelException()
         if self.__trajectory is None:
@@ -214,7 +346,6 @@ class WindField:
         x_upper = []
         y_lower = []
         y_upper = []
-        num_updates = 0
 
         # Set the mass initial conditions
         p,_ = self.__trajectory.trajectory()
@@ -282,16 +413,14 @@ class WindField:
             if t==0:
                 self.__gp_predictor_x.set_train_data(p,torch.FloatTensor([wind_force[0]]),strict=False)
                 self.__gp_predictor_y.set_train_data(p,torch.FloatTensor([wind_force[1]]),strict=False)
-            # # Update the model if the actual wind force is out of the confidence bound
-            # elif t>=max_size and (
-            #     wind_force[0]>x_upper[-1] or
-            #     wind_force[0]<x_lower[-1] or
-            #     wind_force[1]>y_upper[-1] or
-            #     wind_force[1]<y_lower[-1]
-            # ):
-            #     num_updates+=1
-            #     print(f'Performed {num_updates} updates',end='\r')
             elif t>=max_size:
+                # Changing the training data of the model each iteration has a cost of O(M^2),
+                # where M is the number of points used in the model. 
+                # Computing the posterior has a cost of O(M^3). The complexity of recomputing the Gram
+                # matrix each iteration is negligble wrt the cost of inverting it, thus recomputing it
+                # each iteration is feasible.
+                # The only issue with this approach is the cost of computing each element of the matrix,
+                # as the cost of evauating the kernel function is unknowkn to me. 
                 gp_data = self.__gp_predictor_x.train_inputs[0]
                 gp_labels_x = self.__gp_predictor_x.train_targets
                 gp_labels_y = self.__gp_predictor_y.train_targets
@@ -360,9 +489,12 @@ class WindField:
         if save is not None:
             fig.savefig(save)
 
-        if plot:
+        if show:
             plt.show()
         plt.close()
+
+        if show or save is not None:
+            self.__plot(show,save)
 
     def reset(self, wind_field_conf_file=None, mass_conf_file=None):
         '''
@@ -412,141 +544,6 @@ class WindField:
         Resets the GP data
         '''
         self.__setup_gp()
-
-    def plot(self, save=False, folder='imgs/trajectories_plots'):
-        '''
-        Plots the data related to the previosly run simulation.\\
-        If the save parameter is set to `True`, the files are stored in the
-        `imgs/trajectories_plots` folder
-        '''
-        if not self.__xs:
-            print('No data to plot!')
-            return
-
-        T = [t*self.__dt for t in range(self.__duration)]
-        p,v = self.__trajectory.trajectory()
-        file_name = Path(self.__trajectory_name).stem
-        sys_tr = np.stack([self.__xs,self.__ys])
-        rmse = np.sqrt(1/len(p)*np.linalg.norm(sys_tr-p)**2)
-
-        fig, ax = plt.subplots(1,2)
-        ax[0].plot(T,self.__xs,label='Object Position')
-        ax[0].plot(T,p[0,:],'--',label='Reference Position')
-        ax[0].title.set_text(r'Position ($x$)')
-        ax[0].legend()
-        ax[0].set_xlabel(r'$t$ $[s]$')
-        ax[0].set_ylabel(r'$x$ $[m]$')
-        ax[1].plot(T,self.__ex)
-        ax[1].title.set_text(r'Traking error ($e_x$)')
-        ax[1].set_xlabel(r'$t$ $[s]$')
-        ax[1].set_ylabel(r'$e_x$ $[m]$')
-        fig.suptitle(f'{file_name} Trajectory')
-        fig.set_size_inches(16,9)
-        if save:
-            plt.savefig(folder+f'/{file_name}-trajectory-x-position.png',dpi=300)
-            plt.savefig(folder+f'/{file_name}-trajectory-x-position.svg')
-
-        fig, ax = plt.subplots(1,2)
-        ax[0].plot(T,self.__ys,label='Object Position')
-        ax[0].plot(T,p[1,:],'--',label='Reference Position')
-        ax[0].title.set_text(r'Position ($y$)')
-        ax[0].legend()
-        ax[0].set_xlabel(r'$t$ $[s]$')
-        ax[0].set_ylabel(r'$y$ $[m]$')
-        ax[1].plot(T,self.__ey)
-        ax[1].title.set_text(r'Traking error ($e_y$)')
-        ax[1].set_xlabel(r'$t$ $[s]$')
-        ax[1].set_ylabel(r'$e_y$ $[m]$')
-        fig.suptitle(f'{file_name} Trajectory')
-        fig.set_size_inches(16,9)
-        if save:
-            plt.savefig(folder+f'/{file_name}-trajectory-y-position.png',dpi=300)
-            plt.savefig(folder+f'/{file_name}-trajectory-y-position.svg')
-
-        fig, ax = plt.subplots()
-        ax.plot(np.NaN, np.NaN, '-', color='none', label='RMSE={:.2f} m'.format(rmse))
-        ax.plot(self.__xs,self.__ys,label='System Trajectory')
-        ax.plot(p[0,:],p[1,:],'--',label='Trajectory to Track')
-        ax.title.set_text(r'Trajectory')
-        ax.legend()
-        ax.set_xlabel(r'$x$ $[m]$')
-        ax.set_ylabel(r'$y$ $[m]$')
-        ax.set_xlim([0.0,self.__width])
-        ax.set_ylim([0.0,self.__height])
-        fig.suptitle(f'{file_name} Trajectory')
-        fig.set_size_inches(16,9)
-        if save:
-            plt.savefig(folder+f'/{file_name}-trajectory-traking.png',dpi=300)
-            plt.savefig(folder+f'/{file_name}-trajectory-traking.svg')
-
-        fig, ax = plt.subplots(1,2)
-        ax[0].plot(T,self.__vxs)
-        ax[0].set_xlabel(r'$t$ $[s]$')
-        ax[0].set_ylabel(r'$V_x$ $[m/s]$')
-        ax[0].title.set_text(r'Velocity ($V_x$)')
-        ax[1].plot(T,self.__vys)
-        ax[1].set_xlabel(r'$t$ $[s]$')
-        ax[1].set_ylabel(r'$V_y$ $[m/s]$')
-        ax[1].title.set_text(r'Velocity ($V_y$)')
-        fig.suptitle(f'{file_name} Trajectory')
-        fig.set_size_inches(16,9)
-        if save:
-            plt.savefig(folder+f'/{file_name}-trajectory-velocity.png',dpi=300)
-            plt.savefig(folder+f'/{file_name}-trajectory-velocity.svg')
-
-        fig, ax = plt.subplots(1,2)
-        ax[0].plot(T,self.__ctl_forces_x)
-        ax[0].set_xlabel(r'$t$ $[s]$')
-        ax[0].set_ylabel(r'$u_x$ $[N]$')
-        ax[0].title.set_text(r'Control Force ($u_x$)')
-        ax[1].plot(T,self.__ctl_forces_y)
-        ax[1].set_xlabel(r'$t$ $[s]$')
-        ax[1].set_ylabel(r'$u_y$ $[N]$')
-        ax[1].title.set_text(r'Control Force ($u_y$)')
-        fig.suptitle(f'{file_name} Trajectory')
-        fig.set_size_inches(16,9)
-        if save:
-            plt.savefig(folder+f'/{file_name}-trajectory-control-force.png',dpi=300)
-            plt.savefig(folder+f'/{file_name}-trajectory-control-force.svg')
-
-        fig, ax = plt.subplots(1,2)
-        ax[0].plot(T,self.__wind_force_x)
-        ax[0].set_xlabel(r'$t$ $[s]$')
-        ax[0].set_ylabel(r'$F_{wx}$ $[N]$')
-        ax[0].title.set_text(r'Wind Force ($F_{wx}$)')
-        ax[1].plot(T,self.__wind_force_y)
-        ax[1].set_xlabel(r'$t$ $[s]$')
-        ax[1].set_ylabel(r'$F_{wy}$ $[N]$')
-        ax[1].title.set_text(r'Wind Force ($F_{wy}$)')
-        fig.suptitle(f'{file_name} Trajectory')
-        fig.set_size_inches(16,9)
-        if save:
-            plt.savefig(folder+f'/{file_name}-trajectory-wind-force.png',dpi=300)
-            plt.savefig(folder+f'/{file_name}-trajectory-wind-force.svg')
-
-        fig, ax = plt.subplots()
-        fig.set_size_inches(16,9)
-        xs, ys, vx, vy, v = self.__draw_wind_field_grid()
-        ax.set_xlim([0.0,self.__width])
-        ax.set_ylim([0.0,self.__height])
-        for i in range(len(xs)):
-            for j in range(len(ys)):
-                if v[i,j]>0.2:
-                    ax.arrow(xs[i],ys[j],vx[i,j]/40,vy[i,j]/40,length_includes_head=False,head_width=0.015,head_length=0.015,width=0.003,color='orange')
-                else:
-                    ax.plot(xs[i],ys[j],'o',color='orange',markersize=5*v[i,j])
-        ax.set_xlabel(r'$x$ $[m]$')
-        ax.set_ylabel(r'$y$ $[m]$')
-        ax.set_title('Wind Field')
-        ax.set_xlim([0.0,self.__width])
-        ax.set_ylim([0.0,self.__height])
-        fig.legend(['Wind Speed'])
-        if save:
-            plt.savefig(folder+f'/wind-field.png',dpi=300)
-            plt.savefig(folder+f'/wind-field.svg')
-
-        plt.show()
-        plt.close()
 
     def animate(self):
         '''

@@ -56,9 +56,7 @@ wind_field = WindField('configs/wind_field.json','configs/mass.json')
 # Run the simulation for the different trajectories
 for file in os.listdir('trajectories'):
     wind_field.set_trajectory('trajectories/'+file,file)
-    wind_field.simulate_wind_field()
-    if show_plots:  
-        wind_field.plot(save_plots)
+    wind_field.simulate_wind_field(show_plots)
     wind_field.reset()
 
 
@@ -80,7 +78,7 @@ if not test:
 wind_field.reset()
 wind_field.reset_gp()
 wind_field.set_trajectory('lemniscate4.mat','lemniscate4')
-wind_field.simulate_wind_field()
+wind_field.simulate_wind_field(False)
 gp_data, x_labels, y_labels, T = wind_field.get_gp_data()
 wind_field_data = wind_field.get_wind_field_data()
 trajectory_name = Path(file).stem
@@ -88,6 +86,10 @@ trajectory_name = Path(file).stem
 test_ExactGP(gp_data,x_labels,y_labels,T,save_plots,exact_gp_options)
 test_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots,mo_exact_gp_options)
 test_SVGP(gp_data,x_labels,y_labels,T,save_plots,svgp_options,'lemniscate4')
+
+#-----------------------------------------------#
+#                GP Model Update                #
+#-----------------------------------------------#
 
 likelihood_x = gpytorch.likelihoods.GaussianLikelihood()
 likelihood_y = gpytorch.likelihoods.GaussianLikelihood()
@@ -116,7 +118,6 @@ model_y = model
 
 wind_field = WindField('configs/wind_field_test.json','configs/mass.json',model_x,model_y)
 wind_field.set_trajectory('lemniscate4.mat','lemniscate4')
-wind_field.simulate_gp(10,True)  
-wind_field.plot(False,'imgs/gp_plots/SVGP')
+wind_field.simulate_one_step_gp(10,False)  
 # wind_field.reset()
 # wind_field.reset_gp()
