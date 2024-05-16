@@ -7,8 +7,8 @@ import os
 from pathlib import Path
 
 from WindField import WindField
-from utils.train import *
-from utils.test import *
+from utils.train_gp import *
+from utils.test_offline_gp import *
 
 # Argument Parser
 # TODO check for argument correctness and maybe add Exceptions
@@ -82,7 +82,7 @@ gp_data, x_labels, y_labels, T = wind_field.get_gp_data()
 wind_field_data = wind_field.get_wind_field_data()
 trajectory_name = Path(file).stem
 
-test_ExactGP(gp_data,x_labels,y_labels,T,save_plots,exact_gp_options)
+test_offline_ExactGP(gp_data,x_labels,y_labels,T,save_plots,exact_gp_options)
 test_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots,mo_exact_gp_options)
 # test_SVGP(gp_data,x_labels,y_labels,T,save_plots,svgp_options,'lemniscate4')
 
