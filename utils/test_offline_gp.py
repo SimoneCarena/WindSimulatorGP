@@ -8,7 +8,7 @@ from GPModels.MultiOutputExactGPModels import *
 from GPModels.SVGPModels import *
 
 @torch.no_grad
-def __test_ExactGP(test_data, test_labels, models, likelihoods, name, T, save=False, show=True):
+def __test_offline_ExactGP(test_data, test_labels, models, likelihoods, name, T, save=False, show=True):
     '''
     Test a trained GP model.\\
     '''
@@ -65,7 +65,7 @@ def __test_ExactGP(test_data, test_labels, models, likelihoods, name, T, save=Fa
     plt.close()
 
 @torch.no_grad
-def __test_ExactMultiOutputExactGP(test_data, test_labels, model, likelihood, name, T, save=False, show=True):
+def __test_offline_ExactMultiOutputExactGP(test_data, test_labels, model, likelihood, name, T, save=False, show=True):
     model.eval()
     likelihood.eval()
     observed_pred = model(test_data)
@@ -118,7 +118,7 @@ def __test_ExactMultiOutputExactGP(test_data, test_labels, model, likelihood, na
     plt.close()
 
 @torch.no_grad
-def __test_SVGP(test_data, test_labels, models, likelihoods, name, T, trajectory_name, save=False, show=True):
+def __test_offline_SVGP(test_data, test_labels, models, likelihoods, name, T, trajectory_name, save=False, show=True):
     axis = ['x','y']
     l = [(models[i], likelihoods[i], test_labels[i], axis[i]) for i in range(2)]
 
@@ -209,7 +209,7 @@ def test_offline_ExactGP(gp_data,x_labels,y_labels,T,save_plots,options):
         model_y_dict = torch.load(f'models/ExactGP/model-y-RBF.pth')
         model_x.load_state_dict(model_x_dict)
         model_y.load_state_dict(model_y_dict)
-        __test_ExactGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'RBF',T,save=save_plots)
+        __test_offline_ExactGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'RBF',T,save=save_plots)
 
     # RBF + Periodic
     if options['RBF-Periodic']:
@@ -231,7 +231,7 @@ def test_offline_ExactGP(gp_data,x_labels,y_labels,T,save_plots,options):
         model_y_dict = torch.load(f'models/ExactGP/model-y-RBF-Periodic.pth')
         model_x.load_state_dict(model_x_dict)
         model_y.load_state_dict(model_y_dict)
-        __test_ExactGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'RBF-Periodic',T,save=save_plots)
+        __test_offline_ExactGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'RBF-Periodic',T,save=save_plots)
 
     # Matern 3/2
     if options['Matern-32']:
@@ -253,7 +253,7 @@ def test_offline_ExactGP(gp_data,x_labels,y_labels,T,save_plots,options):
         model_y_dict = torch.load(f'models/ExactGP/model-y-Matern-32.pth')
         model_x.load_state_dict(model_x_dict)
         model_y.load_state_dict(model_y_dict)
-        __test_ExactGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'Matern-32',T,save=save_plots)
+        __test_offline_ExactGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'Matern-32',T,save=save_plots)
 
     # Matern 5/2
     if options['Matern-52']:
@@ -275,7 +275,7 @@ def test_offline_ExactGP(gp_data,x_labels,y_labels,T,save_plots,options):
         model_y_dict = torch.load(f'models/ExactGP/model-y-Matern-52.pth')
         model_x.load_state_dict(model_x_dict)
         model_y.load_state_dict(model_y_dict)
-        __test_ExactGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'Matern-52',T,save=save_plots)
+        __test_offline_ExactGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'Matern-52',T,save=save_plots)
 
     # Spectral Mixture (n=3)
     if options['SpectralMixture-3']:
@@ -297,7 +297,7 @@ def test_offline_ExactGP(gp_data,x_labels,y_labels,T,save_plots,options):
         model_y_dict = torch.load(f'models/ExactGP/model-y-SpectralMixture-3.pth')
         model_x.load_state_dict(model_x_dict)
         model_y.load_state_dict(model_y_dict)
-        __test_ExactGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'SpectralMixture-3',T,save=save_plots)\
+        __test_offline_ExactGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'SpectralMixture-3',T,save=save_plots)\
         
     # Spectral Mixture (n=5)
     if options['SpectralMixture-5']:
@@ -319,7 +319,7 @@ def test_offline_ExactGP(gp_data,x_labels,y_labels,T,save_plots,options):
         model_y_dict = torch.load(f'models/ExactGP/model-y-SpectralMixture-5.pth')
         model_x.load_state_dict(model_x_dict)
         model_y.load_state_dict(model_y_dict)
-        __test_ExactGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'SpectralMixture-5',T,save=save_plots)
+        __test_offline_ExactGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'SpectralMixture-5',T,save=save_plots)
 
     # Spectral Mixture (n=10)
     if options['SpectralMixture-10']:
@@ -341,7 +341,7 @@ def test_offline_ExactGP(gp_data,x_labels,y_labels,T,save_plots,options):
         model_y_dict = torch.load(f'models/ExactGP/model-y-SpectralMixture-10.pth')
         model_x.load_state_dict(model_x_dict)
         model_y.load_state_dict(model_y_dict)
-        __test_ExactGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'SpectralMixture-10',T,save=save_plots)
+        __test_offline_ExactGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'SpectralMixture-10',T,save=save_plots)
 
     # DeepKernel
     if options['DeepKernel']:
@@ -363,9 +363,9 @@ def test_offline_ExactGP(gp_data,x_labels,y_labels,T,save_plots,options):
         model_y_dict = torch.load(f'models/ExactGP/model-y-deep-kernel.pth')
         model_x.load_state_dict(model_x_dict)
         model_y.load_state_dict(model_y_dict)
-        __test_ExactGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'DeepKernel',T,save=save_plots)
+        __test_offline_ExactGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'DeepKernel',T,save=save_plots)
 
-def test_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots,options):
+def test_offline_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots,options):
     # RBF
     if options['RBF']:
         test_data = torch.FloatTensor(gp_data)
@@ -380,7 +380,7 @@ def test_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots,options):
         model = MultiOutputExactGPModelRBF(train_data,train_labels,likelihood)
         model_dict = torch.load(f'models/MultiOutputExactGP/model-RBF.pth')
         model.load_state_dict(model_dict)
-        __test_ExactMultiOutputExactGP(test_data,[test_x_labels,test_y_labels],model,likelihood,'RBF',T,save=save_plots)
+        __test_offline_ExactMultiOutputExactGP(test_data,[test_x_labels,test_y_labels],model,likelihood,'RBF',T,save=save_plots)
 
     # RBF+Periodic
     if options['RBF-Periodic']:
@@ -396,7 +396,7 @@ def test_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots,options):
         model = MultiOutputExactGPModelRBFPeriodic(train_data,train_labels,likelihood)
         model_dict = torch.load(f'models/MultiOutputExactGP/model-RBF-Periodic.pth')
         model.load_state_dict(model_dict)
-        __test_ExactMultiOutputExactGP(test_data,[test_x_labels,test_y_labels],model,likelihood,'RBF-Periodic',T,save=save_plots)
+        __test_offline_ExactMultiOutputExactGP(test_data,[test_x_labels,test_y_labels],model,likelihood,'RBF-Periodic',T,save=save_plots)
 
     # Matern 3/2
     if options['Matern-32']:
@@ -412,7 +412,7 @@ def test_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots,options):
         model = MultiOutputExactGPModelMatern_32(train_data,train_labels,likelihood)
         model_dict = torch.load(f'models/MultiOutputExactGP/model-Matern-32.pth')
         model.load_state_dict(model_dict)
-        __test_ExactMultiOutputExactGP(test_data,[test_x_labels,test_y_labels],model,likelihood,'Matern-32',T,save=save_plots)
+        __test_offline_ExactMultiOutputExactGP(test_data,[test_x_labels,test_y_labels],model,likelihood,'Matern-32',T,save=save_plots)
 
     # Matern 5/2
     if options['Matern-52']:
@@ -428,7 +428,7 @@ def test_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots,options):
         model = MultiOutputExactGPModelMatern_52(train_data,train_labels,likelihood)
         model_dict = torch.load(f'models/MultiOutputExactGP/model-Matern-52.pth')
         model.load_state_dict(model_dict)
-        __test_ExactMultiOutputExactGP(test_data,[test_x_labels,test_y_labels],model,likelihood,'Matern-52',T,save=save_plots)
+        __test_offline_ExactMultiOutputExactGP(test_data,[test_x_labels,test_y_labels],model,likelihood,'Matern-52',T,save=save_plots)
 
     # Spectral Mixture 3
     if options['SpectralMixture-3']:
@@ -444,7 +444,7 @@ def test_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots,options):
         model = MultiOutputExactGPModelSpectralMixture_3(train_data,train_labels,likelihood)
         model_dict = torch.load(f'models/MultiOutputExactGP/model-SpectralMixture-3.pth')
         model.load_state_dict(model_dict)
-        __test_ExactMultiOutputExactGP(test_data,[test_x_labels,test_y_labels],model,likelihood,'SpectralMixture-3',T,save=save_plots)
+        __test_offline_ExactMultiOutputExactGP(test_data,[test_x_labels,test_y_labels],model,likelihood,'SpectralMixture-3',T,save=save_plots)
 
     # Spectral Mixture 5
     if options['SpectralMixture-5']:
@@ -460,7 +460,7 @@ def test_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots,options):
         model = MultiOutputExactGPModelSpectralMixture_5(train_data,train_labels,likelihood)
         model_dict = torch.load(f'models/MultiOutputExactGP/model-SpectralMixture-5.pth')
         model.load_state_dict(model_dict)
-        __test_ExactMultiOutputExactGP(test_data,[test_x_labels,test_y_labels],model,likelihood,'SpectralMixture-5',T,save=save_plots)
+        __test_offline_ExactMultiOutputExactGP(test_data,[test_x_labels,test_y_labels],model,likelihood,'SpectralMixture-5',T,save=save_plots)
 
     # Spectral Mixture 10
     if options['SpectralMixture-10']:
@@ -476,9 +476,9 @@ def test_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots,options):
         model = MultiOutputExactGPModelSpectralMixture_10(train_data,train_labels,likelihood)
         model_dict = torch.load(f'models/MultiOutputExactGP/model-SpectralMixture-10.pth')
         model.load_state_dict(model_dict)
-        __test_ExactMultiOutputExactGP(test_data,[test_x_labels,test_y_labels],model,likelihood,'SpectralMixture-10',T,save=save_plots)
+        __test_offline_ExactMultiOutputExactGP(test_data,[test_x_labels,test_y_labels],model,likelihood,'SpectralMixture-10',T,save=save_plots)
 
-def test_SVGP(gp_data,x_labels,y_labels,T,save_plots,options,trajectory_name):
+def test_offline_SVGP(gp_data,x_labels,y_labels,T,save_plots,options,trajectory_name):
     # RBF
     if options['RBF']:
         test_data = torch.FloatTensor(gp_data)
@@ -498,7 +498,7 @@ def test_SVGP(gp_data,x_labels,y_labels,T,save_plots,options,trajectory_name):
         model_y_dict = torch.load(f'models/SVGP/model-y-RBF.pth')
         model_x.load_state_dict(model_x_dict)
         model_y.load_state_dict(model_y_dict)
-        __test_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'RBF',T,trajectory_name,save=save_plots)
+        __test_offline_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'RBF',T,trajectory_name,save=save_plots)
 
     # RBF+Periodic
     if options['RBF-Periodic']:
@@ -519,7 +519,7 @@ def test_SVGP(gp_data,x_labels,y_labels,T,save_plots,options,trajectory_name):
         model_y_dict = torch.load(f'models/SVGP/model-y-RBF-Periodic.pth')
         model_x.load_state_dict(model_x_dict)
         model_y.load_state_dict(model_y_dict)
-        __test_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'RBF-Periodic',T,trajectory_name,save=save_plots)
+        __test_offline_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'RBF-Periodic',T,trajectory_name,save=save_plots)
 
     # Matern 3/2
     if options['Matern-32']:
@@ -540,7 +540,7 @@ def test_SVGP(gp_data,x_labels,y_labels,T,save_plots,options,trajectory_name):
         model_y_dict = torch.load(f'models/SVGP/model-y-Matern-32.pth')
         model_x.load_state_dict(model_x_dict)
         model_y.load_state_dict(model_y_dict)
-        __test_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'Matern-32',T,trajectory_name,save=save_plots)
+        __test_offline_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'Matern-32',T,trajectory_name,save=save_plots)
 
     # Matern 5/2
     if options['Matern-52']:
@@ -561,7 +561,7 @@ def test_SVGP(gp_data,x_labels,y_labels,T,save_plots,options,trajectory_name):
         model_y_dict = torch.load(f'models/SVGP/model-y-Matern-52.pth')
         model_x.load_state_dict(model_x_dict)
         model_y.load_state_dict(model_y_dict)
-        __test_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'Matern-52',T,trajectory_name,save=save_plots)
+        __test_offline_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'Matern-52',T,trajectory_name,save=save_plots)
 
     # SpectralMixture-3
     if options['SpectralMixture-3']:
@@ -582,7 +582,7 @@ def test_SVGP(gp_data,x_labels,y_labels,T,save_plots,options,trajectory_name):
         model_y_dict = torch.load(f'models/SVGP/model-y-SpectralMixture-3.pth')
         model_x.load_state_dict(model_x_dict)
         model_y.load_state_dict(model_y_dict)
-        __test_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'SpectralMixture-3',T,trajectory_name,save=save_plots)
+        __test_offline_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'SpectralMixture-3',T,trajectory_name,save=save_plots)
 
     # SpectralMixture-5
     if options['SpectralMixture-5']:
@@ -603,7 +603,7 @@ def test_SVGP(gp_data,x_labels,y_labels,T,save_plots,options,trajectory_name):
         model_y_dict = torch.load(f'models/SVGP/model-y-SpectralMixture-5.pth')
         model_x.load_state_dict(model_x_dict)
         model_y.load_state_dict(model_y_dict)
-        __test_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'SpectralMixture-5',T,trajectory_name,save=save_plots)
+        __test_offline_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'SpectralMixture-5',T,trajectory_name,save=save_plots)
 
     # SpectralMixture-10
     if options['SpectralMixture-10']:
@@ -624,4 +624,4 @@ def test_SVGP(gp_data,x_labels,y_labels,T,save_plots,options,trajectory_name):
         model_y_dict = torch.load(f'models/SVGP/model-y-SpectralMixture-10.pth')
         model_x.load_state_dict(model_x_dict)
         model_y.load_state_dict(model_y_dict)
-        __test_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'SpectralMixture-10',T,trajectory_name,save=save_plots)
+        __test_offline_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'SpectralMixture-10',T,trajectory_name,save=save_plots)

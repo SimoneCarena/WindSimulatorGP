@@ -9,6 +9,7 @@ from pathlib import Path
 from WindField import WindField
 from utils.train_gp import *
 from utils.test_offline_gp import *
+from utils.test_online_gp import *
 
 # Argument Parser
 # TODO check for argument correctness and maybe add Exceptions
@@ -83,42 +84,12 @@ wind_field_data = wind_field.get_wind_field_data()
 trajectory_name = Path(file).stem
 
 test_offline_ExactGP(gp_data,x_labels,y_labels,T,save_plots,exact_gp_options)
-test_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots,mo_exact_gp_options)
+test_offline_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots,mo_exact_gp_options)
 # test_SVGP(gp_data,x_labels,y_labels,T,save_plots,svgp_options,'lemniscate4')
 
 #-----------------------------------------------#
 #                GP Model Update                #
 #-----------------------------------------------#
 
-likelihood_x = gpytorch.likelihoods.GaussianLikelihood()
-likelihood_y = gpytorch.likelihoods.GaussianLikelihood()
-likelihood_x_dict = torch.load(f'models/SVGP/likelihood-x-RBF.pth')
-likelihood_y_dict = torch.load(f'models/SVGP/likelihood-y-RBF.pth')
-likelihood_x.load_state_dict(likelihood_x_dict)
-likelihood_y.load_state_dict(likelihood_y_dict)
-inducing_points_x = torch.load('data/SVGP/inducing_points_x-RBF.pt')
-inducing_points_y = torch.load('data/SVGP/inducing_points_y-RBF.pt')
-model_x = SVGPModelRBF(inducing_points_x)
-model_y = SVGPModelRBF(inducing_points_y)
-model_x_dict = torch.load(f'models/SVGP/model-x-RBF.pth')
-model_y_dict = torch.load(f'models/SVGP/model-y-RBF.pth')
-model_x.load_state_dict(model_x_dict)
-model_y.load_state_dict(model_y_dict)
-
-# Retrieve Exact GP x
-model = ExactGPModelRBF(torch.empty((0,2)),torch.empty((0,1)),likelihood_x)
-model.covar_module = model_x.covar_module
-model_x = model
-
-# Retrieve Exact GP y
-model = ExactGPModelRBF(torch.empty((0,2)),torch.empty((0,1)),likelihood_y)
-model.covar_module = model_y.covar_module
-model_y = model
-
-for file in os.listdir('test_trajectories'):
-    file_name = Path(file).stem
-    wind_field = WindField('configs/wind_field_test.json','configs/mass.json',model_x,model_y)
-    wind_field.set_trajectory('test_trajectories/'+file,file_name)
-    wind_field.simulate_one_step_gp(50,show=False,save='imgs/gp_update_plots/RBF-'+file_name)  
-    wind_field.reset()
-    wind_field.reset_gp()
+wind_field = WindField('configs/wind_field.json','configs/mass.json')
+test_online_gp(wind_field,'test_trajectories',svgp_options)

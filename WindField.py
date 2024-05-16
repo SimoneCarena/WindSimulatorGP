@@ -668,7 +668,7 @@ class WindField:
         if show or save is not None:
             self.plot(show,save)
 
-    def reset(self, wind_field_conf_file=None, mass_conf_file=None):
+    def reset(self, wind_field_conf_file=None, mass_conf_file=None, gp_predictor_x=None, gp_predictor_y=None):
         '''
         Resets the Wind Field, based on the files that are passes, if something is omitted,
         the prviously used configuration file will be considered.\\
@@ -686,6 +686,11 @@ class WindField:
             self.__mass_config_file = mass_conf_file
         else:
             self.__setup_system(self.__mass_config_file)
+
+        if gp_predictor_x is not None:
+            self.__gp_predictor_x = gp_predictor_x
+        if gp_predictor_y is not None:
+            self.__gp_predictor_y = gp_predictor_y
 
         self.__setup_plots()
 
