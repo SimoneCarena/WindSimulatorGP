@@ -16,14 +16,16 @@ from utils.test_online_gp import *
 parser = argparse.ArgumentParser()
 parser.add_argument('--save_plots',action='store_true')
 parser.add_argument('--show_plots',action='store_true')
-parser.add_argument('--test','-t',action='store_true')
+parser.add_argument('--test_online',action='store_true')
+parser.add_argument('--test_offline',action='store_true')
 parser.add_argument('--suppress_warnings','-w',action='store_true')
 
 # Parse Arguments
 args = parser.parse_args()
 save_plots = args.save_plots
 show_plots = args.show_plots
-test = args.test
+test_online = args.test_online
+test_offline = args.test_offline
 suppress_warnings = args.suppress_warnings
 
 # Suppress Warning (caused by GPytorch internal stuff)
@@ -66,30 +68,32 @@ gp_data, x_labels, y_labels, T = wind_field.get_gp_data()
 #                Train GP models                #
 #-----------------------------------------------#
 
-if not test:
+if not test_offline and not test_online:
     train_ExactGP(gp_data,x_labels,y_labels,exact_gp_options,device,10000)
     train_MultiOutputExactGP(gp_data,x_labels,y_labels,mo_exact_gp_options,device,20000)
     train_SVGP(gp_data,x_labels,y_labels,svgp_options,device,5000)
 
-#----------------------------------------------#
-#                Test GP models                #
-#----------------------------------------------#
+#------------------------------------------------------#
+#                Test GP models Offline                #
+#------------------------------------------------------#
 
-wind_field.reset()
-wind_field.reset_gp()
-wind_field.set_trajectory('test_trajectories/lemniscate4.mat','lemniscate4')
-wind_field.simulate_wind_field(False)
-gp_data, x_labels, y_labels, T = wind_field.get_gp_data()
-wind_field_data = wind_field.get_wind_field_data()
-trajectory_name = Path(file).stem
+if test_offline:
+    wind_field.reset()
+    wind_field.reset_gp()
+    wind_field.set_trajectory('test_trajectories/lemniscate4.mat','lemniscate4')
+    wind_field.simulate_wind_field(False)
+    gp_data, x_labels, y_labels, T = wind_field.get_gp_data()
+    wind_field_data = wind_field.get_wind_field_data()
+    trajectory_name = Path(file).stem
 
-test_offline_ExactGP(gp_data,x_labels,y_labels,T,save_plots,exact_gp_options)
-test_offline_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots,mo_exact_gp_options)
-# test_SVGP(gp_data,x_labels,y_labels,T,save_plots,svgp_options,'lemniscate4')
+    test_offline_ExactGP(gp_data,x_labels,y_labels,T,save_plots,exact_gp_options)
+    test_offline_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots,mo_exact_gp_options)
+    test_offline_SVGP(gp_data,x_labels,y_labels,T,save_plots,svgp_options,'lemniscate4')
 
 #-----------------------------------------------#
 #                GP Model Update                #
 #-----------------------------------------------#
 
-wind_field = WindField('configs/wind_field.json','configs/mass.json')
-test_online_gp(wind_field,'test_trajectories',svgp_options)
+if test_online:
+    wind_field = WindField('configs/wind_field.json','configs/mass.json')
+    test_online_gp(wind_field,'test_trajectories',svgp_options)

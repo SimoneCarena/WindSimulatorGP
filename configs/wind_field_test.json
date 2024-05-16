@@ -77,6 +77,15 @@
             "v0": 12,
             "noise_var": 0.01,
             "length": 1
+        },
+        {
+            "x0": 4,
+            "y0": 2,
+            "alpha": 180,
+            "theta": 120,
+            "v0": 10,
+            "noise_var": 0.01,
+            "length": 1
         }
     ]
 }

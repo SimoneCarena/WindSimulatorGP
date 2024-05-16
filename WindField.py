@@ -335,7 +335,7 @@ class WindField:
             self.plot(show,save)
 
     @torch.no_grad
-    def simulate_one_step_gp(self, max_size=50, show=False, save=None):
+    def simulate_one_step_gp(self, max_size=50, show=False, save=None, kernel_name=''):
         if self.__gp_predictor_x is None or self.__gp_predictor_y is None:
             raise NoModelException()
         if self.__trajectory is None:
@@ -441,7 +441,7 @@ class WindField:
         # Plot x prediction
         fig, ax = plt.subplots(2,1)
         fig.set_size_inches(16,9)
-        fig.suptitle('One Step-Ahead Prediction (x-axis)')
+        fig.suptitle(f'One Step-Ahead Prediction (x-axis) {self.__trajectory_name} Trajectory with {kernel_name} Kernel')
         fig.tight_layout(pad=3.0)
         ax[0].set_xlim([0,T[-1]])
         ax[0].plot(T[max_size:],x_pred,'b-',label="estimated Wind Force")
@@ -468,7 +468,7 @@ class WindField:
         # Plot y prediction
         fig, ax = plt.subplots(2,1)
         fig.set_size_inches(16,9)
-        fig.suptitle('One Step-Ahead Prediction (y-axis)')
+        fig.suptitle(f'One Step-Ahead Prediction (y-axis) {self.__trajectory_name} Trajectory with {kernel_name} Kernel')
         fig.tight_layout(pad=3.0)
         ax[0].set_xlim([0,T[-1]])
         ax[0].plot(T[max_size:],y_pred,'b-',label="estimated Wind Force")

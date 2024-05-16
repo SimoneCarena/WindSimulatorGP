@@ -13,11 +13,14 @@ def __test_online_gp(wind_field, trajectories_folder, model_x, model_y, name):
     # Start By resetting the wind field
     wind_field.reset(gp_predictor_x=model_x, gp_predictor_y=model_y)
     wind_field.reset_gp()
+    # Put the models in eval mode
+    model_x.eval()
+    model_y.eval()
 
     for file in os.listdir(trajectories_folder):
         file_name = Path(file).stem
         wind_field.set_trajectory(trajectories_folder+'/'+file,file_name)
-        wind_field.simulate_one_step_gp(50,show=False,save='imgs/gp_update_plots/'+name+'-'+file_name)  
+        wind_field.simulate_one_step_gp(50,show=True,save='imgs/gp_update_plots/'+name+'-'+file_name,kernel_name=name)  
         wind_field.reset()
         wind_field.reset_gp()
 
