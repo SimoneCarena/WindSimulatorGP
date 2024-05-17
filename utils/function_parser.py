@@ -17,14 +17,11 @@ class _SinFunction:
         return self.__v0*np.sin(2*np.pi*self.__f*t+self.__phi)
     
 class _SquareFunction:
-    def __init__(self,v0,T):
+    def __init__(self,v0,f):
         self.__v0 = v0
-        self.__T = T
+        self.__f = f
     def __call__(self,t):
-        if int(t/self.__T)%2 == 0:
-            return self.__v0
-        else:
-            return 0.0
+        return self.__v0*np.sign(np.sin(2*np.pi**self.__f*t))
 
 
 def parse_generator(generator):
@@ -47,8 +44,8 @@ def parse_generator(generator):
         return generator_function
     elif generator['function'] == 'square':
         v0 = parameters['v0']
-        T = parameters['period']
-        generator_function = _SquareFunction(v0,T)
+        f = parameters['frequency']
+        generator_function = _SquareFunction(v0,f)
         return generator_function
 
     else:

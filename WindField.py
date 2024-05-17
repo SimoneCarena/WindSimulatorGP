@@ -300,7 +300,6 @@ class WindField:
         # Simulate the field 
         t = 0
         for target_p, target_v in self.__trajectory:
-            print(t)
             total_speed = np.array([0,0],dtype=float)
             for fan in self.fans:
                 speed = fan.generate_wind(self.__system.p[0],self.__system.p[1],t)
@@ -369,7 +368,7 @@ class WindField:
         for target_p, target_v in self.__trajectory:
             total_speed = np.array([0,0],dtype=float)
             for fan in self.fans:
-                speed = fan.generate_wind(self.__system.p[0],self.__system.p[1],t)
+                speed = fan.generate_wind(self.__system.p[0],self.__system.p[1],t*self.__dt)
                 total_speed+=speed
 
             # Collect inputs for GP
@@ -504,6 +503,7 @@ class WindField:
         if show:
             plt.show()
         plt.close()
+        self.plot(True)
 
     @torch.no_grad
     def simulate_multi_step_gp(self, max_size=50, num_steps=5, show=False, save=None):
