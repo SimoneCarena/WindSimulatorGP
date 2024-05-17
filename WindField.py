@@ -10,7 +10,7 @@ from modules.Fan import Fan
 from modules.System import System
 from modules.Trajectory import Trajectory
 from modules.PD import PD
-from utils.exceptions import MissingTrajectoryException, NoModelException, InvalidArgumentExecption
+from utils.exceptions import MissingTrajectoryException, NoModelException, InvalidParameterExecption
 
 class WindField:
     '''
@@ -499,7 +499,7 @@ class WindField:
     @torch.no_grad
     def simulate_multi_step_gp(self, max_size=50, num_steps=5, show=False, save=None):
         if num_steps<=0:
-            raise InvalidArgumentExecption(f'Invalid number of steps, provided {num_steps} but the value must be >=0')
+            raise InvalidParameterExecption(f'Invalid number of steps, provided {num_steps} but the value must be >=0')
         if self.__gp_predictor_x is None or self.__gp_predictor_y is None:
             raise NoModelException()
         if self.__trajectory is None:

@@ -8,6 +8,10 @@ class NoModelException(Exception):
         message = "No GP model was loaded to run the simulation"
         super().__init__(message)
 
-class InvalidArgumentExecption(Exception):
+class InvalidParameterExecption(Exception):
+    def __init__(self,message):
+        super().__init__(message)
+
+class InvalidCommandLineArgumentException(Exception):
     def __init__(self,message):
         super().__init__(message)
