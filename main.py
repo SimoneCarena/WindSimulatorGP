@@ -59,7 +59,7 @@ wind_field = WindField('configs/wind_field.json','configs/mass.json')
 # Run the simulation for the different trajectories
 for file in os.listdir('trajectories'):
     wind_field.set_trajectory('trajectories/'+file,file)
-    wind_field.simulate_wind_field(show_plots)
+    wind_field.simulate_wind_field(False)
     wind_field.reset()
 
 # Get GP data
@@ -94,6 +94,6 @@ if test=="offline":
 #                GP Model Update                #
 #-----------------------------------------------#
 
-if test=="offline":
+if test=="online":
     wind_field = WindField('configs/wind_field.json','configs/mass.json')
     test_online_gp(wind_field,'test_trajectories',svgp_options)
