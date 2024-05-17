@@ -13,7 +13,6 @@ from utils.test_online_gp import *
 from utils.exceptions import InvalidCommandLineArgumentException
 
 # Argument Parser
-# TODO check for argument correctness and maybe add Exceptions
 parser = argparse.ArgumentParser()
 parser.add_argument('--save_plots',action='store_true')
 parser.add_argument('--show_plots',action='store_true')
