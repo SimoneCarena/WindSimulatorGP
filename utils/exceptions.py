@@ -15,3 +15,7 @@ class InvalidParameterExecption(Exception):
 class InvalidCommandLineArgumentException(Exception):
     def __init__(self,message):
         super().__init__(message)
+
+class InvalidFunctionException(Exception):
+    def __init__(self,message):
+        super().__init__(message)

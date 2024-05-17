@@ -9,15 +9,15 @@ class Fan:
     to the generated wind from the fan. The resulting covariance matrix will be
     noise_var*eye(2,2)
     '''
-    def __init__(self,x0,y0,ux,uy,theta,v0,noise_var=0.0):
+    def __init__(self,x0,y0,ux,uy,theta,noise_var=0.0,wind_funct=None):
         self.p0 = np.array([x0,y0],dtype=float)
         self.u0 = np.array([ux,uy],dtype=float)
         self.theta = np.deg2rad(theta)
-        self.v0 = float(v0)
         self.noise_mean = 0.0
         self.noise_cov = noise_var
+        self.wind_funct = wind_funct
 
-    def generate_wind(self,x,y):
+    def generate_wind(self,x,y,t):
         '''
         Method used to generate the wind at a certain location (x,y).
         The function returns the wind speed at the specified coordinates
@@ -35,7 +35,7 @@ class Fan:
         scale_x = (1+dx)
         scale_y = (1+dy)
         # Add noise
-        v0 = self.v0 + np.random.normal(self.noise_mean,self.noise_cov)
+        v0 = self.wind_funct(t) + np.random.normal(self.noise_mean,self.noise_cov)
         if alpha < self.theta/2:
             speed = v0*u/np.array([scale_x,scale_y])
         else:

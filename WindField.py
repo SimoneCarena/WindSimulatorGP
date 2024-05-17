@@ -10,6 +10,7 @@ from modules.Fan import Fan
 from modules.System import System
 from modules.Trajectory import Trajectory
 from modules.PD import PD
+from utils.function_parser import parse_generator
 from utils.exceptions import MissingTrajectoryException, NoModelException, InvalidParameterExecption
 
 class WindField:
@@ -48,15 +49,16 @@ class WindField:
         self.__grid_resolution = data["grid_resolution"]
 
         ## Parse fans' data
-        self.__fans = []
+        self.fans = []
         for fan in data["fans"]:
             x0 = float(fan["x0"])
             y0 = float(fan["y0"])
             alpha = np.deg2rad(float(fan["alpha"]))
             theta = float(fan["theta"])
-            v0 = float(fan["v0"])
             noise_var = float(fan['noise_var'])
             length = float(fan["length"])
+            generator = fan["generator"]
+            generator_function = parse_generator(generator)
 
             u0 = np.array([1,0])
             rot_mat = np.array([
@@ -70,8 +72,8 @@ class WindField:
             x0 = x0-h*u0[0]
             y0 = y0-h*u0[1]
 
-            f = Fan(x0,y0,u0[0],u0[1],theta,v0,noise_var)
-            self.__fans.append(f)
+            f = Fan(x0,y0,u0[0],u0[1],theta,noise_var,generator_function)
+            self.fans.append(f)
         file.close()
 
     def __setup_system(self, mass_conf_file):
@@ -117,20 +119,22 @@ class WindField:
         vxs = []
         vys = []
         vs = []
+        t = 0
         for x in np.linspace(0.1,self.__width-0.1,self.__grid_resolution):
             vx = []
             vy = []
             v = []
             for y in np.linspace(0.1,self.__height-0.1,self.__grid_resolution):
                 total_speed = np.zeros((2,),dtype=float)
-                for fan in self.__fans:
-                    total_speed+=fan.generate_wind(x,y)
+                for fan in self.fans:
+                    total_speed+=fan.generate_wind(x,y,t)
                 vx.append(total_speed[0])
                 vy.append(total_speed[1])
                 v.append(np.linalg.norm(total_speed))
             vxs.append(vx)
             vys.append(vy)
             vs.append(v)
+            t+=self.__dt
         return np.linspace(0.1,self.__width-0.1,self.__grid_resolution),np.linspace(0.1,self.__height-0.1,self.__grid_resolution),np.array(vxs),np.array(vys), np.array(vs)
 
     def plot(self, show=False, save=None):
@@ -291,12 +295,15 @@ class WindField:
         y0 = p[1,0]
         self.__system.p[0] = x0
         self.__system.p[1] = y0
+        T = [i*self.__dt for i in range(self.__duration)]
 
         # Simulate the field 
+        t = 0
         for target_p, target_v in self.__trajectory:
+            print(t)
             total_speed = np.array([0,0],dtype=float)
-            for fan in self.__fans:
-                speed = fan.generate_wind(self.__system.p[0],self.__system.p[1])
+            for fan in self.fans:
+                speed = fan.generate_wind(self.__system.p[0],self.__system.p[1],t)
                 total_speed+=speed
 
             # Collect inputs for GP
@@ -331,6 +338,8 @@ class WindField:
             # Simulate Dynamics
             self.__system.discrete_dynamics(force)
 
+            t+=self.__dt
+
         if show or save is not None:
             self.plot(show,save)
 
@@ -359,8 +368,8 @@ class WindField:
         t = 0
         for target_p, target_v in self.__trajectory:
             total_speed = np.array([0,0],dtype=float)
-            for fan in self.__fans:
-                speed = fan.generate_wind(self.__system.p[0],self.__system.p[1])
+            for fan in self.fans:
+                speed = fan.generate_wind(self.__system.p[0],self.__system.p[1],t)
                 total_speed+=speed
 
             # Collect inputs for GP
@@ -526,8 +535,8 @@ class WindField:
 
         for target_p, target_v in self.__trajectory:
             total_speed = np.array([0,0],dtype=float)
-            for fan in self.__fans:
-                speed = fan.generate_wind(self.__system.p[0],self.__system.p[1])
+            for fan in self.fans:
+                speed = fan.generate_wind(self.__system.p[0],self.__system.p[1],t)
                 total_speed+=speed
 
             # Collect inputs for GP
@@ -748,7 +757,7 @@ class WindField:
             ax.plot(self.__xs[:t],self.__ys[:t],'b')
             ax.plot(self.__tr_p[0,:t],self.__tr_p[1,:t],'--',color='orange')
             # Plot fans
-            for fan in self.__fans:
+            for fan in self.fans:
                 ax.quiver(fan.p0[0],fan.p0[1],fan.u0[0],fan.u0[1],scale=10,color='k')
             ax.legend()
 
