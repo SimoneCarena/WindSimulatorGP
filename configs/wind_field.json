@@ -7,18 +7,114 @@
     "air_density": 1.2,
     "fans": [
         {
-            "x0": 0,
-            "y0": 2,
+            "x0": 2,
+            "y0": 1,
             "alpha": 0,
             "theta": 120,
             "noise_var": 0.1,
             "length": 1,
             "generator": {
-                "function": "sin",
+                "function": "constant",
                 "parameters": {
-                    "v0": 15,
-                    "frequency": 0.05,
-                    "phase": 0.0
+                    "v0": 10
+                }
+            }
+        },
+        {
+            "x0": 2,
+            "y0": 3,
+            "alpha": 0,
+            "theta": 120,
+            "noise_var": 0.1,
+            "length": 1,
+            "generator": {
+                "function": "constant",
+                "parameters": {
+                    "v0": 10
+                }
+            }
+        },
+        {
+            "x0": 1,
+            "y0": 0,
+            "alpha": 90,
+            "theta": 120,
+            "noise_var": 0.1,
+            "length": 1,
+            "generator": {
+                "function": "constant",
+                "parameters": {
+                    "v0": 10
+                }
+            }
+        },
+        {
+            "x0": 3,
+            "y0": 0,
+            "alpha": 90,
+            "theta": 120,
+            "noise_var": 0.1,
+            "length": 1,
+            "generator": {
+                "function": "constant",
+                "parameters": {
+                    "v0": 10
+                }
+            }
+        },
+        {
+            "x0": 4,
+            "y0": 1,
+            "alpha": 180,
+            "theta": 120,
+            "noise_var": 0.1,
+            "length": 1,
+            "generator": {
+                "function": "constant",
+                "parameters": {
+                    "v0": 10
+                }
+            }
+        },
+        {
+            "x0": 4,
+            "y0": 3,
+            "alpha": 180,
+            "theta": 120,
+            "noise_var": 0.1,
+            "length": 1,
+            "generator": {
+                "function": "constant",
+                "parameters": {
+                    "v0": 10
+                }
+            }
+        },
+        {
+            "x0": 1,
+            "y0": 4,
+            "alpha": -90,
+            "theta": 120,
+            "noise_var": 0.1,
+            "length": 1,
+            "generator": {
+                "function": "constant",
+                "parameters": {
+                    "v0": 10
+                }
+            }
+        },
+        {
+            "x0": 3,
+            "y0": 4,
+            "alpha": -90,
+            "theta": 120,
+            "noise_var": 0.1,
+            "length": 1,
+            "generator": {
+                "function": "constant",
+                "parameters": {
+                    "v0": 10
                 }
             }
         }

@@ -521,6 +521,27 @@ def test_offline_SVGP(gp_data,x_labels,y_labels,T,save_plots,options,trajectory_
         model_y.load_state_dict(model_y_dict)
         __test_offline_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'RBF-Periodic',T,trajectory_name,save=save_plots)
 
+    # RBF+Product
+    if options['RBF-Product']:
+        test_data = torch.FloatTensor(gp_data)
+        test_x_labels = torch.FloatTensor(x_labels)
+        test_y_labels = torch.FloatTensor(y_labels)
+        likelihood_x = gpytorch.likelihoods.GaussianLikelihood()
+        likelihood_y = gpytorch.likelihoods.GaussianLikelihood()
+        likelihood_x_dict = torch.load(f'models/SVGP/likelihood-x-RBF-Product.pth')
+        likelihood_y_dict = torch.load(f'models/SVGP/likelihood-y-RBF-Product.pth')
+        likelihood_x.load_state_dict(likelihood_x_dict)
+        likelihood_y.load_state_dict(likelihood_y_dict)
+        inducing_points_x = torch.load('data/SVGP/inducing_points_x-RBF-Product.pt')
+        inducing_points_y = torch.load('data/SVGP/inducing_points_y-RBF-Product.pt')
+        model_x = SVGPModelRBFProduct(inducing_points_x)
+        model_y = SVGPModelRBFProduct(inducing_points_y)
+        model_x_dict = torch.load(f'models/SVGP/model-x-RBF-Product.pth')
+        model_y_dict = torch.load(f'models/SVGP/model-y-RBF-Product.pth')
+        model_x.load_state_dict(model_x_dict)
+        model_y.load_state_dict(model_y_dict)
+        __test_offline_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'RBF-Product',T,trajectory_name,save=save_plots)
+
     # Matern 3/2
     if options['Matern-32']:
         test_data = torch.FloatTensor(gp_data)

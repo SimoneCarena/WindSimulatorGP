@@ -8,7 +8,7 @@ from GPModels.ExactGPModels import *
 from GPModels.SVGPModels import *
 
 @torch.no_grad
-def __test_online_gp(wind_field, trajectories_folder, model_x, model_y, name):
+def __test_online_gp(wind_field, trajectories_folder, model_x, model_y, name, window_size):
 
     # Start By resetting the wind field
     wind_field.reset(gp_predictor_x=model_x, gp_predictor_y=model_y)
@@ -20,12 +20,12 @@ def __test_online_gp(wind_field, trajectories_folder, model_x, model_y, name):
     for file in os.listdir(trajectories_folder):
         file_name = Path(file).stem
         wind_field.set_trajectory(trajectories_folder+'/'+file,file_name)
-        wind_field.simulate_one_step_gp(50,show=True,save='imgs/gp_update_plots/'+name+'-'+file_name,kernel_name=name)  
+        wind_field.simulate_continuous_update_gp(window_size,show=True,save='imgs/gp_update_plots/'+name+'-'+file_name,kernel_name=name)  
         wind_field.reset()
         wind_field.reset_gp()
 
 
-def test_online_gp(wind_field, trajecotries_folder, options):
+def test_online_gp(wind_field, trajecotries_folder, options, window_size=100):
     # RBF
     if options['RBF'] == True:
         likelihood_x = gpytorch.likelihoods.GaussianLikelihood()
@@ -53,7 +53,7 @@ def test_online_gp(wind_field, trajecotries_folder, options):
         model.covar_module = model_y.covar_module
         model_y = model
 
-        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'RBF')
+        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'RBF',window_size)
 
     # RBF + Periodic
     if options['RBF-Periodic'] == True:
@@ -82,7 +82,36 @@ def test_online_gp(wind_field, trajecotries_folder, options):
         model.covar_module = model_y.covar_module
         model_y = model
 
-        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'RBF-Periodic')
+        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'RBF-Periodic',window_size)
+
+    # RBF + Product
+    if options['RBF-Product'] == True:
+        likelihood_x = gpytorch.likelihoods.GaussianLikelihood()
+        likelihood_y = gpytorch.likelihoods.GaussianLikelihood()
+        likelihood_x_dict = torch.load(f'models/SVGP/likelihood-x-RBF-Product.pth')
+        likelihood_y_dict = torch.load(f'models/SVGP/likelihood-y-RBF-Product.pth')
+        likelihood_x.load_state_dict(likelihood_x_dict)
+        likelihood_y.load_state_dict(likelihood_y_dict)
+        inducing_points_x = torch.load('data/SVGP/inducing_points_x-RBF-Product.pt')
+        inducing_points_y = torch.load('data/SVGP/inducing_points_y-RBF-Product.pt')
+        model_x = SVGPModelRBFProduct(inducing_points_x)
+        model_y = SVGPModelRBFProduct(inducing_points_y)
+        model_x_dict = torch.load(f'models/SVGP/model-x-RBF-Product.pth')
+        model_y_dict = torch.load(f'models/SVGP/model-y-RBF-Product.pth')
+        model_x.load_state_dict(model_x_dict)
+        model_y.load_state_dict(model_y_dict)
+
+        # Retrieve Exact GP x
+        model = ExactGPModelRBFProduct(torch.empty((0,2)),torch.empty((0,1)),likelihood_x)
+        model.covar_module = model_x.covar_module
+        model_x = model
+
+        # Retrieve Exact GP y
+        model = ExactGPModelRBFProduct(torch.empty((0,2)),torch.empty((0,1)),likelihood_y)
+        model.covar_module = model_y.covar_module
+        model_y = model
+
+        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'RBF-Product',window_size)
 
     # Matern-32
     if options['Matern-32'] == True:
@@ -111,7 +140,7 @@ def test_online_gp(wind_field, trajecotries_folder, options):
         model.covar_module = model_y.covar_module
         model_y = model
 
-        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'Matern-32')
+        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'Matern-32',window_size)
 
     # Matern-52
     if options['Matern-52'] == True:
@@ -140,7 +169,7 @@ def test_online_gp(wind_field, trajecotries_folder, options):
         model.covar_module = model_y.covar_module
         model_y = model
 
-        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'Matern-52')
+        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'Matern-52',window_size)
 
     # SpectralMixture-3
     if options['SpectralMixture-3'] == True:
@@ -169,7 +198,7 @@ def test_online_gp(wind_field, trajecotries_folder, options):
         model.covar_module = model_y.covar_module
         model_y = model
 
-        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'SpectralMixture-3')
+        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'SpectralMixture-3',window_size)
 
     # SpectralMixture-5
     if options['SpectralMixture-5'] == True:
@@ -198,7 +227,7 @@ def test_online_gp(wind_field, trajecotries_folder, options):
         model.covar_module = model_y.covar_module
         model_y = model
 
-        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'SpectralMixture-5')
+        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'SpectralMixture-5',window_size)
 
     # SpectralMixture-10
     if options['SpectralMixture-10'] == True:
@@ -227,4 +256,4 @@ def test_online_gp(wind_field, trajecotries_folder, options):
         model.covar_module = model_y.covar_module
         model_y = model
 
-        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'SpectralMixture-10')
+        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'SpectralMixture-10',window_size)
