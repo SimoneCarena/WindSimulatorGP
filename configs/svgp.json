@@ -1,7 +1,7 @@
 {
     "RBF": false,
     "RBF-Periodic": true,
-    "RBF-Product": true,
+    "RBF-Product": false,
     "Matern-32": false,
     "Matern-52": false,
     "SpectralMixture-3": false,

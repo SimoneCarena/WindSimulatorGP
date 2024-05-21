@@ -1,16 +1,21 @@
+import numpy as np
+
 from scipy.io import loadmat
 
 class Trajectory:
     '''
     Iterator used to describe the trajectory at each time step
     '''
-    def __init__(self, path):
+    def __init__(self,path,laps):
         mat = loadmat(path)
         data = mat.get('data')
         self.p = data[:2,:]
         self.v = data[2:,:]
+        for _ in range(1,laps):
+            self.p = np.concatenate([self.p,data[:2,:]],axis=1)
+            self.v = np.concatenate([self.v,data[2:,:]],axis=1)
         self.current = 0 # Iterator counter
-        self.size = len(data[0,:])
+        self.size = len(data[0,:])*laps
 
     def __iter__(self):
         return self

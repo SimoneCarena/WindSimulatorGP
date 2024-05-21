@@ -8,7 +8,7 @@ from GPModels.ExactGPModels import *
 from GPModels.SVGPModels import *
 
 @torch.no_grad
-def __test_online_gp(wind_field, trajectories_folder, model_x, model_y, name, window_size):
+def __test_online_gp(wind_field, trajectories_folder, model_x, model_y, name, window_size, laps):
 
     # Start By resetting the wind field
     wind_field.reset(gp_predictor_x=model_x, gp_predictor_y=model_y)
@@ -19,13 +19,13 @@ def __test_online_gp(wind_field, trajectories_folder, model_x, model_y, name, wi
 
     for file in os.listdir(trajectories_folder):
         file_name = Path(file).stem
-        wind_field.set_trajectory(trajectories_folder+'/'+file,file_name)
+        wind_field.set_trajectory(trajectories_folder+'/'+file,file_name,laps)
         wind_field.simulate_continuous_update_gp(window_size,show=True,save='imgs/gp_update_plots/'+name+'-'+file_name,kernel_name=name)  
         wind_field.reset()
         wind_field.reset_gp()
 
 
-def test_online_gp(wind_field, trajecotries_folder, options, window_size=100):
+def test_online_gp(wind_field, trajecotries_folder, options, window_size=100, laps=1):
     # RBF
     if options['RBF'] == True:
         likelihood_x = gpytorch.likelihoods.GaussianLikelihood()
@@ -53,7 +53,7 @@ def test_online_gp(wind_field, trajecotries_folder, options, window_size=100):
         model.covar_module = model_y.covar_module
         model_y = model
 
-        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'RBF',window_size)
+        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'RBF',window_size,laps)
 
     # RBF + Periodic
     if options['RBF-Periodic'] == True:
@@ -82,7 +82,7 @@ def test_online_gp(wind_field, trajecotries_folder, options, window_size=100):
         model.covar_module = model_y.covar_module
         model_y = model
 
-        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'RBF-Periodic',window_size)
+        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'RBF-Periodic',window_size,laps)
 
     # RBF + Product
     if options['RBF-Product'] == True:
@@ -111,7 +111,7 @@ def test_online_gp(wind_field, trajecotries_folder, options, window_size=100):
         model.covar_module = model_y.covar_module
         model_y = model
 
-        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'RBF-Product',window_size)
+        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'RBF-Product',window_size,laps)
 
     # Matern-32
     if options['Matern-32'] == True:
@@ -140,7 +140,7 @@ def test_online_gp(wind_field, trajecotries_folder, options, window_size=100):
         model.covar_module = model_y.covar_module
         model_y = model
 
-        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'Matern-32',window_size)
+        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'Matern-32',window_size,laps)
 
     # Matern-52
     if options['Matern-52'] == True:
@@ -169,7 +169,7 @@ def test_online_gp(wind_field, trajecotries_folder, options, window_size=100):
         model.covar_module = model_y.covar_module
         model_y = model
 
-        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'Matern-52',window_size)
+        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'Matern-52',window_size,laps)
 
     # SpectralMixture-3
     if options['SpectralMixture-3'] == True:
@@ -198,7 +198,7 @@ def test_online_gp(wind_field, trajecotries_folder, options, window_size=100):
         model.covar_module = model_y.covar_module
         model_y = model
 
-        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'SpectralMixture-3',window_size)
+        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'SpectralMixture-3',window_size,laps)
 
     # SpectralMixture-5
     if options['SpectralMixture-5'] == True:
@@ -227,7 +227,7 @@ def test_online_gp(wind_field, trajecotries_folder, options, window_size=100):
         model.covar_module = model_y.covar_module
         model_y = model
 
-        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'SpectralMixture-5',window_size)
+        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'SpectralMixture-5',window_size,laps)
 
     # SpectralMixture-10
     if options['SpectralMixture-10'] == True:
@@ -256,4 +256,4 @@ def test_online_gp(wind_field, trajecotries_folder, options, window_size=100):
         model.covar_module = model_y.covar_module
         model_y = model
 
-        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'SpectralMixture-10',window_size)
+        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'SpectralMixture-10',window_size,laps)

@@ -23,7 +23,7 @@
             }
         },
         {
-            "x0": 2,
+            "x0": 3,
             "y0": 4,
             "alpha": -90,
             "theta": 120,
@@ -33,6 +33,22 @@
                 "function": "constant",
                 "parameters": {
                     "v0": 13
+                }
+            }
+        },
+        {
+            "x0": 1,
+            "y0": 4,
+            "alpha": -90,
+            "theta": 120,
+            "noise_var": 0.01,
+            "length": 1,
+            "generator": {
+                "function": "cos",
+                "parameters": {
+                    "v0": 15,
+                    "frequency": 0.1,
+                    "phase": 0.0
                 }
             }
         }

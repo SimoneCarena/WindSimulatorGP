@@ -274,9 +274,10 @@ class WindField:
             plt.show()
         plt.close()
 
-    def set_trajectory(self, trajectory_file,trajectory_name):
+    def set_trajectory(self, trajectory_file,trajectory_name,laps=1):
         # Generate Trajectory
-        self.__trajectory = Trajectory(trajectory_file)
+        self.__trajectory = Trajectory(trajectory_file,laps)
+        self.__duration*=laps
         self.__trajectory_name = trajectory_name
         self.__tr_p, self.__tr_v = self.__trajectory.trajectory()
 
