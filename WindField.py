@@ -4,6 +4,7 @@ import json
 import torch
 
 from matplotlib import animation
+from matplotlib.colors import LinearSegmentedColormap
 from pathlib import Path
 
 from modules.Fan import Fan
@@ -112,11 +113,10 @@ class WindField:
         self.__evx = [] # List of x velocity traking errors
         self.__evy = [] # List of y velocity traking errors
 
-    def __draw_wind_field_grid(self):
+    def __draw_wind_field_grid(self,t=0.0):
         vxs = []
         vys = []
         vs = []
-        t = 0
         for x in np.linspace(0.1,self.__width-0.1,self.__grid_resolution):
             vx = []
             vy = []
@@ -253,10 +253,18 @@ class WindField:
         ax.set_ylim([0.0,self.__height])
         for i in range(len(xs)):
             for j in range(len(ys)):
-                if v[i,j]>0.2:
-                    ax.arrow(xs[i],ys[j],vx[i,j]/v_max/15,vy[i,j]/v_max/15,length_includes_head=False,head_width=0.015,head_length=0.015,width=0.003,color='orange')
-                else:
-                    ax.plot(xs[i],ys[j],'o',color='orange',markersize=5*v[i,j])
+                ax.arrow(xs[i],ys[j],vx[i,j]/100,vy[i,j]/100,length_includes_head=False,head_width=0.015,head_length=0.015,width=0.005,color='orange',alpha=v[i,j]/v_max)
+
+        # Create custom colormap
+        colors = [(1, 0.5, 0, alpha) for alpha in np.linspace(0, 1, 256)]
+        orange_transparency_cmap = LinearSegmentedColormap.from_list('orange_transparency', colors, N=256)
+        bar = ax.imshow(np.array([[0,v_max]]), cmap=orange_transparency_cmap)
+        bar.set_visible(False)
+        cb = fig.colorbar(bar,orientation="vertical")
+        cb.set_label(label=r'Wind Speed $[m/s]$',labelpad=10)
+        for o in self.__obstacles:
+            circle = plt.Circle((o.x,o.y),o.r,color='k')
+            ax.add_patch(circle)
         ax.set_xlabel(r'$x$ $[m]$')
         ax.set_ylabel(r'$y$ $[m]$')
         ax.set_title('Wind Field')
@@ -587,6 +595,45 @@ class WindField:
             ax.legend()
 
         anim = animation.FuncAnimation(fig,animation_function,frames=self.__duration,interval=1,repeat=False)
+
+        plt.show()
+        plt.close()
+
+    def animate_wind_field(self, duration=5, resolution=0.1):
+        fig, ax = plt.subplots()
+        fig.suptitle(f'Wind Field Evolution')
+        fig.set_size_inches(16,9)
+        XS, YS, VXS, VYS, V = [], [], [], [], []
+        v_max = 0
+        for t in [i*resolution for i in range(int(duration/resolution))]:
+            xs, ys, vx, vy, v = self.__draw_wind_field_grid()
+            XS.append(xs.copy())
+            YS.append(ys.copy())
+            VXS.append(vx.copy())
+            VYS.append(vy.copy())
+            V.append(v.copy())
+            v_m = np.max(v)
+            if v_m>v_max:
+                v_max = v_m
+        # Create custom colormap
+        colors = [(1, 0.5, 0, alpha) for alpha in np.linspace(0, 1, 256)]
+        orange_transparency_cmap = LinearSegmentedColormap.from_list('orange_transparency', colors, N=256)
+        bar = ax.imshow(np.array([[0,v_max]]), cmap=orange_transparency_cmap)
+        bar.set_visible(False)
+        cb = fig.colorbar(bar,orientation="vertical")
+        cb.set_label(label=r'Wind Speed $[m/s]$',labelpad=10)
+        
+        def animation_function(t):
+            ax.clear()
+            ax.set_xlim([0.0,self.__width])
+            ax.set_ylim([0.0,self.__height])
+            ax.plot(np.NaN, np.NaN, '-', color='none', label='t={0:.2f} s'.format(t*resolution))
+            for i in range(len(xs)):
+                for j in range(len(ys)):
+                    ax.arrow(XS[t][i],YS[t][j],VXS[t][i,j]/20,VYS[t][i,j]/20,length_includes_head=False,head_width=0.015,head_length=0.015,width=0.003,color='orange',alpha=V[t][i,j]/v_max)
+            ax.legend()
+
+        anim = animation.FuncAnimation(fig,animation_function,frames=int(duration/resolution),interval=1,repeat=False)
 
         plt.show()
         plt.close()

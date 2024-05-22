@@ -14,14 +14,14 @@ class _SinFunction:
         self.__f = f
         self.__phi = phi
     def __call__(self, t):
-        return self.__v0*np.sin(2*np.pi*self.__f*t+self.__phi)
+        return np.abs(self.__v0*np.sin(2*np.pi*self.__f*t+self.__phi))
     
 class _SquareFunction:
     def __init__(self,v0,f):
         self.__v0 = v0
         self.__f = f
     def __call__(self,t):
-        return self.__v0*np.sign(np.sin(2*np.pi**self.__f*t))
+        return self.__v0*np.sign(np.sin(2*np.pi**self.__f*t))/2+self.v0/2
 
 
 def parse_generator(generator):

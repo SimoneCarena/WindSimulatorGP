@@ -49,6 +49,7 @@ class Fan:
             scale_dut = 1-dut/self.width
         # Compute the total scale as their product
         scale = scale_u*scale_dut
+        speed = v0*self.u0*scale
         
-        return v0*self.u0*scale
+        return speed
         

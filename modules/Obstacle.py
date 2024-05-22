@@ -1,3 +1,5 @@
+import numpy as np
+
 class Obstacle:
     '''
     Cylyndrical obstacle at position (x,y) and of radius r
@@ -6,9 +8,12 @@ class Obstacle:
         self.x = x
         self.y = y
         self.r = r
+
+    def distance(self,x,y):
+        return np.sqrt((x-self.x)**2+(y-self.y)**2)
         
     def is_inside(self,x,y):
-        if (x-self.x)**2+(y-self.y)**2<=self.r**2:
+        if self.distance(x,y)<=self.r:
             return True
         else:
             return False
