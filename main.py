@@ -60,6 +60,8 @@ wind_field = WindField('configs/wind_field.json','configs/mass.json')
 for file in os.listdir('trajectories'):
     wind_field.set_trajectory('trajectories/'+file,file)
     wind_field.simulate_wind_field(show_plots)
+    wind_field.plot(True)
+    exit()
     wind_field.reset()
 
 # Get GP data

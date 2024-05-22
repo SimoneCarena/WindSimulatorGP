@@ -11,7 +11,8 @@ from modules.System import System
 from modules.Trajectory import Trajectory
 from modules.PD import PD
 from utils.function_parser import parse_generator
-from utils.exceptions import MissingTrajectoryException, NoModelException, InvalidParameterExecption
+from utils.obstacle_parser import parse_obstacles
+from utils.exceptions import MissingTrajectoryException, NoModelException
 
 class WindField:
     '''
@@ -47,6 +48,8 @@ class WindField:
         self.__dt = data["dt"] # Sampling time
         self.__air_density = data["air_density"] 
         self.__grid_resolution = data["grid_resolution"]
+        obstacles_data = data["obstacles"]
+        self.__obstacles = parse_obstacles(obstacles_data)
 
         ## Parse fans' data
         self.fans = []
@@ -54,7 +57,6 @@ class WindField:
             x0 = float(fan["x0"])
             y0 = float(fan["y0"])
             alpha = np.deg2rad(float(fan["alpha"]))
-            theta = float(fan["theta"])
             noise_var = float(fan['noise_var'])
             length = float(fan["length"])
             generator = fan["generator"]
@@ -67,7 +69,7 @@ class WindField:
             ],dtype=float)
             u0 = rot_mat@u0
 
-            f = Fan(x0,y0,u0[0],u0[1],theta,length,noise_var,generator_function)
+            f = Fan(x0,y0,u0[0],u0[1],length,noise_var,generator_function,self.__obstacles)
             self.fans.append(f)
         file.close()
 
