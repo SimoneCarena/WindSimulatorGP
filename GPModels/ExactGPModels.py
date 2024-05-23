@@ -39,8 +39,8 @@ class ExactGPModelRBFProduct(gpytorch.models.ExactGP):
         # Mean Function
         self.mean_module = gpytorch.means.ConstantMean()
         # Covariance Function, i.e. kernel specification
-        self.covar_module = self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel()+gpytorch.kernels.LinearKernel())
-
+        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel()*gpytorch.kernels.LinearKernel())+gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel()*gpytorch.kernels.LinearKernel())+gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel()*gpytorch.kernels.LinearKernel())
+                
     def forward(self, x):
 		# Compute the mean of the data using the mean function
         mean_x = self.mean_module(x)
@@ -73,6 +73,22 @@ class ExactGPModelMatern_52(gpytorch.models.ExactGP):
         # Covariance Function, i.e. kernel specification
         self.covar_module = self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.MaternKernel(2.5))
 
+    def forward(self, x):
+		# Compute the mean of the data using the mean function
+        mean_x = self.mean_module(x)
+        # Compute the covariance of the data using the kernel function
+        covar_x = self.covar_module(x)
+        # Return a multivariate normal with mean and covariance just computed
+        return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
+    
+class ExactGPModelGaussianMixture(gpytorch.models.ExactGP):
+    def __init__(self, gp_data, labels, likelihood):
+        super(ExactGPModelGaussianMixture, self).__init__(gp_data, labels, likelihood)
+        # Mean Function
+        self.mean_module = gpytorch.means.ConstantMean()
+        # Covariance Function, i.e. kernel specification
+        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())+gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())+gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
+        
     def forward(self, x):
 		# Compute the mean of the data using the mean function
         mean_x = self.mean_module(x)

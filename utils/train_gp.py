@@ -403,6 +403,19 @@ def train_SVGP(gp_data, x_labels, y_labels, options, device, training_iter=10000
         __train_SVGP(train_data,[train_x_labels,train_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'Matern-52',training_iter)
         torch.save(inducing_points,'data/SVGP/inducing_points-Matern-52.pt')
 
+    # GaussianMixture kernel
+    if options['GaussianMixture']:
+        inducing_points = torch.FloatTensor(gp_data[:200]).to(device)
+        train_data = torch.FloatTensor(gp_data).clone().to(device)
+        train_x_labels = torch.FloatTensor(x_labels).clone().to(device)
+        train_y_labels = torch.FloatTensor(y_labels).clone().to(device)
+        likelihood_x = gpytorch.likelihoods.GaussianLikelihood().to(device)
+        likelihood_y = gpytorch.likelihoods.GaussianLikelihood().to(device)
+        model_x = SVGPModelGaussianMixture(inducing_points).to(device)
+        model_y = SVGPModelGaussianMixture(inducing_points).to(device)
+        __train_SVGP(train_data,[train_x_labels,train_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'GaussianMixture',training_iter)
+        torch.save(inducing_points,'data/SVGP/inducing_points-GaussianMixture.pt')
+
     # SpectralMixture-3 kernel
     if options['SpectralMixture-3']:
         inducing_points = torch.FloatTensor(gp_data[:200]).to(device)

@@ -5,10 +5,10 @@ $\verb|json|$ formatting to generate wind-generating functions. The function des
 ## $\sin$ and $\cos$ Functions
 $\verb|"function"|$ parameter name: $\verb|"sin"|$, $\verb|"cos"|$
 $$
-v_0(t)=\left|V_0\sin(2\pi ft+\phi_0)\right|
+v_0(t)=\frac{V_0}{2}\sin(2\pi ft+\phi_0)+\frac{V_0}{2}
 $$
 $$
-v_0(t)=\left|V_0\cos(2\pi ft+\phi_0)\right|
+v_0(t)=\frac{V_0}{2}\cos(2\pi ft+\phi_0)+\frac{V_0}{2}
 $$
 Function $\verb|"parameters"|$:
 - $f$: $\verb|"frequency"|$ parameter

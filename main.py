@@ -98,4 +98,4 @@ if test=="offline":
 
 if test=="online":
     wind_field = WindField('configs/wind_field_test.json','configs/mass.json')
-    test_online_gp(wind_field,'test_trajectories',svgp_options,window_size=100,laps=1)
+    test_online_gp(wind_field,'test_trajectories',svgp_options,window_size=50,laps=1)

@@ -584,6 +584,27 @@ def test_offline_SVGP(gp_data,x_labels,y_labels,T,save_plots,options,trajectory_
         model_y.load_state_dict(model_y_dict)
         __test_offline_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'Matern-52',T,trajectory_name,save=save_plots)
 
+    # GaussianMixture
+    if options['GaussianMixture']:
+        test_data = torch.FloatTensor(gp_data)
+        test_x_labels = torch.FloatTensor(x_labels)
+        test_y_labels = torch.FloatTensor(y_labels)
+        likelihood_x = gpytorch.likelihoods.GaussianLikelihood()
+        likelihood_y = gpytorch.likelihoods.GaussianLikelihood()
+        likelihood_x_dict = torch.load(f'models/SVGP/likelihood-x-GaussianMixture.pth')
+        likelihood_y_dict = torch.load(f'models/SVGP/likelihood-y-GaussianMixture.pth')
+        likelihood_x.load_state_dict(likelihood_x_dict)
+        likelihood_y.load_state_dict(likelihood_y_dict)
+        inducing_points_x = torch.load('data/SVGP/inducing_points_x-GaussianMixture.pt')
+        inducing_points_y = torch.load('data/SVGP/inducing_points_y-GaussianMixture.pt')
+        model_x = SVGPModelGaussianMixture(inducing_points_x)
+        model_y = SVGPModelGaussianMixture(inducing_points_y)
+        model_x_dict = torch.load(f'models/SVGP/model-x-GaussianMixture.pth')
+        model_y_dict = torch.load(f'models/SVGP/model-y-GaussianMixture.pth')
+        model_x.load_state_dict(model_x_dict)
+        model_y.load_state_dict(model_y_dict)
+        __test_offline_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'GaussianMixture',T,trajectory_name,save=save_plots)
+
     # SpectralMixture-3
     if options['SpectralMixture-3']:
         test_data = torch.FloatTensor(gp_data)

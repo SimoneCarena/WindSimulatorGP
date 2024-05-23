@@ -171,6 +171,35 @@ def test_online_gp(wind_field, trajecotries_folder, options, window_size=100, la
 
         __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'Matern-52',window_size,laps)
 
+    # GaussianMixture
+    if options['GaussianMixture'] == True:
+        likelihood_x = gpytorch.likelihoods.GaussianLikelihood()
+        likelihood_y = gpytorch.likelihoods.GaussianLikelihood()
+        likelihood_x_dict = torch.load(f'models/SVGP/likelihood-x-GaussianMixture.pth')
+        likelihood_y_dict = torch.load(f'models/SVGP/likelihood-y-GaussianMixture.pth')
+        likelihood_x.load_state_dict(likelihood_x_dict)
+        likelihood_y.load_state_dict(likelihood_y_dict)
+        inducing_points_x = torch.load('data/SVGP/inducing_points_x-GaussianMixture.pt')
+        inducing_points_y = torch.load('data/SVGP/inducing_points_y-GaussianMixture.pt')
+        model_x = SVGPModelGaussianMixture(inducing_points_x)
+        model_y = SVGPModelGaussianMixture(inducing_points_y)
+        model_x_dict = torch.load(f'models/SVGP/model-x-GaussianMixture.pth')
+        model_y_dict = torch.load(f'models/SVGP/model-y-GaussianMixture.pth')
+        model_x.load_state_dict(model_x_dict)
+        model_y.load_state_dict(model_y_dict)
+
+        # Retrieve Exact GP x
+        model = ExactGPModelGaussianMixture(torch.empty((0,2)),torch.empty((0,1)),likelihood_x)
+        model.covar_module = model_x.covar_module
+        model_x = model
+
+        # Retrieve Exact GP y
+        model = ExactGPModelGaussianMixture(torch.empty((0,2)),torch.empty((0,1)),likelihood_y)
+        model.covar_module = model_y.covar_module
+        model_y = model
+
+        __test_online_gp(wind_field,trajecotries_folder,model_x,model_y,'GaussianMixture',window_size,laps)
+
     # SpectralMixture-3
     if options['SpectralMixture-3'] == True:
         likelihood_x = gpytorch.likelihoods.GaussianLikelihood()
