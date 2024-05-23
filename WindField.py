@@ -245,40 +245,6 @@ class WindField:
             plt.savefig(save+f'/{file_name}-trajectory-wind-force.png',dpi=300)
             plt.savefig(save+f'/{file_name}-trajectory-wind-force.svg')
 
-        fig, ax = plt.subplots()
-        fig.set_size_inches(16,9)
-        xs, ys, vx, vy, v = self.__draw_wind_field_grid()
-        v_max = np.max(v)
-        ax.set_xlim([0.0,self.__width])
-        ax.set_ylim([0.0,self.__height])
-        for i in range(len(xs)):
-            for j in range(len(ys)):
-                ax.arrow(xs[i],ys[j],vx[i,j]/100,vy[i,j]/100,length_includes_head=False,head_width=0.015,head_length=0.015,width=0.005,color='orange',alpha=v[i,j]/v_max)
-
-        # Create custom colormap
-        colors = [(1, 0.5, 0, alpha) for alpha in np.linspace(0, 1, 256)]
-        orange_transparency_cmap = LinearSegmentedColormap.from_list('orange_transparency', colors, N=256)
-        bar = ax.imshow(np.array([[0,v_max]]), cmap=orange_transparency_cmap)
-        bar.set_visible(False)
-        cb = fig.colorbar(bar,orientation="vertical")
-        cb.set_label(label=r'Wind Speed $[m/s]$',labelpad=10)
-        for o in self.__obstacles:
-            circle = plt.Circle((o.x,o.y),o.r,color='k')
-            ax.add_patch(circle)
-        ax.set_xlabel(r'$x$ $[m]$')
-        ax.set_ylabel(r'$y$ $[m]$')
-        ax.set_title('Wind Field')
-        ax.set_xlim([0.0,self.__width])
-        ax.set_ylim([0.0,self.__height])
-        fig.legend(['Wind Speed'])
-        if save is not None:
-            plt.savefig(save+f'/wind-field.png',dpi=300)
-            plt.savefig(save+f'/wind-field.svg')
-
-        if show:    
-            plt.show()
-        plt.close()
-
     def set_trajectory(self, trajectory_file,trajectory_name,laps=1):
         # Generate Trajectory
         self.__trajectory = Trajectory(trajectory_file,laps)
@@ -636,4 +602,45 @@ class WindField:
         anim = animation.FuncAnimation(fig,animation_function,frames=int(duration/resolution),interval=1,repeat=False)
 
         plt.show()
+        plt.close()
+
+    def draw_wind_field(self,show=False,save=None):
+
+        fig, ax = plt.subplots()
+        fig.set_size_inches(16,9)
+
+        if self.__trajectory is not None:
+            tr, _ = self.__trajectory.trajectory()
+            ax.plot(tr[0,:],tr[1,:],'c')
+
+        xs, ys, vx, vy, v = self.__draw_wind_field_grid()
+        v_max = np.max(v)
+        ax.set_xlim([0.0,self.__width])
+        ax.set_ylim([0.0,self.__height])
+        for i in range(len(xs)):
+            for j in range(len(ys)):
+                ax.arrow(xs[i],ys[j],vx[i,j]/100,vy[i,j]/100,length_includes_head=False,head_width=0.015,head_length=0.015,width=0.005,color='orange',alpha=v[i,j]/v_max)
+
+        # Create custom colormap
+        colors = [(1, 0.5, 0, alpha) for alpha in np.linspace(0, 1, 256)]
+        orange_transparency_cmap = LinearSegmentedColormap.from_list('orange_transparency', colors, N=256)
+        bar = ax.imshow(np.array([[0,v_max]]), cmap=orange_transparency_cmap)
+        bar.set_visible(False)
+        cb = fig.colorbar(bar,orientation="vertical")
+        cb.set_label(label=r'Wind Speed $[m/s]$',labelpad=10)
+        for o in self.__obstacles:
+            circle = plt.Circle((o.x,o.y),o.r,color='k')
+            ax.add_patch(circle)
+        ax.set_xlabel(r'$x$ $[m]$')
+        ax.set_ylabel(r'$y$ $[m]$')
+        ax.set_title('Wind Field')
+        ax.set_xlim([0.0,self.__width])
+        ax.set_ylim([0.0,self.__height])
+        fig.legend(['Trajectory','Wind Speed'])
+        if save is not None:
+            plt.savefig(save+f'/wind-field.png',dpi=300)
+            plt.savefig(save+f'/wind-field.svg')
+
+        if show:    
+            plt.show()
         plt.close()

@@ -169,7 +169,7 @@ def __train_ExactDeepKernel(train_data, x_labels, y_labels, training_iter, devic
 
 
 def train_ExactGP(gp_data, x_labels, y_labels, options, device, training_iter=10000):
-    idxs = torch.IntTensor(random.sample(range(0,len(gp_data)),200))
+    idxs = torch.arange(0,1000)
 
     # RBF kernel
     if options['RBF']:
@@ -193,6 +193,17 @@ def train_ExactGP(gp_data, x_labels, y_labels, options, device, training_iter=10
         model_y = ExactGPModelRBFPeriodic(train_data,train_y_labels,likelihood_y).to(device)
         __train_ExactGP(train_data,[train_x_labels,train_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'RBF-Periodic',training_iter)
 
+    # RBF + Product kernel
+    if options['RBF-Product']:
+        train_data = torch.FloatTensor(gp_data).index_select(0,idxs).clone().to(device)
+        train_x_labels = torch.FloatTensor(x_labels).index_select(0,idxs).clone().to(device)
+        train_y_labels = torch.FloatTensor(y_labels).index_select(0,idxs).clone().to(device)
+        likelihood_x = gpytorch.likelihoods.GaussianLikelihood().to(device)
+        likelihood_y = gpytorch.likelihoods.GaussianLikelihood().to(device)
+        model_x = ExactGPModelRBFProduct(train_data,train_x_labels,likelihood_x).to(device)
+        model_y = ExactGPModelRBFProduct(train_data,train_y_labels,likelihood_y).to(device)
+        __train_ExactGP(train_data,[train_x_labels,train_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'RBF-Product',training_iter)
+
     # Matern 3/2 kernel
     if options['Matern-32']:
         train_data = torch.FloatTensor(gp_data).index_select(0,idxs).clone().to(device)
@@ -214,6 +225,17 @@ def train_ExactGP(gp_data, x_labels, y_labels, options, device, training_iter=10
         model_x = ExactGPModelMatern_52(train_data,train_x_labels,likelihood_x).to(device)
         model_y = ExactGPModelMatern_52(train_data,train_y_labels,likelihood_y).to(device)
         __train_ExactGP(train_data,[train_x_labels,train_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'Matern-52',training_iter)
+
+    # Gaussian Mixture kernel
+    if options['GaussianMixture']:
+        train_data = torch.FloatTensor(gp_data).index_select(0,idxs).clone().to(device)
+        train_x_labels = torch.FloatTensor(x_labels).index_select(0,idxs).clone().to(device)
+        train_y_labels = torch.FloatTensor(y_labels).index_select(0,idxs).clone().to(device)
+        likelihood_x = gpytorch.likelihoods.GaussianLikelihood().to(device)
+        likelihood_y = gpytorch.likelihoods.GaussianLikelihood().to(device)
+        model_x = ExactGPModelGaussianMixture(train_data,train_x_labels,likelihood_x).to(device)
+        model_y = ExactGPModelGaussianMixture(train_data,train_y_labels,likelihood_y).to(device)
+        __train_ExactGP(train_data,[train_x_labels,train_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'GaussianMixture',training_iter)
 
     # Spectral Mixture (n=3) kernel
     if options['SpectralMixture-3']:

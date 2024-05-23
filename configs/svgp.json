@@ -1,6 +1,6 @@
 {
     "RBF": false,
-    "RBF-Periodic": false,
+    "RBF-Periodic": true,
     "RBF-Product": true,
     "Matern-32": false,
     "Matern-52": false,

@@ -23,7 +23,7 @@ class ExactGPModelRBFPeriodic(gpytorch.models.ExactGP):
         # Mean Function
         self.mean_module = gpytorch.means.ConstantMean()
         # Covariance Function, i.e. kernel specification
-        self.covar_module = self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel()+gpytorch.kernels.PeriodicKernel())
+        self.covar_module = self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())+gpytorch.kernels.ScaleKernel(gpytorch.kernels.PeriodicKernel())
 
     def forward(self, x):
 		# Compute the mean of the data using the mean function
@@ -39,7 +39,7 @@ class ExactGPModelRBFProduct(gpytorch.models.ExactGP):
         # Mean Function
         self.mean_module = gpytorch.means.ConstantMean()
         # Covariance Function, i.e. kernel specification
-        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel()*gpytorch.kernels.LinearKernel())+gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel()*gpytorch.kernels.LinearKernel())+gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel()*gpytorch.kernels.LinearKernel())
+        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel()*gpytorch.kernels.LinearKernel())
                 
     def forward(self, x):
 		# Compute the mean of the data using the mean function

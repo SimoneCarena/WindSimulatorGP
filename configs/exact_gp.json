@@ -4,7 +4,7 @@
     "RBF-Product": false,
     "Matern-32": false,
     "Matern-52": false,
-    "GaussianMixture": true,
+    "GaussianMixture": false,
     "SpectralMixture-3": false,
     "SpectralMixture-5": false,
     "SpectralMixture-10": false,
