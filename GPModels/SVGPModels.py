@@ -36,7 +36,7 @@ class SVGPModelRBFProduct(ApproximateGP):
         variational_strategy = VariationalStrategy(self, inducing_points, variational_distribution, learn_inducing_locations=True)
         super(SVGPModelRBFProduct, self).__init__(variational_strategy)
         self.mean_module = gpytorch.means.ConstantMean()
-        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel()*gpytorch.kernels.LinearKernel())
+        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())+gpytorch.kernels.ScaleKernel(gpytorch.kernels.LinearKernel())
 
     def forward(self, x):
         mean_x = self.mean_module(x)

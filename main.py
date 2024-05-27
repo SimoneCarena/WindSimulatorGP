@@ -60,8 +60,7 @@ wind_field = WindField('configs/wind_field.json','configs/mass.json')
 for file in os.listdir('trajectories'):
     wind_field.set_trajectory('trajectories/'+file,file)
     wind_field.simulate_wind_field(show_plots)
-    # wind_field.plot(True)
-    # exit()
+    # wind_field.draw_wind_field(True)
     wind_field.reset()
 
 # Get GP data
@@ -73,7 +72,7 @@ gp_data, x_labels, y_labels, T = wind_field.get_gp_data()
 if test is None:
     train_ExactGP(gp_data,x_labels,y_labels,exact_gp_options,device,3000)
     train_MultiOutputExactGP(gp_data,x_labels,y_labels,mo_exact_gp_options,device,3000)
-    train_SVGP(gp_data,x_labels,y_labels,svgp_options,device,3000)
+    train_SVGP(gp_data,x_labels,y_labels,svgp_options,device,5000)
 
 #------------------------------------------------------#
 #                Test GP models Offline                #

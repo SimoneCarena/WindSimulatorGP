@@ -13,11 +13,9 @@
             "noise_var": 0.01,
             "length": 4,
             "generator": {
-                "function": "sin",
+                "function": "constant",
                 "parameters": {
-                    "frequency": 0.2,
-                    "phase": 45,
-                    "v0": 20
+                    "v0": 8
                 }
             }
         },
@@ -54,11 +52,9 @@
             "noise_var": 0.01,
             "length": 4,
             "generator": {
-                "function": "sin",
+                "function": "constant",
                 "parameters": {
-                    "frequency": 0.2,
-                    "phase": 0,
-                    "v0": 12
+                    "v0": 8
                 }
             }
         }

@@ -113,60 +113,6 @@ def __train_SVGP(train_data, train_labels, models, likelihoods, name, training_i
 
     print(f'Training of SVGP model with {name} kernel complete!\n')
 
-def __train_ExactDeepKernel(train_data, x_labels, y_labels, training_iter, device):
-
-    likelihood_x = gpytorch.likelihoods.GaussianLikelihood().to(device)
-    model_x = ExactGPModelDeepKernel(train_data, x_labels, likelihood_x).to(device)
-    likelihood_y = gpytorch.likelihoods.GaussianLikelihood().to(device)
-    model_y = ExactGPModelDeepKernel(train_data, y_labels, likelihood_y).to(device)
-
-    optimizer_x = torch.optim.Adam([
-        {'params': model_x.feature_extractor.parameters()},
-        {'params': model_x.covar_module.parameters()},
-        {'params': model_x.mean_module.parameters()},
-        {'params': model_x.likelihood.parameters()},
-    ], lr=0.01)
-    optimizer_y = torch.optim.Adam([
-        {'params': model_y.feature_extractor.parameters()},
-        {'params': model_y.covar_module.parameters()},
-        {'params': model_y.mean_module.parameters()},
-        {'params': model_y.likelihood.parameters()},
-    ], lr=0.01)
-
-    mll_x = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood_x, model_x)
-    mll_y = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood_y, model_y)
-
-    print('Training DeepKernel ExactGP model on {} iterations'.format(training_iter))
-    for i in range(training_iter):
-        # Zero backprop gradients
-        optimizer_x.zero_grad()
-        optimizer_y.zero_grad()
-        # Get output from model
-        output_x = model_x(train_data)
-        output_y = model_y(train_data)
-        # Compute loss and backprop derivatives
-        loss_x = -mll_x(output_x, x_labels)
-        loss_y = -mll_y(output_y, y_labels)
-        loss_x.backward()
-        loss_y.backward()
-        optimizer_x.step()
-        optimizer_y.step()
-
-        print('|{}{}| {:.2f}% (Iteration {}/{})'.format('█'*int(20*(i+1)/training_iter),' '*(20-int(20*(i+1)/training_iter)),(i+1)*100/training_iter,i+1,training_iter),end='\r')
-    print('')
-    print(f'Training of DeepeKernel ExactGP complete!\n')
-
-    # Save the model
-    torch.save(model_x.state_dict(),f'models/ExactGP/model-x-deep-kernel.pth')
-    torch.save(likelihood_x.state_dict(),f'models/ExactGP/likelihood-x-deep-kernel.pth')
-    torch.save(model_y.state_dict(),f'models/ExactGP/model-y-deep-kernel.pth')
-    torch.save(likelihood_y.state_dict(),f'models/ExactGP/likelihood-y-deep-kernel.pth')
-
-    # Save the train data and labels 
-    torch.save(train_data.clone(),f'data/ExactGP/train_data-deep-kernel.pt')
-    torch.save(x_labels.clone(),f'data/ExactGP/train_labels-x-deep-kernel.pt')
-    torch.save(y_labels.clone(),f'data/ExactGP/train_labels-y-deep-kernel.pt')
-
 
 def train_ExactGP(gp_data, x_labels, y_labels, options, device, training_iter=10000):
     idxs = torch.arange(0,1000)
@@ -440,7 +386,7 @@ def train_SVGP(gp_data, x_labels, y_labels, options, device, training_iter=10000
 
     # SpectralMixture-3 kernel
     if options['SpectralMixture-3']:
-        inducing_points = torch.FloatTensor(gp_data[:200]).to(device)
+        inducing_points = torch.FloatTensor(gp_data[:400]).to(device)
         train_data = torch.FloatTensor(gp_data).clone().to(device)
         train_x_labels = torch.FloatTensor(x_labels).clone().to(device)
         train_y_labels = torch.FloatTensor(y_labels).clone().to(device)
