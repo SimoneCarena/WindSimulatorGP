@@ -39,9 +39,26 @@
             "noise_var": 0.1,
             "length": 4,
             "generator": {
-                "function": "constant",
+                "function": "sin",
                 "parameters": {
-                    "v0": 12
+                    "v0": 12,
+                    "frequency": 1,
+                    "phase": 0.0
+                }
+            }
+        },
+        {
+            "x0": 0,
+            "y0": 0,
+            "alpha": 45,
+            "noise_var": 0.1,
+            "length": 4,
+            "generator": {
+                "function": "sin",
+                "parameters": {
+                    "v0": 10,
+                    "frequency": 0.5,
+                    "phase": 30.0
                 }
             }
         }
