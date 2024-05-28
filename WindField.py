@@ -443,7 +443,7 @@ class WindField:
         exit()
 
     @torch.no_grad
-    def simulate_continuous_update_gp(self, max_size, show=False, save=None, kernel_name=''):
+    def simulate_continuous_update_gp(self, max_size, show=False, save=None, kernel_name='', horizon=1):
         if self.__gp_predictor_x is None or self.__gp_predictor_y is None:
             raise NoModelException()
         if self.__trajectory is None:
@@ -522,7 +522,7 @@ class WindField:
             if t==0:
                 self.__gp_predictor_x.set_train_data(p,torch.FloatTensor([wind_force[0]]),strict=False)
                 self.__gp_predictor_y.set_train_data(p,torch.FloatTensor([wind_force[1]]),strict=False)
-            elif t>=max_size:
+            elif t>=max_size and t%horizon==0:
                 # Changing the training data of the model each iteration has a cost of O(M^2),
                 # where M is the number of points used in the model. 
                 # Computing the posterior has a cost of O(M^3). The complexity of recomputing the Gram
@@ -535,7 +535,7 @@ class WindField:
                 gp_labels_y = self.__gp_predictor_y.train_targets
                 self.__gp_predictor_x.set_train_data(torch.cat([gp_data[1:,],p],dim=0),torch.cat([gp_labels_x[1:],torch.FloatTensor([wind_force[0]])]),strict=False)
                 self.__gp_predictor_y.set_train_data(torch.cat([gp_data[1:,],p],dim=0),torch.cat([gp_labels_y[1:],torch.FloatTensor([wind_force[1]])]),strict=False)
-            else:
+            elif t<max_size:
                 gp_data = self.__gp_predictor_x.train_inputs[0]
                 gp_labels_x = self.__gp_predictor_x.train_targets
                 gp_labels_y = self.__gp_predictor_y.train_targets
