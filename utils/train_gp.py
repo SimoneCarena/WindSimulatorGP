@@ -2,9 +2,9 @@ import gpytorch
 import random
 import torch
 
-from GPModels.ExactGPModels import *
-from GPModels.MultiOutputExactGPModels import *
-from GPModels.SVGPModels import *
+from GPModels.ExactGPModel import *
+from GPModels.MultiOutputExactGPModel import *
+from GPModels.SVGPModel import *
 
 def __train_ExactGP(train_data, train_labels, models, likelihoods, name, training_iter):
     '''
@@ -52,7 +52,7 @@ def __train_ExactMultiOutputExactGP(train_data, train_labels, model, likelihood,
     model.train()
     likelihood.train()
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.01) 
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001) 
 
     mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model)
 
@@ -216,18 +216,11 @@ def train_ExactGP(gp_data, x_labels, y_labels, options, device, training_iter=10
         model_y = ExactGPModelSpectralMixture_10(train_data,train_y_labels,likelihood_y).to(device)
         __train_ExactGP(train_data,[train_x_labels,train_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'SpectralMixture-10',training_iter)
 
-    # DeepKernel
-    if options['DeepKernel']:
-        train_data = torch.FloatTensor(gp_data).index_select(0,idxs).clone().to(device)
-        train_x_labels = torch.FloatTensor(x_labels).index_select(0,idxs).clone().to(device)
-        train_y_labels = torch.FloatTensor(y_labels).index_select(0,idxs).clone().to(device)
-        __train_ExactDeepKernel(train_data,train_x_labels,train_y_labels,training_iter,device)
-
 def train_MultiOutputExactGP(gp_data, x_labels, y_labels, options, device, training_iter=10000):
     '''
     Labels are of the form [x_label, y_label]
     '''
-    idxs = torch.IntTensor(random.sample(range(0,len(gp_data)),1000))
+    idxs = torch.IntTensor(random.sample(range(0,len(gp_data)),500))
 
     # RBF
     if options['RBF']:
@@ -251,6 +244,17 @@ def train_MultiOutputExactGP(gp_data, x_labels, y_labels, options, device, train
         model = MultiOutputExactGPModelRBFPeriodic(train_data, train_labels, likelihood).to(device)
         __train_ExactMultiOutputExactGP(train_data,train_labels,model,likelihood,'RBF-Periodic',training_iter)
 
+    # RBF+Linear
+    if options['RBF-Product']:
+        train_data = torch.FloatTensor(gp_data).index_select(0,idxs).clone().to(device)
+        train_x_labels = torch.FloatTensor(x_labels).index_select(0,idxs).clone().to(device)
+        train_y_labels = torch.FloatTensor(y_labels).index_select(0,idxs).clone().to(device)
+        ## Stack labels to get single 2-dimensional label
+        train_labels = torch.stack([train_x_labels,train_y_labels],dim=1).to(device)
+        likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=2).to(device)
+        model = MultiOutputExactGPModelRBFProduct(train_data, train_labels, likelihood).to(device)
+        __train_ExactMultiOutputExactGP(train_data,train_labels,model,likelihood,'RBF-Product',training_iter)
+
     # Matern 3/2
     if options['Matern-32']:
         train_data = torch.FloatTensor(gp_data).index_select(0,idxs).clone().to(device)
@@ -272,6 +276,17 @@ def train_MultiOutputExactGP(gp_data, x_labels, y_labels, options, device, train
         likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=2).to(device)
         model = MultiOutputExactGPModelMatern_52(train_data, train_labels, likelihood).to(device)
         __train_ExactMultiOutputExactGP(train_data,train_labels,model,likelihood,'Matern-52',training_iter)
+
+    # GaussianMixture
+    if options['GaussianMixture']:
+        train_data = torch.FloatTensor(gp_data).index_select(0,idxs).clone().to(device)
+        train_x_labels = torch.FloatTensor(x_labels).index_select(0,idxs).clone().to(device)
+        train_y_labels = torch.FloatTensor(y_labels).index_select(0,idxs).clone().to(device)
+        ## Stack labels to get single 2-dimensional label
+        train_labels = torch.stack([train_x_labels,train_y_labels],dim=1).to(device)
+        likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=2).to(device)
+        model = MultiOutputExactGPModelGaussianMixture(train_data, train_labels, likelihood).to(device)
+        __train_ExactMultiOutputExactGP(train_data,train_labels,model,likelihood,'GaussianMixture',training_iter)
 
     # Spectral mixture 3
     if options['SpectralMixture-3']:

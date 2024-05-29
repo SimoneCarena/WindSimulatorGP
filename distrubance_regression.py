@@ -1,6 +1,6 @@
 from WindField import WindField
 import os
-from GPModels.SVGPModels import SVGPModelRBF
+from GPModels.SVGPModel import SVGPModelRBF
 import torch
 import gpytorch
 

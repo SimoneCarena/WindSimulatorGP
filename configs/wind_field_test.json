@@ -7,9 +7,9 @@
     "air_density": 1.2,
     "fans": [
         {
-            "x0": 4,
+            "x0": 0,
             "y0": 2,
-            "alpha": 180,
+            "alpha": 0,
             "noise_var": 0.01,
             "length": 4,
             "generator": {
@@ -20,9 +20,9 @@
             }
         },
         {
-            "x0": 0,
+            "x0": 4,
             "y0": 4,
-            "alpha": -45,
+            "alpha": -135,
             "noise_var": 0.01,
             "length": 4,
             "generator": {
@@ -33,9 +33,9 @@
             }
         },
         {
-            "x0": 0,
+            "x0": 4,
             "y0": 0,
-            "alpha": 45,
+            "alpha": 135,
             "noise_var": 0.01,
             "length": 4,
             "generator": {
@@ -47,8 +47,8 @@
         },
         {
             "x0": 2,
-            "y0": 0,
-            "alpha": 90,
+            "y0": 4,
+            "alpha": -90,
             "noise_var": 0.01,
             "length": 4,
             "generator": {

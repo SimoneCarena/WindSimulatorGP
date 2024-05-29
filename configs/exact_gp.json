@@ -7,6 +7,5 @@
     "GaussianMixture": false,
     "SpectralMixture-3": false,
     "SpectralMixture-5": false,
-    "SpectralMixture-10": false,
-    "DeepKernel": false
+    "SpectralMixture-10": false
 }

@@ -22,7 +22,26 @@ class MultiOutputExactGPModelRBFPeriodic(gpytorch.models.ExactGP):
             gpytorch.means.ConstantMean(), num_tasks=2
         )
         self.covar_module = gpytorch.kernels.MultitaskKernel(
-            gpytorch.kernels.RBFKernel()+gpytorch.kernels.PeriodicKernel(), num_tasks=2, rank=1
+            gpytorch.kernels.RBFKernel(), num_tasks=2, rank=1
+        ) + gpytorch.kernels.MultitaskKernel(
+            gpytorch.kernels.PeriodicKernel(), num_tasks=2, rank=1
+        )
+
+    def forward(self, x):
+        mean_x = self.mean_module(x)
+        covar_x = self.covar_module(x)
+        return gpytorch.distributions.MultitaskMultivariateNormal(mean_x, covar_x)
+    
+class MultiOutputExactGPModelRBFProduct(gpytorch.models.ExactGP):
+    def __init__(self, gp_data, labels, likelihood):
+        super(MultiOutputExactGPModelRBFProduct, self).__init__(gp_data, labels, likelihood)
+        self.mean_module = gpytorch.means.MultitaskMean(
+            gpytorch.means.ConstantMean(), num_tasks=2
+        )
+        self.covar_module = gpytorch.kernels.MultitaskKernel(
+            gpytorch.kernels.RBFKernel(), num_tasks=2, rank=1
+        ) + gpytorch.kernels.MultitaskKernel(
+            gpytorch.kernels.LinearKernel(), num_tasks=2, rank=1
         )
 
     def forward(self, x):
@@ -53,6 +72,25 @@ class MultiOutputExactGPModelMatern_52(gpytorch.models.ExactGP):
         )
         self.covar_module = gpytorch.kernels.MultitaskKernel(
             gpytorch.kernels.MaternKernel(2.5), num_tasks=2, rank=1
+        )
+
+    def forward(self, x):
+        mean_x = self.mean_module(x)
+        covar_x = self.covar_module(x)
+        return gpytorch.distributions.MultitaskMultivariateNormal(mean_x, covar_x)
+    
+class MultiOutputExactGPModelGaussianMixture(gpytorch.models.ExactGP):
+    def __init__(self, gp_data, labels, likelihood):
+        super(MultiOutputExactGPModelGaussianMixture, self).__init__(gp_data, labels, likelihood)
+        self.mean_module = gpytorch.means.MultitaskMean(
+            gpytorch.means.ConstantMean(), num_tasks=2
+        )
+        self.covar_module = gpytorch.kernels.MultitaskKernel(
+            gpytorch.kernels.RBFKernel(), num_tasks=2, rank=1
+        ) + gpytorch.kernels.MultitaskKernel(
+            gpytorch.kernels.RBFKernel(), num_tasks=2, rank=1
+        ) + gpytorch.kernels.MultitaskKernel(
+            gpytorch.kernels.RBFKernel(), num_tasks=2, rank=1
         )
 
     def forward(self, x):

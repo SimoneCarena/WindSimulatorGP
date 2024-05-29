@@ -51,6 +51,7 @@ file.close()
 device = (
     "cuda"
     if torch.cuda.is_available() #Use cuda if available
+    # else "mps" if torch.backends.mps.is_available()
     else "cpu" #use the cpu otherwise
 )
 
@@ -71,7 +72,7 @@ gp_data, x_labels, y_labels, T = wind_field.get_gp_data()
 
 if test is None:
     train_ExactGP(gp_data,x_labels,y_labels,exact_gp_options,device,3000)
-    train_MultiOutputExactGP(gp_data,x_labels,y_labels,mo_exact_gp_options,device,3000)
+    train_MultiOutputExactGP(gp_data,x_labels,y_labels,mo_exact_gp_options,device,5000)
     train_SVGP(gp_data,x_labels,y_labels,svgp_options,device,5000)
 
 #------------------------------------------------------#
@@ -97,5 +98,6 @@ if test=="offline":
 
 if test=="online":
     wind_field = WindField('configs/wind_field_test.json','configs/mass.json')
-    test_online_svgp(wind_field,'test_trajectories',svgp_options,window_size=20,laps=1)
+    # test_online_svgp(wind_field,'test_trajectories',svgp_options,window_size=20,laps=1)
     # test_online_exact_gp(wind_field,'test_trajectories',exact_gp_options,window_size=20,laps=1)
+    test_online_exact_mogp(wind_field,'test_trajectories',mo_exact_gp_options,50,laps=1)

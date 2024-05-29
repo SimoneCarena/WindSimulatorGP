@@ -3,9 +3,9 @@ import torch
 import matplotlib.pyplot as plt
 import numpy as np
 
-from GPModels.ExactGPModels import *
-from GPModels.MultiOutputExactGPModels import *
-from GPModels.SVGPModels import *
+from GPModels.ExactGPModel import *
+from GPModels.MultiOutputExactGPModel import *
+from GPModels.SVGPModel import *
 
 @torch.no_grad
 def __test_offline_ExactGP(test_data, test_labels, models, likelihoods, name, T, save=False, show=True):
@@ -371,7 +371,6 @@ def test_offline_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots,optio
         test_data = torch.FloatTensor(gp_data)
         test_x_labels = torch.FloatTensor(x_labels)
         test_y_labels = torch.FloatTensor(y_labels)
-        test_labels = torch.stack([test_x_labels,test_y_labels],dim=1)
         likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=2)
         likelihood_dict = torch.load(f'models/MultiOutputExactGP/likelihood-RBF.pth')
         likelihood.load_state_dict(likelihood_dict)
@@ -397,6 +396,22 @@ def test_offline_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots,optio
         model_dict = torch.load(f'models/MultiOutputExactGP/model-RBF-Periodic.pth')
         model.load_state_dict(model_dict)
         __test_offline_ExactMultiOutputExactGP(test_data,[test_x_labels,test_y_labels],model,likelihood,'RBF-Periodic',T,save=save_plots)
+
+    # RBF+Product
+    if options['RBF-Product']:
+        test_data = torch.FloatTensor(gp_data)
+        test_x_labels = torch.FloatTensor(x_labels)
+        test_y_labels = torch.FloatTensor(y_labels)
+        test_labels = torch.stack([test_x_labels,test_y_labels],dim=1)
+        likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=2)
+        likelihood_dict = torch.load(f'models/MultiOutputExactGP/likelihood-RBF-Product.pth')
+        likelihood.load_state_dict(likelihood_dict)
+        train_data = torch.load('data/MultiOutputExactGP/train_data-RBF-Product.pt')
+        train_labels = torch.load('data/MultiOutputExactGP/train_labels-RBF-Product.pt')
+        model = MultiOutputExactGPModelRBFProduct(train_data,train_labels,likelihood)
+        model_dict = torch.load(f'models/MultiOutputExactGP/model-RBF-Product.pth')
+        model.load_state_dict(model_dict)
+        __test_offline_ExactMultiOutputExactGP(test_data,[test_x_labels,test_y_labels],model,likelihood,'RBF-Product',T,save=save_plots)
 
     # Matern 3/2
     if options['Matern-32']:
@@ -429,6 +444,22 @@ def test_offline_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots,optio
         model_dict = torch.load(f'models/MultiOutputExactGP/model-Matern-52.pth')
         model.load_state_dict(model_dict)
         __test_offline_ExactMultiOutputExactGP(test_data,[test_x_labels,test_y_labels],model,likelihood,'Matern-52',T,save=save_plots)
+
+    # Gaussian Mixture
+    if options['GaussianMixture']:
+        test_data = torch.FloatTensor(gp_data)
+        test_x_labels = torch.FloatTensor(x_labels)
+        test_y_labels = torch.FloatTensor(y_labels)
+        test_labels = torch.stack([test_x_labels,test_y_labels],dim=1)
+        likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=2)
+        likelihood_dict = torch.load(f'models/MultiOutputExactGP/likelihood-GaussianMixture.pth')
+        likelihood.load_state_dict(likelihood_dict)
+        train_data = torch.load('data/MultiOutputExactGP/train_data-GaussianMixture.pt')
+        train_labels = torch.load('data/MultiOutputExactGP/train_labels-GaussianMixture.pt')
+        model = MultiOutputExactGPModelGaussianMixture(train_data,train_labels,likelihood)
+        model_dict = torch.load(f'models/MultiOutputExactGP/model-GaussianMixture.pth')
+        model.load_state_dict(model_dict)
+        __test_offline_ExactMultiOutputExactGP(test_data,[test_x_labels,test_y_labels],model,likelihood,'GaussianMixture',T,save=save_plots)
 
     # Spectral Mixture 3
     if options['SpectralMixture-3']:

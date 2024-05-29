@@ -4,8 +4,9 @@ import os
 
 from pathlib import Path
 
-from GPModels.ExactGPModels import *
-from GPModels.SVGPModels import *
+from GPModels.ExactGPModel import *
+from GPModels.SVGPModel import *
+from GPModels.MultiOutputExactGPModel import *
 
 @torch.no_grad
 def __test_online_svgp(wind_field, trajectories_folder, model_x, model_y, name, window_size, laps):
@@ -41,6 +42,23 @@ def __test_online_exact_gp(wind_field, trajectories_folder, model_x, model_y, na
         wind_field.simulate_continuous_update_gp(window_size,show=True,save='imgs/exact_gp_update_plots/'+name+'-'+file_name,kernel_name=name) 
         wind_field.reset()
         wind_field.reset_gp()
+
+@torch.no_grad
+def __test_online_exact_mogp(wind_field, trajectories_folder, model, name, window_size, laps):
+
+    # Start By resetting the wind field
+    wind_field.reset()
+    wind_field.reset_gp()
+    # Put the models in eval mode
+    model.eval()
+
+    for file in os.listdir(trajectories_folder):
+        file_name = Path(file).stem
+        wind_field.set_trajectory(trajectories_folder+'/'+file,file_name,laps)
+        wind_field.simulate_continuous_update_mogp(window_size,model,show=True,save='imgs/exact_gp_update_plots/'+name+'-'+file_name,kernel_name=name) 
+        wind_field.reset()
+        wind_field.reset_gp()
+
 
 def test_online_svgp(wind_field, trajecotries_folder, options, window_size=100, laps=1):
     # RBF
@@ -448,3 +466,94 @@ def test_online_exact_gp(wind_field, trajecotries_folder, options, window_size=1
         model_x.load_state_dict(model_x_dict)
         model_y.load_state_dict(model_y_dict)
         __test_online_exact_gp(wind_field,trajecotries_folder,model_x,model_y,'SpectralMixture-10',window_size,laps)
+
+def test_online_exact_mogp(wind_field, trajecotries_folder, options, window_size=100, laps=1):
+    # RBF
+    if options['RBF'] == True:
+        likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=2)
+        likelihood_dict = torch.load(f'models/MultiOutputExactGP/likelihood-RBF.pth')
+        likelihood.load_state_dict(likelihood_dict)
+        model = MultiOutputExactGPModelRBF(torch.empty((0,2)),torch.empty((0,2)),likelihood)
+        model_dict = torch.load(f'models/MultiOutputExactGP/model-RBF.pth')
+        model.load_state_dict(model_dict)
+        __test_online_exact_mogp(wind_field,trajecotries_folder,model,'RBF',window_size,laps)
+
+    # RBF + Periodic
+    if options['RBF-Periodic']:
+        likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=2)
+        likelihood_dict = torch.load(f'models/MultiOutputExactGP/likelihood-RBF-Periodic.pth')
+        likelihood.load_state_dict(likelihood_dict)
+        model = MultiOutputExactGPModelRBFPeriodic(torch.empty((0,2)),torch.empty((0,2)),likelihood)
+        model_dict = torch.load(f'models/MultiOutputExactGP/model-RBF-Periodic.pth')
+        model.load_state_dict(model_dict)
+        __test_online_exact_mogp(wind_field,trajecotries_folder,model,'RBF-Periodic',window_size,laps)
+
+    # RBF + Product
+    if options['RBF-Product']:
+        likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=2)
+        likelihood_dict = torch.load(f'models/MultiOutputExactGP/likelihood-RBF-Product.pth')
+        likelihood.load_state_dict(likelihood_dict)
+        model = MultiOutputExactGPModelRBFProduct(torch.empty((0,2)),torch.empty((0,2)),likelihood)
+        model_dict = torch.load(f'models/MultiOutputExactGP/model-RBF-Product.pth')
+        model.load_state_dict(model_dict)
+        __test_online_exact_mogp(wind_field,trajecotries_folder,model,'RBF-Product',window_size,laps)
+
+    # Matern 3/2
+    if options['Matern-32']:
+        likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=2)
+        likelihood_dict = torch.load(f'models/MultiOutputExactGP/likelihood-Matern-32.pth')
+        likelihood.load_state_dict(likelihood_dict)
+        model = MultiOutputExactGPModelMatern_32(torch.empty((0,2)),torch.empty((0,2)),likelihood)
+        model_dict = torch.load(f'models/MultiOutputExactGP/model-Matern-32.pth')
+        model.load_state_dict(model_dict)
+        __test_online_exact_mogp(wind_field,trajecotries_folder,model,'Matern-32',window_size,laps)
+
+    # Matern 5/2
+    if options['Matern-52']:
+        likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=2)
+        likelihood_dict = torch.load(f'models/MultiOutputExactGP/likelihood-Matern-52.pth')
+        likelihood.load_state_dict(likelihood_dict)
+        model = MultiOutputExactGPModelMatern_52(torch.empty((0,2)),torch.empty((0,2)),likelihood)
+        model_dict = torch.load(f'models/MultiOutputExactGP/model-Matern-52.pth')
+        model.load_state_dict(model_dict)
+        __test_online_exact_mogp(wind_field,trajecotries_folder,model,'Matern-52',window_size,laps)
+
+    # GaussianMixture
+    if options['GaussianMixture']:
+        likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=2)
+        likelihood_dict = torch.load(f'models/MultiOutputExactGP/likelihood-GaussianMixture.pth')
+        likelihood.load_state_dict(likelihood_dict)
+        model = MultiOutputExactGPModelGaussianMixture(torch.empty((0,2)),torch.empty((0,2)),likelihood)
+        model_dict = torch.load(f'models/MultiOutputExactGP/model-GaussianMixture.pth')
+        model.load_state_dict(model_dict)
+        __test_online_exact_mogp(wind_field,trajecotries_folder,model,'GaussianMixture',window_size,laps)
+
+    # Spectral Mixture (n=3)
+    if options['SpectralMixture-3']:
+        likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=2)
+        likelihood_dict = torch.load(f'models/MultiOutputExactGP/likelihood-SpectralMixture-3.pth')
+        likelihood.load_state_dict(likelihood_dict)
+        model = MultiOutputExactGPModelSpectralMixture_3(torch.empty((0,2)),torch.empty((0,2)),likelihood)
+        model_dict = torch.load(f'models/MultiOutputExactGP/model-SpectralMixture-3.pth')
+        model.load_state_dict(model_dict)
+        __test_online_exact_mogp(wind_field,trajecotries_folder,model,'SpectralMixture-3',window_size,laps)
+        
+    # Spectral Mixture (n=5)
+    if options['SpectralMixture-5']:
+        likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=2)
+        likelihood_dict = torch.load(f'models/MultiOutputExactGP/likelihood-SpectralMixture-5.pth')
+        likelihood.load_state_dict(likelihood_dict)
+        model = MultiOutputExactGPModelSpectralMixture_5(torch.empty((0,2)),torch.empty((0,2)),likelihood)
+        model_dict = torch.load(f'models/MultiOutputExactGP/model-SpectralMixture-5.pth')
+        model.load_state_dict(model_dict)
+        __test_online_exact_mogp(wind_field,trajecotries_folder,model,'SpectralMixture-5',window_size,laps)
+
+    # Spectral Mixture (n=10)
+    if options['SpectralMixture-10']:
+        likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=2)
+        likelihood_dict = torch.load(f'models/MultiOutputExactGP/likelihood-SpectralMixture-10.pth')
+        likelihood.load_state_dict(likelihood_dict)
+        model = MultiOutputExactGPModelSpectralMixture_10(torch.empty((0,2)),torch.empty((0,2)),likelihood)
+        model_dict = torch.load(f'models/MultiOutputExactGP/model-SpectralMixture-10.pth')
+        model.load_state_dict(model_dict)
+        __test_online_exact_mogp(wind_field,trajecotries_folder,model,'SpectralMixture-10',window_size,laps)

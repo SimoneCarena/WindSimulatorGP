@@ -4,9 +4,9 @@ import pickle
 import matplotlib.pyplot as plt
 import numpy as np
 
-from GPModels.ExactGPModels import *
-from GPModels.MultiOutputExactGPModels import *
-from GPModels.SVGPModels import *
+from GPModels.ExactGPModel import *
+from GPModels.MultiOutputExactGPModel import *
+from GPModels.SVGPModel import *
 
 @torch.no_grad
 def __test_offline_ExactGP(test_data, test_labels, models, likelihoods, name, T, save=False, show=True):

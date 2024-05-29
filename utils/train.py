@@ -3,9 +3,9 @@ import random
 import torch
 import pickle
 
-from GPModels.ExactGPModels import *
-from GPModels.MultiOutputExactGPModels import *
-from GPModels.SVGPModels import *
+from GPModels.ExactGPModel import *
+from GPModels.MultiOutputExactGPModel import *
+from GPModels.SVGPModel import *
 
 def __train_ExactGP(train_data, train_labels, models, likelihoods, name, training_iter):
     '''
