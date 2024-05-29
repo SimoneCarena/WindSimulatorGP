@@ -7,9 +7,9 @@ import os
 from pathlib import Path
 
 from WindField import WindField
-from utils.train_gp import *
-from utils.test_offline_gp import *
-from utils.test_online_gp import *
+from utils.train import *
+from utils.test_offline import *
+from utils.test_online import *
 from utils.exceptions import InvalidCommandLineArgumentException
 
 # Argument Parser
@@ -71,9 +71,9 @@ gp_data, x_labels, y_labels, T = wind_field.get_gp_data()
 #-----------------------------------------------#
 
 if test is None:
-    train_ExactGP(gp_data,x_labels,y_labels,exact_gp_options,device,3000)
-    train_MultiOutputExactGP(gp_data,x_labels,y_labels,mo_exact_gp_options,device,5000)
-    train_SVGP(gp_data,x_labels,y_labels,svgp_options,device,5000)
+    train_ExactGP(gp_data,x_labels,y_labels,exact_gp_options,device,2000)
+    train_MultiOutputExactGP(gp_data,x_labels,y_labels,mo_exact_gp_options,device,2000)
+    train_SVGP(gp_data,x_labels,y_labels,svgp_options,device,2000)
 
 #------------------------------------------------------#
 #                Test GP models Offline                #
@@ -98,6 +98,6 @@ if test=="offline":
 
 if test=="online":
     wind_field = WindField('configs/wind_field_test.json','configs/mass.json')
-    # test_online_svgp(wind_field,'test_trajectories',svgp_options,window_size=20,laps=1)
-    # test_online_exact_gp(wind_field,'test_trajectories',exact_gp_options,window_size=20,laps=1)
-    test_online_exact_mogp(wind_field,'test_trajectories',mo_exact_gp_options,50,laps=1)
+    # test_online_svgp(wind_field,'test_trajectories',svgp_options,window_size=50,laps=1)
+    # test_online_exact_gp(wind_field,'test_trajectories',exact_gp_options,window_size=50,laps=1)
+    test_online_exact_mogp(wind_field,'test_trajectories',mo_exact_gp_options,50,laps=1,horizon=1)

@@ -131,6 +131,9 @@ if test:
         model_x.load_state_dict(model_x_dict)
         model_y.load_state_dict(model_y_dict)
 
+        model_x.eval()
+        model_y.eval()
+
         # Test the models
         wind_field = WindField('configs/wind_field_test.json','configs/mass.json')
         wind_field.set_trajectory('test_trajectories/lemniscate4.mat','lemniscate4')

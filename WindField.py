@@ -443,7 +443,7 @@ class WindField:
         exit()
 
     @torch.no_grad
-    def simulate_continuous_update_gp(self, max_size, show=False, save=None, kernel_name='', horizon=10):
+    def simulate_continuous_update_gp(self, max_size, show=False, save=None, kernel_name='', horizon=1):
         if self.__gp_predictor_x is None or self.__gp_predictor_y is None:
             raise NoModelException()
         if self.__trajectory is None:
@@ -836,11 +836,17 @@ class WindField:
         cb.set_label(label=r'Wind Speed $[m/s]$',labelpad=10)
         ax.plot(self.__xs,self.__ys,'b',label='System Trajectory')
         ax.plot(tr[0,:],tr[1,:],'--',color='chartreuse',label='Reference Trajectory')
+        ax.plot(self.__xs[0],self.__ys[0],'bo',markersize=5,label='Starting Position')
+        ax.plot(self.__xs[max_size],self.__ys[max_size],'ko',markersize=5,label='Start of GP Prediction')
         ax.legend()
 
         if show:
             plt.show()
         plt.close()
+
+        self.animate(
+            # f'imgs/animations/{kernel_name}-{self.__trajectory_name}-trajectory.gif'
+        )
 
     def reset(self, wind_field_conf_file=None, mass_conf_file=None, gp_predictor_x=None, gp_predictor_y=None):
         '''
@@ -896,7 +902,7 @@ class WindField:
         '''
         self.__setup_gp()
 
-    def animate(self):
+    def animate(self, save=None):
         '''
         Plots the animation showing the evolution of the system following the trajectory
         in the wind field
@@ -921,12 +927,12 @@ class WindField:
             ax.quiver(self.__xs[t],self.__ys[t],self.__ctl_forces_x[t],self.__ctl_forces_y[t],scale=20,width=0.003,color="#4DBEEE",label='Control Force=[{0:.2f},{0:.2f}] N'.format(self.__ctl_forces_x[t],self.__ctl_forces_y[t])) # Control Force
             ax.plot(self.__xs[:t],self.__ys[:t],'b')
             ax.plot(self.__tr_p[0,:t],self.__tr_p[1,:t],'--',color='orange')
-            # Plot fans
-            for fan in self.fans:
-                ax.quiver(fan.p0[0],fan.p0[1],fan.u0[0],fan.u0[1],scale=10,color='k')
             ax.legend()
 
-        anim = animation.FuncAnimation(fig,animation_function,frames=self.__duration,interval=1,repeat=False)
+        anim = animation.FuncAnimation(fig,animation_function,frames=self.__duration,interval=10,repeat=False)
+
+        if save is not None:
+            anim.save(save,writer=animation.FFMpegWriter(fps=60))
 
         plt.show()
         plt.close()

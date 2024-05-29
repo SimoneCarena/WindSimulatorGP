@@ -1,5 +1,4 @@
 import gpytorch
-import torch
 
 class ExactGPModelRBF(gpytorch.models.ExactGP):
     def __init__(self, gp_data, labels, likelihood):

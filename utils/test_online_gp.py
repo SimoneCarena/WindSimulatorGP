@@ -11,12 +11,12 @@ from GPModels.MultiOutputExactGPModel import *
 @torch.no_grad
 def __test_online_svgp(wind_field, trajectories_folder, model_x, model_y, name, window_size, laps):
 
-    # Start By resetting the wind field
-    wind_field.reset(gp_predictor_x=model_x, gp_predictor_y=model_y)
-    wind_field.reset_gp()
     # Put the models in eval mode
     model_x.eval()
     model_y.eval()
+    # Start By resetting the wind field
+    wind_field.reset(gp_predictor_x=model_x, gp_predictor_y=model_y)
+    wind_field.reset_gp()
 
     for file in os.listdir(trajectories_folder):
         file_name = Path(file).stem
@@ -29,12 +29,12 @@ def __test_online_svgp(wind_field, trajectories_folder, model_x, model_y, name, 
 @torch.no_grad
 def __test_online_exact_gp(wind_field, trajectories_folder, model_x, model_y, name, window_size, laps):
 
-    # Start By resetting the wind field
-    wind_field.reset(gp_predictor_x=model_x, gp_predictor_y=model_y)
-    wind_field.reset_gp()
     # Put the models in eval mode
     model_x.eval()
     model_y.eval()
+    # Start By resetting the wind field
+    wind_field.reset(gp_predictor_x=model_x, gp_predictor_y=model_y)
+    wind_field.reset_gp()
 
     for file in os.listdir(trajectories_folder):
         file_name = Path(file).stem
@@ -46,11 +46,11 @@ def __test_online_exact_gp(wind_field, trajectories_folder, model_x, model_y, na
 @torch.no_grad
 def __test_online_exact_mogp(wind_field, trajectories_folder, model, name, window_size, laps):
 
+    # Put the models in eval mode
+    model.eval()
     # Start By resetting the wind field
     wind_field.reset()
     wind_field.reset_gp()
-    # Put the models in eval mode
-    model.eval()
 
     for file in os.listdir(trajectories_folder):
         file_name = Path(file).stem

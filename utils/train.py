@@ -16,6 +16,8 @@ def __train_ExactGP(train_data, train_labels, models, likelihoods, name, trainin
     l = [(models[i], likelihoods[i], train_labels[i], axis[i]) for i in range(2)]
 
     for model,likelihood,labels,axis in l:
+        # for param_name, param in model.named_parameters():
+        #     print(f'Parameter name: {param_name:42} value = {param}')
         # Setup each model
         model.train()
         likelihood.train()
@@ -41,6 +43,9 @@ def __train_ExactGP(train_data, train_labels, models, likelihoods, name, trainin
         # Save the model and Train labels
         torch.save(model.state_dict(),f'models/ExactGP/model-{axis}-{name}.pth')
         torch.save(likelihood.state_dict(),f'models/ExactGP/likelihood-{axis}-{name}.pth')
+        # for param_name, param in model.named_parameters():
+        #     print(f'Parameter name: {param_name:42} value = {param.item()}')
+        # print('')
 
     # Save the train data and labels 
     torch.save(train_data.clone(),f'data/ExactGP/train_data-{name}.pt')
@@ -52,9 +57,7 @@ def __train_ExactGP(train_data, train_labels, models, likelihoods, name, trainin
 def __train_ExactMultiOutputExactGP(train_data, train_labels, model, likelihood, name, training_iter):
     model.train()
     likelihood.train()
-
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01) 
-
     mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model)
 
     print('Training MultiOutputExactGP model on {} iterations using {} kernel'.format(training_iter,name))
@@ -116,7 +119,7 @@ def __train_SVGP(train_data, train_labels, models, likelihoods, name, training_i
 
 def train_ExactGP(gp_data, x_labels, y_labels, options, device, training_iter=10000):
     idxs = torch.arange(0,1000)
-    file = open("metadata/exact_gp_dict","rb")
+    file = open(".metadata/exact_gp_dict","rb")
     exact_gp_dict = pickle.load(file)
     
     for name in exact_gp_dict:
@@ -131,8 +134,8 @@ def train_ExactGP(gp_data, x_labels, y_labels, options, device, training_iter=10
             __train_ExactGP(train_data,[train_x_labels,train_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],name,training_iter)
 
 def train_MultiOutputExactGP(gp_data, x_labels, y_labels, options, device, training_iter=10000):
-    idxs = torch.IntTensor(random.sample(range(0,len(gp_data)),200))
-    file = open("metadata/mo_exact_gp_dict","rb")
+    idxs = torch.IntTensor(random.sample(range(0,len(gp_data)),1000))
+    file = open(".metadata/mo_exact_gp_dict","rb")
     mo_exact_gp_dict = pickle.load(file)
     
     for name in mo_exact_gp_dict:
@@ -147,7 +150,7 @@ def train_MultiOutputExactGP(gp_data, x_labels, y_labels, options, device, train
             __train_ExactMultiOutputExactGP(train_data,train_labels,model,likelihood,name,training_iter)
 
 def train_SVGP(gp_data, x_labels, y_labels, options, device, training_iter=10000):
-    file = open("metadata/svgp_dict","rb")
+    file = open(".metadata/svgp_dict","rb")
     svgp_dict = pickle.load(file)
     
     for name in svgp_dict:

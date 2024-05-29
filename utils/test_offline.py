@@ -9,7 +9,7 @@ from GPModels.MultiOutputExactGPModel import *
 from GPModels.SVGPModel import *
 
 @torch.no_grad
-def __test_offline_ExactGP(test_data, test_labels, models, likelihoods, name, T, save=False, show=True):
+def __test_offline_ExactGP(test_data, test_labels, models, likelihoods, name, T, save=False, show=False):
     '''
     Test a trained GP model.\\
     '''
@@ -66,7 +66,7 @@ def __test_offline_ExactGP(test_data, test_labels, models, likelihoods, name, T,
     plt.close()
 
 @torch.no_grad
-def __test_offline_ExactMultiOutputExactGP(test_data, test_labels, model, likelihood, name, T, save=False, show=True):
+def __test_offline_ExactMultiOutputExactGP(test_data, test_labels, model, likelihood, name, T, save=False, show=False):
     model.eval()
     likelihood.eval()
     observed_pred = model(test_data)
@@ -119,7 +119,7 @@ def __test_offline_ExactMultiOutputExactGP(test_data, test_labels, model, likeli
     plt.close()
 
 @torch.no_grad
-def __test_offline_SVGP(test_data, test_labels, models, likelihoods, name, T, trajectory_name, save=False, show=True):
+def __test_offline_SVGP(test_data, test_labels, models, likelihoods, name, T, trajectory_name, save=False, show=False):
     axis = ['x','y']
     l = [(models[i], likelihoods[i], test_labels[i], axis[i]) for i in range(2)]
 
@@ -190,7 +190,7 @@ def __test_offline_SVGP(test_data, test_labels, models, likelihoods, name, T, tr
 
 
 def test_offline_ExactGP(gp_data,x_labels,y_labels,T,save_plots,options):
-    file = open("metadata/exact_gp_dict","rb")
+    file = open(".metadata/exact_gp_dict","rb")
     exact_gp_dict = pickle.load(file)
 
     for name in exact_gp_dict:
@@ -216,7 +216,7 @@ def test_offline_ExactGP(gp_data,x_labels,y_labels,T,save_plots,options):
             __test_offline_ExactGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],name,T,save=save_plots)
 
 def test_offline_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots,options):
-    file = open("metadata/mo_exact_gp_dict","rb")
+    file = open(".metadata/mo_exact_gp_dict","rb")
     mo_exact_gp_dict = pickle.load(file)
 
     for name in mo_exact_gp_dict:
@@ -235,25 +235,26 @@ def test_offline_MultiOutputExactGP(gp_data,x_labels,y_labels,T,save_plots,optio
             __test_offline_ExactMultiOutputExactGP(test_data,[test_x_labels,test_y_labels],model,likelihood,{name},T,save=save_plots)
 
 def test_offline_SVGP(gp_data,x_labels,y_labels,T,save_plots,options,trajectory_name):
-    file = open("metadata/mo_exact_gp_dict","rb")
+    file = open(".metadata/svgp_dict","rb")
     svgp_dict = pickle.load(file)
 
     for name in svgp_dict:
-        test_data = torch.FloatTensor(gp_data)
-        test_x_labels = torch.FloatTensor(x_labels)
-        test_y_labels = torch.FloatTensor(y_labels)
-        likelihood_x = gpytorch.likelihoods.GaussianLikelihood()
-        likelihood_y = gpytorch.likelihoods.GaussianLikelihood()
-        likelihood_x_dict = torch.load(f'models/SVGP/likelihood-x-{name}.pth')
-        likelihood_y_dict = torch.load(f'models/SVGP/likelihood-y-{name}.pth')
-        likelihood_x.load_state_dict(likelihood_x_dict)
-        likelihood_y.load_state_dict(likelihood_y_dict)
-        inducing_points_x = torch.load(f'data/SVGP/inducing_points_x-{name}.pt')
-        inducing_points_y = torch.load(f'data/SVGP/inducing_points_y-{name}.pt')
-        model_x = svgp_dict[name](inducing_points_x)
-        model_y = svgp_dict[name](inducing_points_y)
-        model_x_dict = torch.load(f'models/SVGP/model-x-{name}.pth')
-        model_y_dict = torch.load(f'models/SVGP/model-y-{name}.pth')
-        model_x.load_state_dict(model_x_dict)
-        model_y.load_state_dict(model_y_dict)
-        __test_offline_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],name,T,trajectory_name,save=save_plots)
+        if options[name]:
+            test_data = torch.FloatTensor(gp_data)
+            test_x_labels = torch.FloatTensor(x_labels)
+            test_y_labels = torch.FloatTensor(y_labels)
+            likelihood_x = gpytorch.likelihoods.GaussianLikelihood()
+            likelihood_y = gpytorch.likelihoods.GaussianLikelihood()
+            likelihood_x_dict = torch.load(f'models/SVGP/likelihood-x-{name}.pth')
+            likelihood_y_dict = torch.load(f'models/SVGP/likelihood-y-{name}.pth')
+            likelihood_x.load_state_dict(likelihood_x_dict)
+            likelihood_y.load_state_dict(likelihood_y_dict)
+            inducing_points_x = torch.load(f'data/SVGP/inducing_points_x-{name}.pt')
+            inducing_points_y = torch.load(f'data/SVGP/inducing_points_y-{name}.pt')
+            model_x = svgp_dict[name](inducing_points_x)
+            model_y = svgp_dict[name](inducing_points_y)
+            model_x_dict = torch.load(f'models/SVGP/model-x-{name}.pth')
+            model_y_dict = torch.load(f'models/SVGP/model-y-{name}.pth')
+            model_x.load_state_dict(model_x_dict)
+            model_y.load_state_dict(model_y_dict)
+            __test_offline_SVGP(test_data,[test_x_labels,test_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],name,T,trajectory_name,save=save_plots)
