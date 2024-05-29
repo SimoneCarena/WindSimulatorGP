@@ -443,7 +443,7 @@ class WindField:
         exit()
 
     @torch.no_grad
-    def simulate_continuous_update_gp(self, max_size, show=False, save=None, kernel_name='', horizon=1):
+    def simulate_continuous_update_gp(self, max_size, show=False, save=None, kernel_name='', horizon=10):
         if self.__gp_predictor_x is None or self.__gp_predictor_y is None:
             raise NoModelException()
         if self.__trajectory is None:
@@ -455,6 +455,8 @@ class WindField:
         x_upper = []
         y_lower = []
         y_upper = []
+        predicted_x_pos = []
+        predicted_y_pos = []
 
         # Set the mass initial conditions
         p,_ = self.__trajectory.trajectory()
@@ -462,6 +464,10 @@ class WindField:
         y0 = p[1,0]
         self.__system.p[0] = x0
         self.__system.p[1] = y0
+
+        dummy = System(self.__system.m,self.__system.r,self.__system.dt)
+        dummy.p[0] = x0
+        dummy.p[1] = y0
 
         # Simulate the field 
         t = 0
@@ -497,6 +503,9 @@ class WindField:
                 lower, upper = predicted_wind_force_y.confidence_region()
                 y_lower.append(lower.item())
                 y_upper.append(upper.item())
+                dummy.discrete_dynamics(np.array([x_pred[-1],y_pred[-1]])+control_force)
+                predicted_x_pos.append(dummy.p[0])
+                predicted_y_pos.append(dummy.p[1])
             
             self.__xs.append(self.__system.p[0])
             self.__ys.append(self.__system.p[1])
@@ -517,6 +526,7 @@ class WindField:
 
             # Simulate Dynamics
             self.__system.discrete_dynamics(force)
+            dummy.set_state(self.__system.p.copy(),self.__system.v.copy())
 
             # Update GP Model
             if t==0:
@@ -549,7 +559,7 @@ class WindField:
         # Plot x prediction
         fig, ax = plt.subplots(2,1)
         fig.set_size_inches(16,9)
-        fig.suptitle(f'One Step-Ahead Prediction (x-axis) {self.__trajectory_name} Trajectory with {kernel_name} Kernel')
+        fig.suptitle(f'{horizon} Step-Ahead Prediction (x-axis) {self.__trajectory_name} Trajectory with {kernel_name} Kernel')
         fig.tight_layout(pad=3.0)
         ax[0].set_xlim([0,T[-1]])
         ax[0].plot(T[max_size:],x_pred,'b-',label="estimated Wind Force")
@@ -576,7 +586,7 @@ class WindField:
         # Plot y prediction
         fig, ax = plt.subplots(2,1)
         fig.set_size_inches(16,9)
-        fig.suptitle(f'One Step-Ahead Prediction (y-axis) {self.__trajectory_name} Trajectory with {kernel_name} Kernel')
+        fig.suptitle(f'{horizon} Step-Ahead Prediction (y-axis) {self.__trajectory_name} Trajectory with {kernel_name} Kernel')
         fig.tight_layout(pad=3.0)
         ax[0].set_xlim([0,T[-1]])
         ax[0].plot(T[max_size:],y_pred,'b-',label="estimated Wind Force")
@@ -595,6 +605,28 @@ class WindField:
         ax[1].set_xlabel(r'$t$ $[s]$')
         ax[1].set_ylabel(r'$e_{F_{wy}}$ $[N]$')
         ax[1].title.set_text('GP Prediction Error')
+
+        fig, ax = plt.subplots(2,1)
+        fig.set_size_inches(16,9)
+        fig.suptitle(r'$x$-Position Prediction')
+        ax[0].set_xlim([0,T[-1]])
+        ax[0].plot(T,self.__xs,'--',color='orange',label=r'Real $x$ Position')
+        ax[0].plot(T[max_size:],predicted_x_pos,'b',label=r'Prediction $x$',alpha=0.5)
+        ax[0].legend()
+        ax[1].set_xlim([0,T[-1]])
+        ax[1].plot(np.array(self.__xs[max_size:])-np.array(predicted_x_pos),label="Prediction Error")
+        ax[1].legend()
+
+        fig, ax = plt.subplots(2,1)
+        fig.set_size_inches(16,9)
+        fig.suptitle(r'$y$-Position Prediction')
+        ax[0].set_xlim([0,T[-1]])
+        ax[0].plot(T,self.__ys,'--',color='orange',label=r'Real $y$ Position')
+        ax[0].plot(T[max_size:],predicted_y_pos,'b',label=r'Prediction $y$',alpha=0.5)
+        ax[0].legend()
+        ax[1].set_xlim([0,T[-1]])
+        ax[1].plot(np.array(self.__ys[max_size:])-np.array(predicted_y_pos),label="Prediction Error")
+        ax[1].legend()
 
         if save is not None:
             fig.savefig(save+'-y.png')

@@ -39,7 +39,7 @@ model_y = SVGPModelRBF(gp_data_y[:200])
 likelihood_x = gpytorch.likelihoods.GaussianLikelihood()
 likelihood_y = gpytorch.likelihoods.GaussianLikelihood()
 
-train = False
+train = True
 test = True
 training_iter=10000
 
@@ -54,6 +54,7 @@ if train:
     mll=gpytorch.mlls.VariationalELBO(likelihood_x, model_x, num_data=gp_labels_x.size(0))
 
     # Train each model
+    print(len(gp_data_x))
     print('Training SVGP model ({}-axis) on {} iterations using {} kernel'.format('x',training_iter,'RBF'))
     for i in range(training_iter):
         # Zero gradients from the previous iteration
@@ -133,4 +134,4 @@ if test:
         # Test the models
         wind_field = WindField('configs/wind_field_test.json','configs/mass.json')
         wind_field.set_trajectory('test_trajectories/lemniscate4.mat','lemniscate4')
-        wind_field.simulate_disturbance_regression(model_x,model_y,10)
+        wind_field.simulate_disturbance_regression(model_x,model_y,10,10)

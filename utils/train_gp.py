@@ -227,7 +227,7 @@ def train_MultiOutputExactGP(gp_data, x_labels, y_labels, options, device, train
     '''
     Labels are of the form [x_label, y_label]
     '''
-    idxs = torch.IntTensor(random.sample(range(0,len(gp_data)),200))
+    idxs = torch.IntTensor(random.sample(range(0,len(gp_data)),1000))
 
     # RBF
     if options['RBF']:
@@ -309,14 +309,14 @@ def train_MultiOutputExactGP(gp_data, x_labels, y_labels, options, device, train
 def train_SVGP(gp_data, x_labels, y_labels, options, device, training_iter=10000):
     # RBF kernel
     if options['RBF']:
-        train_data = torch.FloatTensor(gp_data).to(device)
+        train_data = torch.FloatTensor(gp_data)
         inducing_points = train_data[:200]
-        train_x_labels = torch.FloatTensor(x_labels).clone().to(device)
-        train_y_labels = torch.FloatTensor(y_labels).clone().to(device)
-        likelihood_x = gpytorch.likelihoods.GaussianLikelihood().to(device)
-        likelihood_y = gpytorch.likelihoods.GaussianLikelihood().to(device)
-        model_x = SVGPModelRBF(inducing_points).to(device)
-        model_y = SVGPModelRBF(inducing_points).to(device)
+        train_x_labels = torch.FloatTensor(x_labels).clone()
+        train_y_labels = torch.FloatTensor(y_labels).clone()
+        likelihood_x = gpytorch.likelihoods.GaussianLikelihood()
+        likelihood_y = gpytorch.likelihoods.GaussianLikelihood()
+        model_x = SVGPModelRBF(inducing_points)
+        model_y = SVGPModelRBF(inducing_points)
         __train_SVGP(train_data,[train_x_labels,train_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],'RBF',training_iter)
 
     # RBF + Periodic kernel

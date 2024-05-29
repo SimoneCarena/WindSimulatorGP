@@ -7,6 +7,7 @@ class System:
     The sampling time dt is specified to compute the dynamics of the system
     '''
     def __init__(self, m, r, dt):
+        self.r = r
         self.m = m
         self.surf = 2*np.pi*r**2 # Surface of half a sphere, hit by the wind
         self.p = np.array([0.0,0.0],dtype=float)
