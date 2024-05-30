@@ -1,11 +1,11 @@
 {
-    "GaussianMixture": false,
+    "GaussianMixture": true,
     "Matern_32": false,
     "Matern_52": false,
-    "RBF": true,
+    "RBF": false,
     "RBFPeriodic": false,
     "RBFProduct": false,
-    "SpectralMixture_10": false,
+    "SpectralMixture_10": true,
     "SpectralMixture_3": false,
     "SpectralMixture_5": false
 }
