@@ -79,9 +79,10 @@ Function $\verb|"parameters"|$:
 
 $$
 
-v(x,y,t) = \frac{v_0(t)}{2}\frac{\tanh\left( \frac{d_\parallel-a}{w|d_\perp+1|} \right)-\left(\frac{d_\parallel-b}{w|d_\perp+1|}\right)}{\left| d_\perp \right|+1}
+v(x,y,t) = \frac{v_0(t)}{2}\frac{\tanh\left( \frac{d_\perp+\frac{L}{2}}{w|d_\parallel|} \right)-\left(\frac{d_\perp-\frac{L}{2}}{w|d_\parallel|}\right)}{\left| d_\parallel \right|+1}
 
 $$
 where:
 - $v_0(t)$ is the velocity in the center, as defined before
+- $L$ is the width of the fan
 - $w = 0.002 $

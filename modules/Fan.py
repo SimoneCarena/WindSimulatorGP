@@ -30,26 +30,21 @@ class Fan:
                 return np.array([0.0,0.0],dtype=float)
         p = np.array([x-self.p0[0],y-self.p0[1]])
         # Compute wind source and add noise
-        v0 = self.wind_funct(t) + np.random.normal(self.noise_mean,self.noise_cov)
+        v0 = self.wind_funct(t)*self.u0 + np.random.normal(self.noise_mean,self.noise_cov)
         # Linearly scale along u-axis
         ## Project the point p=(x,y) along u
         ## u is already norm-1, so no normalization is needed
-        du = np.abs(np.dot(self.u0,p))
-        scale_u = 1/(1+du)
+        du_par = np.abs(np.dot(self.u0,p))
         # Linearly scale along the direction perpendicular to u
         # but having scale = 0 if the distance anlong such axis is
         # greater than half the width of the fan
         ## Compute u^T (just a 90 rotation of u)
         ut = np.array([[0.0, -1.0],[1.0,0.0]],dtype=float)@self.u0
         ## Project p onto u^T
-        dut = np.abs(np.dot(ut,p))
-        if dut > self.width/2:
-            scale_dut = 0.0
-        else:
-            scale_dut = 1-dut/self.width
-        # Compute the total scale as their product
-        scale = scale_u*scale_dut
-        speed = v0*self.u0*scale
+        du_perp = np.abs(np.dot(ut,p))
+        w = 0.002
+        # Compute the speed
+        speed = v0/2*(np.tanh((du_perp+self.width/2)/(w*np.abs(du_par)))-np.tanh((du_perp-self.width/2)/(w*np.abs(du_par))))/(np.abs(du_par+1))
         
         return speed
         

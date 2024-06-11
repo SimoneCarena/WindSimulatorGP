@@ -991,7 +991,7 @@ class WindField:
         ax.set_ylim([0.0,self.__height])
         for i in range(len(xs)):
             for j in range(len(ys)):
-                ax.arrow(xs[i],ys[j],vx[i,j]/100,vy[i,j]/100,length_includes_head=False,head_width=0.015,head_length=0.015,width=0.005,color='orange',alpha=v[i,j]/v_max)
+                ax.arrow(xs[i],ys[j],vx[i,j]/(v_max*10),vy[i,j]/(v_max*10),length_includes_head=False,head_width=0.015,head_length=0.015,width=0.005,color='orange',alpha=v[i,j]/v_max)
 
         # Create custom colormap
         colors = [(1, 0.5, 0, alpha) for alpha in np.linspace(0, 1, 256)]
