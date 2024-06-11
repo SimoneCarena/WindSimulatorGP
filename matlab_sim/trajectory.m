@@ -23,7 +23,7 @@ B = [
 C = eye(4);
 D = zeros(4,2);
 
-K = place(A,B,[-20,-21,-22,-23]);
+K = place(A,B,[-5,-6,-7,-8]);
 Kp = K(:,1:2);
 Kd = K(:,3:4);
 
@@ -51,7 +51,7 @@ XD = double(subs(xd,{diff(theta(t),t) theta(t)},{qd q}));
 YD = double(subs(yd,{diff(theta(t),t) theta(t)},{qd q}));
 
 data = [X;Y;XD;YD];
-save('../trajectories/ellipse.mat','data','-v4')
+% save('../trajectories/ellipse.mat','data','-v4')
 
 %% Plots
 
@@ -153,7 +153,7 @@ XD = double(subs(xd,{diff(theta(t),t) theta(t)},{qd q}));
 YD = double(subs(yd,{diff(theta(t),t) theta(t)},{qd q}));
 
 data = [X;Y;XD;YD];
-save('../trajectories/lemniscate.mat','data','-v4')
+% save('../trajectories/lemniscate.mat','data','-v4')
 
 %% Plots
 
@@ -194,6 +194,7 @@ yd_sim = get(out,'yd_sim');
 
 figure
 hold on
+axis equal
 plot(x_sim,y_sim,'b-')
 plot(X,Y,'--')
 xlabel('x [m]')
@@ -296,6 +297,7 @@ yd_sim = get(out,'yd_sim');
 
 figure
 hold on
+axis equal
 plot(x_sim,y_sim,'b-')
 plot(X,Y,'--')
 xlabel('x [m]')
@@ -401,6 +403,7 @@ yd_sim = get(out,'yd_sim');
 
 figure
 hold on
+axis equal
 plot(x_sim,y_sim,'b-')
 plot(X,Y,'--')
 xlabel('x [m]')
@@ -490,7 +493,7 @@ ylabel('y [m]')
 %% Simulation
 
 x0 = a*cos(0)+c(1);
-y0 = b*sin(0)+c(1);
+y0 = b*sin(0)+c(2);
 X_ref = timeseries(X,tvec);
 Y_ref = timeseries(Y,tvec);
 XD_ref = timeseries(XD,tvec);
@@ -507,6 +510,7 @@ yd_sim = get(out,'yd_sim');
 
 figure
 hold on
+axis equal
 plot(x_sim,y_sim,'b-')
 plot(X,Y,'--')
 xlabel('x [m]')

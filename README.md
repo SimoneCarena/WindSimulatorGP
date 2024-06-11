@@ -74,3 +74,14 @@ Function $\verb|"parameters"|$:
     }
 }
 ```
+
+# Fan Generation Function
+
+$$
+
+v(x,y,t) = \frac{v_0(t)}{2}\frac{\tanh\left( \frac{d_\parallel-a}{w|d_\perp+1|} \right)-\left(\frac{d_\parallel-b}{w|d_\perp+1|}\right)}{\left| d_\perp \right|+1}
+
+$$
+where:
+- $v_0(t)$ is the velocity in the center, as defined before
+- $w = 0.002 $

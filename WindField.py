@@ -87,8 +87,8 @@ class WindField:
         self.__id_sys = System(m,r,self.__dt)
 
         # Controller Matrices
-        Kp = np.diag([506.0,420.0])
-        Kd = np.diag([45.0,41.0])
+        Kp = np.diag([42.0,20.0])
+        Kd = np.diag([13.0,9.0])
         # The controller's parameter were retrieved using MATLAB
         self.__pd = PD(Kp,Kd)
         

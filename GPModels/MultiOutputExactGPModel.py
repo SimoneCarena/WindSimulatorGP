@@ -22,9 +22,13 @@ class MultiOutputExactGPModelRBFPeriodic(gpytorch.models.ExactGP):
             gpytorch.means.ConstantMean(), num_tasks=2
         )
         self.covar_module = gpytorch.kernels.MultitaskKernel(
-            gpytorch.kernels.RBFKernel(), num_tasks=2, rank=1
-        ) + gpytorch.kernels.MultitaskKernel(
-            gpytorch.kernels.PeriodicKernel(), num_tasks=2, rank=1
+            gpytorch.kernels.ScaleKernel(
+                gpytorch.kernels.RBFKernel()
+            ) + gpytorch.kernels.ScaleKernel(
+                gpytorch.kernels.PeriodicKernel()
+            ), 
+            num_tasks=2, 
+            rank=1
         )
 
     def forward(self, x):
@@ -39,9 +43,13 @@ class MultiOutputExactGPModelRBFProduct(gpytorch.models.ExactGP):
             gpytorch.means.ConstantMean(), num_tasks=2
         )
         self.covar_module = gpytorch.kernels.MultitaskKernel(
-            gpytorch.kernels.RBFKernel(), num_tasks=2, rank=1
-        ) + gpytorch.kernels.MultitaskKernel(
-            gpytorch.kernels.LinearKernel(), num_tasks=2, rank=1
+            gpytorch.kernels.ScaleKernel(
+                gpytorch.kernels.RBFKernel()
+            ) + gpytorch.kernels.ScaleKernel(
+                gpytorch.kernels.LinearKernel()
+            ), 
+            num_tasks=2, 
+            rank=1
         )
 
     def forward(self, x):
@@ -86,11 +94,15 @@ class MultiOutputExactGPModelGaussianMixture(gpytorch.models.ExactGP):
             gpytorch.means.ConstantMean(), num_tasks=2
         )
         self.covar_module = gpytorch.kernels.MultitaskKernel(
-            gpytorch.kernels.RBFKernel(), num_tasks=2, rank=1
-        ) + gpytorch.kernels.MultitaskKernel(
-            gpytorch.kernels.RBFKernel(), num_tasks=2, rank=1
-        ) + gpytorch.kernels.MultitaskKernel(
-            gpytorch.kernels.RBFKernel(), num_tasks=2, rank=1
+            gpytorch.kernels.ScaleKernel(
+                gpytorch.kernels.RBFKernel()
+            ) + gpytorch.kernels.ScaleKernel(
+                gpytorch.kernels.RBFKernel()
+            ) + gpytorch.kernels.ScaleKernel(
+                gpytorch.kernels.RBFKernel()
+            ), 
+            num_tasks=2, 
+            rank=1
         )
 
     def forward(self, x):

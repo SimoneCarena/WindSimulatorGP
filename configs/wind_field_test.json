@@ -7,58 +7,28 @@
     "air_density": 1.2,
     "fans": [
         {
-            "x0": 0,
-            "y0": 2,
-            "alpha": 0,
-            "noise_var": 0.01,
-            "length": 4,
-            "generator": {
-                "function": "constant",
-                "parameters": {
-                    "v0": 8
-                }
-            }
-        },
-        {
-            "x0": 4,
-            "y0": 4,
-            "alpha": -135,
-            "noise_var": 0.01,
-            "length": 4,
-            "generator": {
-                "function": "sin",
-                "parameters": {
-                    "v0": 12,
-                    "frequency": 0.2,
-                    "phase": 30.0
-                }
-            }
-        },
-        {
-            "x0": 4,
-            "y0": 0,
-            "alpha": 135,
-            "noise_var": 0.01,
-            "length": 4,
-            "generator": {
-                "function": "constant",
-                "parameters": {
-                    "v0": 8
-                }
-            }
-        },
-        {
             "x0": 2,
-            "y0": 4,
-            "alpha": -90,
+            "y0": 0,
+            "alpha": 90,
             "noise_var": 0.01,
-            "length": 4,
+            "length": 2,
             "generator": {
-                "function": "sin",
+                "function": "constant",
                 "parameters": {
-                    "v0": 12,
-                    "frequency": 0.2,
-                    "phase": 0.0
+                    "v0": 10
+                }
+            }
+        },
+        {
+            "x0": 4,
+            "y0": 2,
+            "alpha": 180,
+            "noise_var": 0.01,
+            "length": 2,
+            "generator": {
+                "function": "constant",
+                "parameters": {
+                    "v0": 10
                 }
             }
         }
