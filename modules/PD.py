@@ -7,8 +7,8 @@ class PD:
     def __init__(self,Kp,Kd):
         self.Kp = Kp.copy()
         self.Kd = Kd.copy()
-        self.upper_bound = 0.5
-        self.lower_bound = -0.5
+        self.upper_bound = np.inf
+        self.lower_bound = -np.inf
     
     def step(self, ep, ev):
         '''

@@ -66,7 +66,7 @@ def __test_offline_ExactGP(test_data, test_labels, models, likelihoods, name, T,
     plt.close()
 
 @torch.no_grad
-def __test_offline_ExactMultiOutputExactGP(test_data, test_labels, model, likelihood, name, T, save=False, show=False):
+def __test_offline_ExactMultiOutputExactGP(test_data, test_labels, model, likelihood, name, T, save=False, show=True):
     model.eval()
     likelihood.eval()
     observed_pred = model(test_data)
