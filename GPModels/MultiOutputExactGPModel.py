@@ -43,11 +43,7 @@ class MultiOutputExactGPModelRBFProduct(gpytorch.models.ExactGP):
             gpytorch.means.ConstantMean(), num_tasks=2
         )
         self.covar_module = gpytorch.kernels.MultitaskKernel(
-            gpytorch.kernels.ScaleKernel(
-                gpytorch.kernels.RBFKernel()
-            ) + gpytorch.kernels.ScaleKernel(
-                gpytorch.kernels.LinearKernel()
-            ), 
+            gpytorch.kernels.RBFKernel()*gpytorch.kernels.LinearKernel(),
             num_tasks=2, 
             rank=1
         )

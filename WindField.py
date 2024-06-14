@@ -6,6 +6,7 @@ import torch
 from matplotlib import animation
 from matplotlib.colors import LinearSegmentedColormap
 from pathlib import Path
+from matplotlib.patches import Ellipse
 
 from modules.Fan import Fan
 from modules.System import System
@@ -88,8 +89,8 @@ class WindField:
         self.__id_sys = System(m,r,self.__dt)
 
         # Controller Matrices
-        Kp = np.diag([62.0,40.0])
-        Kd = np.diag([23.0,19.0])
+        Kp = np.diag([72.0,50.0])
+        Kd = np.diag([33.0,29.0])
         # The controller's parameter were retrieved using MATLAB
         self.__pd = PD(Kp,Kd)
         
@@ -346,7 +347,7 @@ class WindField:
         self.__system.p[0] = x0
         self.__system.p[1] = y0
 
-        dummy = System(self.__system.m,self.__system.r,self.__system.dt)
+        dummy = System(self.__system.m,self.__system.r,self.__system.dt*self.__control_frequency)
         dummy.p[0] = x0
         dummy.p[1] = y0
 
@@ -445,7 +446,6 @@ class WindField:
         ax[0].set_xlim([0,T[-1]])
         ax[0].plot(T[max_size:],x_pred,'b-',label="estimated Wind Force")
         ax[0].plot(T,self.__wind_force_x,'--',color='orange',label='Real Wind Force')
-        ax[0].axvline(x=T[max_size],color='k',label=f'Start of GP Prediction (t={max_size*self.__dt} s)')
         ax[0].fill_between(T[max_size:], x_lower, x_upper, alpha=0.5, color='cyan',label='Confidence')
         ax[0].legend()
         ax[0].set_xlabel(r'$t$ $[s]$')
@@ -454,7 +454,6 @@ class WindField:
         ## Plot Estimation Error
         ax[1].set_xlim([0,T[-1]])
         ax[1].plot(T[max_size:],self.__wind_force_x[max_size:]-np.array(x_pred),label='Prediction Error')
-        ax[1].axvline(x=T[max_size],color='k',label=f'Start of GP Prediction (t={max_size*self.__dt} s)')
         ax[1].legend()
         ax[1].set_xlabel(r'$t$ $[s]$')
         ax[1].set_ylabel(r'$e_{F_{wx}}$ $[N]$')
@@ -472,7 +471,6 @@ class WindField:
         ax[0].set_xlim([0,T[-1]])
         ax[0].plot(T[max_size:],y_pred,'b-',label="estimated Wind Force")
         ax[0].plot(T,self.__wind_force_y,'--',color='orange',label='Real Wind Force')
-        ax[0].axvline(x=T[max_size],color='k',label=f'Start of GP Prediction (t={max_size*self.__dt} s)')
         ax[0].fill_between(T[max_size:], y_lower, y_upper, alpha=0.5, color='cyan',label='Confidence')
         ax[0].legend()
         ax[0].set_xlabel(r'$t$ $[s]$')
@@ -481,7 +479,6 @@ class WindField:
         ## Plot Estimation Error
         ax[1].set_xlim([0,T[-1]])
         ax[1].plot(T[max_size:],self.__wind_force_y[max_size:]-np.array(y_pred),label='Prediction Error')
-        ax[1].axvline(x=T[max_size],color='k',label=f'Start of GP Prediction (t={max_size*self.__dt} s)')
         ax[1].legend()
         ax[1].set_xlabel(r'$t$ $[s]$')
         ax[1].set_ylabel(r'$e_{F_{wy}}$ $[N]$')
@@ -531,6 +528,7 @@ class WindField:
         predicted_x_pos = []
         predicted_y_pos = []
         idxs = []
+        covs = []
 
         # Set the mass initial conditions
         p,_ = self.__trajectory.trajectory()
@@ -539,7 +537,7 @@ class WindField:
         self.__system.p[0] = x0
         self.__system.p[1] = y0
 
-        dummy = System(self.__system.m,self.__system.r,self.__system.dt)
+        dummy = System(self.__system.m,self.__system.r,self.__system.dt*self.__control_frequency)
         dummy.p[0] = x0
         dummy.p[1] = y0
 
@@ -554,6 +552,7 @@ class WindField:
 
             # Generate wind force
             wind_force = (0.5*self.__air_density*self.__system.surf)*total_speed**2*np.sign(total_speed)
+            # Total force
             force = wind_force.copy()
             ep = target_p - self.__system.p
             ev = target_v - self.__system.v
@@ -575,7 +574,7 @@ class WindField:
             
                 # Generate control force
                 control_force = self.__pd.step(ep,ev)
-                # Total force
+                # Add control force
                 force += control_force
                 # Include force in the computation
                 p = torch.FloatTensor([[self.__system.p[0],self.__system.p[1]]])
@@ -583,6 +582,7 @@ class WindField:
                     predicted_wind_force = predictor(p)
                     force -= predicted_wind_force.mean[0].numpy()
                     # Collect Data For Plot
+                    covs.append(predicted_wind_force.covariance_matrix)
                     x_pred.append(predicted_wind_force.mean[0,0].item())
                     y_pred.append(predicted_wind_force.mean[0,1].item())
                     lower, upper = predicted_wind_force.confidence_region()
@@ -605,13 +605,6 @@ class WindField:
                 if k==0:
                     predictor.set_train_data(p,torch.FloatTensor([wind_force]),strict=False)
                 elif k>=max_size and k%horizon==0:
-                    # Changing the training data of the model each iteration has a cost of O(M^2),
-                    # where M is the number of points used in the model. 
-                    # Computing the posterior has a cost of O(M^3). The complexity of recomputing the Gram
-                    # matrix each iteration is negligble wrt the cost of inverting it, thus recomputing it
-                    # each iteration is feasible.
-                    # The only issue with this approach is the cost of computing each element of the matrix,
-                    # as the cost of evauating the kernel function is unknowkn to me. 
                     gp_data = predictor.train_inputs[0]
                     gp_labels = predictor.train_targets
                     predictor.set_train_data(torch.cat([gp_data[1:,],p],dim=0),torch.cat([gp_labels[1:],torch.FloatTensor([wind_force])]),strict=False)
@@ -635,6 +628,37 @@ class WindField:
         self.__xs = np.array(self.__xs)
         self.__ys = np.array(self.__ys)
 
+        pos_var = np.array(covs)*(self.__dt*self.__control_frequency)**2
+        eigs = []
+        eigenvectors = []
+        for m in pos_var:
+            eigs.append(np.linalg.eigvals(m))
+            eigenvectors.append(np.linalg.eig(m)[1])
+        angles = []
+        for e in eigenvectors:
+            angles.append(np.arctan2(e[1, 0], e[0, 0]))
+        confidence_intervals = [
+            [np.sqrt(5.991*eigs[i][0]),np.sqrt(5.991*eigs[i][1])] for i in range(len(eigs))
+        ]
+        pos_lower = np.array([[
+            predicted_x_pos[i]-confidence_intervals[i][0],
+            predicted_y_pos[i]-confidence_intervals[i][1],
+        ] for i in range(len(confidence_intervals))])
+        pos_upper = np.array([[
+            predicted_x_pos[i]+confidence_intervals[i][0],
+            predicted_y_pos[i]+confidence_intervals[i][1],
+        ] for i in range(len(confidence_intervals))])
+        ellipses = []
+        for i in range(len(predicted_x_pos)):
+            ellipses.append(
+                Ellipse((predicted_x_pos[i],predicted_y_pos[i]),
+                        confidence_intervals[i][0],
+                        confidence_intervals[i][1],
+                        angle=angles[i],
+                        facecolor='cyan',
+                        alpha=0.5)
+            )
+
         # # Plot x prediction
         fig, ax = plt.subplots(2,1)
         fig.set_size_inches(16,9)
@@ -643,7 +667,6 @@ class WindField:
         ax[0].set_xlim([0,T[-1]])
         ax[0].plot(T[idxs],x_pred,'b-',label="estimated Wind Force")
         ax[0].plot(T,self.__wind_force_x,'--',color='orange',label='Real Wind Force')
-        ax[0].axvline(x=T[max_size],color='k',label=f'Start of GP Prediction (t={max_size*self.__dt} s)')
         ax[0].fill_between(T[idxs], x_lower, x_upper, alpha=0.5, color='cyan',label='Confidence')
         ax[0].legend()
         ax[0].set_xlabel(r'$t$ $[s]$')
@@ -652,7 +675,6 @@ class WindField:
         ## Plot Estimation Error
         ax[1].set_xlim([0,T[-1]])
         ax[1].plot(T[idxs],self.__wind_force_x[idxs]-np.array(x_pred),label='Prediction Error')
-        ax[1].axvline(x=T[max_size],color='k',label=f'Start of GP Prediction (t={max_size*self.__dt} s)')
         ax[1].legend()
         ax[1].set_xlabel(r'$t$ $[s]$')
         ax[1].set_ylabel(r'$e_{F_{wx}}$ $[N]$')
@@ -670,7 +692,6 @@ class WindField:
         ax[0].set_xlim([0,T[-1]])
         ax[0].plot(T[idxs],y_pred,'b-',label="estimated Wind Force")
         ax[0].plot(T,self.__wind_force_y,'--',color='orange',label='Real Wind Force')
-        ax[0].axvline(x=T[max_size],color='k',label=f'Start of GP Prediction (t={max_size*self.__dt} s)')
         ax[0].fill_between(T[idxs], y_lower, y_upper, alpha=0.5, color='cyan',label='Confidence')
         ax[0].legend()
         ax[0].set_xlabel(r'$t$ $[s]$')
@@ -679,7 +700,6 @@ class WindField:
         ## Plot Estimation Error
         ax[1].set_xlim([0,T[-1]])
         ax[1].plot(T[idxs],self.__wind_force_y[idxs]-np.array(y_pred),label='Prediction Error')
-        ax[1].axvline(x=T[max_size],color='k',label=f'Start of GP Prediction (t={max_size*self.__dt} s)')
         ax[1].legend()
         ax[1].set_xlabel(r'$t$ $[s]$')
         ax[1].set_ylabel(r'$e_{F_{wy}}$ $[N]$')
@@ -691,6 +711,7 @@ class WindField:
         ax[0].set_xlim([0,T[-1]])
         ax[0].plot(T,self.__xs,'--',color='orange',label=r'Real $x$ Position')
         ax[0].plot(T[idxs],predicted_x_pos,'b',label=r'Prediction $x$',alpha=0.5)
+        ax[0].fill_between(T[idxs], pos_lower[:,0], pos_upper[:,0], alpha=0.5, color='cyan',label='Confidence')
         ax[0].legend()
         ax[1].set_xlim([0,T[-1]])
         ax[1].plot(np.array(self.__xs[idxs])-np.array(predicted_x_pos),label="Prediction Error")
@@ -702,6 +723,7 @@ class WindField:
         ax[0].set_xlim([0,T[-1]])
         ax[0].plot(T,self.__ys,'--',color='orange',label=r'Real $y$ Position')
         ax[0].plot(T[idxs],predicted_y_pos,'b',label=r'Prediction $y$',alpha=0.5)
+        ax[0].fill_between(T[idxs], pos_lower[:,1], pos_upper[:,1], alpha=0.5, color='cyan',label='Confidence')
         ax[0].legend()
         ax[1].set_xlim([0,T[-1]])
         ax[1].plot(np.array(self.__ys[idxs])-np.array(predicted_y_pos),label="Prediction Error")
@@ -714,6 +736,8 @@ class WindField:
         tr, _ = self.__trajectory.trajectory()
         fig, ax = plt.subplots()
         fig.set_size_inches(16,9)
+        fig.suptitle('Real vs Reference Trajectory')
+        fig.tight_layout()
         xs, ys, vx, vy, v = self.__draw_wind_field_grid()
         v_max = np.max(v)
         ax.set_xlim([0.0,self.__width])
@@ -731,7 +755,19 @@ class WindField:
         ax.plot(self.__xs,self.__ys,'b',label='System Trajectory')
         ax.plot(tr[0,:],tr[1,:],'--',color='chartreuse',label='Reference Trajectory')
         ax.plot(self.__xs[0],self.__ys[0],'bo',markersize=5,label='Starting Position')
-        ax.plot(self.__xs[max_size],self.__ys[max_size],'ko',markersize=5,label='Start of GP Prediction')
+        ax.legend()
+
+        fig, ax = plt.subplots()
+        fig.set_size_inches(16,9)
+        fig.tight_layout(pad=5)
+        fig.suptitle('Predicted vs System Trajectory')
+        ax.set_xlim([0.0,self.__width])
+        ax.set_ylim([0.0,self.__height])
+        ax.plot(predicted_x_pos,predicted_y_pos,'b-',label='Predicted Trajectory')
+        ax.plot(self.__xs,self.__ys,'--',color='orange',label='System Trajectory')
+        for ellipse in ellipses:
+            ax.add_patch(ellipse)
+        ax.plot(np.nan,color='cyan',alpha=0.5,label='Confidence')
         ax.legend()
 
         if show:
