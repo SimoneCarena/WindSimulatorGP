@@ -135,4 +135,6 @@ def test_online_exact_mogp(wind_field, trajecotries_folder, options, window_size
             model = mo_exact_gp_dict[name](torch.empty((0,2)),torch.empty((0,2)),likelihood)
             model_dict = torch.load(f'models/MultiOutputExactGP/model-{name}.pth')
             model.load_state_dict(model_dict)
+            # print(model.covar_module.data_covar_module.lengthscale)
+            # exit()
             __test_online_exact_mogp(wind_field,trajecotries_folder,model,name,window_size,horizon,laps)

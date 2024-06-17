@@ -25,7 +25,33 @@
             "y0": 4,
             "alpha": -90,
             "noise_var": 0.1,
+            "length": 4,
+            "generator": {
+                "function": "constant",
+                "parameters": {
+                    "v0": 12
+                }
+            }
+        },
+        {
+            "x0": 0,
+            "y0": 4,
+            "alpha": 135,
+            "noise_var": 0.1,
             "length": 2,
+            "generator": {
+                "function": "constant",
+                "parameters": {
+                    "v0": 12
+                }
+            }
+        },
+        {
+            "x0": 4,
+            "y0": 4,
+            "alpha": 225,
+            "noise_var": 0.1,
+            "length": 4,
             "generator": {
                 "function": "constant",
                 "parameters": {

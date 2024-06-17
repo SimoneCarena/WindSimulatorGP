@@ -85,12 +85,10 @@ class WindField:
 
         # Actual system moving in the wind-field
         self.__system = System(m,r,self.__dt)
-        # Idel system
-        self.__id_sys = System(m,r,self.__dt)
 
         # Controller Matrices
-        Kp = np.diag([72.0,50.0])
-        Kd = np.diag([33.0,29.0])
+        Kp = np.diag([32.0,15.0])
+        Kd = np.diag([13.0,9.0])
         # The controller's parameter were retrieved using MATLAB
         self.__pd = PD(Kp,Kd)
         
@@ -578,7 +576,8 @@ class WindField:
                 force += control_force
                 # Include force in the computation
                 p = torch.FloatTensor([[self.__system.p[0],self.__system.p[1]]])
-                if k > 0:
+                if k >= max_size:
+                    idxs.append(t)
                     predicted_wind_force = predictor(p)
                     force -= predicted_wind_force.mean[0].numpy()
                     # Collect Data For Plot
@@ -590,7 +589,7 @@ class WindField:
                     x_upper.append(upper[0,0].item())
                     y_lower.append(lower[0,1].item())
                     y_upper.append(upper[0,1].item())
-                    dummy.discrete_dynamics(np.array([x_pred[-1],y_pred[-1]])+control_force)
+                    dummy.discrete_dynamics(control_force)
                     predicted_x_pos.append(dummy.p[0])
                     predicted_y_pos.append(dummy.p[1])
 
@@ -604,16 +603,14 @@ class WindField:
                 # Update GP Model
                 if k==0:
                     predictor.set_train_data(p,torch.FloatTensor([wind_force]),strict=False)
-                elif k>=max_size and k%horizon==0:
+                elif k>=max_size:
                     gp_data = predictor.train_inputs[0]
                     gp_labels = predictor.train_targets
                     predictor.set_train_data(torch.cat([gp_data[1:,],p],dim=0),torch.cat([gp_labels[1:],torch.FloatTensor([wind_force])]),strict=False)
-                    idxs.append(t)
                 elif k<max_size:
                     gp_data = predictor.train_inputs[0]
                     gp_labels = predictor.train_targets
                     predictor.set_train_data(torch.cat([gp_data,p],dim=0),torch.cat([gp_labels,torch.FloatTensor([wind_force])],dim=0),strict=False)
-                    idxs.append(t)
                 k+=1
             
             # Simulate Dynamics
@@ -668,6 +665,7 @@ class WindField:
         ax[0].plot(T[idxs],x_pred,'b-',label="estimated Wind Force")
         ax[0].plot(T,self.__wind_force_x,'--',color='orange',label='Real Wind Force')
         ax[0].fill_between(T[idxs], x_lower, x_upper, alpha=0.5, color='cyan',label='Confidence')
+        # ax[0].plot(T[idxs],self.__wind_force_x[idxs],'g*',label="Sampled Data")
         ax[0].legend()
         ax[0].set_xlabel(r'$t$ $[s]$')
         ax[0].set_ylabel(r'$F_{wx}$ $[N]$')
@@ -693,6 +691,7 @@ class WindField:
         ax[0].plot(T[idxs],y_pred,'b-',label="estimated Wind Force")
         ax[0].plot(T,self.__wind_force_y,'--',color='orange',label='Real Wind Force')
         ax[0].fill_between(T[idxs], y_lower, y_upper, alpha=0.5, color='cyan',label='Confidence')
+        # ax[0].plot(T[idxs],self.__wind_force_y[idxs],'g*',label="Sampled Data")
         ax[0].legend()
         ax[0].set_xlabel(r'$t$ $[s]$')
         ax[0].set_ylabel(r'$F_{wy}$ $[N]$')

@@ -4,7 +4,7 @@
     "Matern_52": false,
     "RBF": true,
     "RBFPeriodic": false,
-    "RBFProduct": true,
+    "RBFProduct": false,
     "SpectralMixture_10": false,
     "SpectralMixture_3": false,
     "SpectralMixture_5": false
