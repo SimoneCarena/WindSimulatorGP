@@ -275,6 +275,7 @@ class WindField:
 
         # Simulate the field 
         t = 0
+        control_force = np.zeros((2,1))
         for target_p, target_v in self.__trajectory:
             total_speed = np.array([0,0],dtype=float)
             for fan in self.fans:
@@ -283,7 +284,6 @@ class WindField:
 
             # Generate wind force
             wind_force = (0.5*self.__air_density*self.__system.surf)*total_speed**2*np.sign(total_speed)
-            force = wind_force.copy()
             ep = target_p - self.__system.p
             ev = target_v - self.__system.v
             if t%self.__control_frequency == 0:
@@ -293,8 +293,6 @@ class WindField:
                 
                 # Generate control force
                 control_force = self.__pd.step(ep,ev)
-                # Total force
-                force += control_force
                 
                 self.__ctl_forces_x.append(control_force[0])
                 self.__ctl_forces_y.append(control_force[1])
@@ -315,8 +313,7 @@ class WindField:
             self.__wind_force_y.append(wind_force[1])
 
             # Simulate Dynamics
-            self.__system.discrete_dynamics(force)
-
+            self.__system.discrete_dynamics(wind_force+control_force)
             t+=1
 
         if show or save is not None:
@@ -542,6 +539,7 @@ class WindField:
         # Simulate the field 
         t = 0
         k = 0
+        control_force = np.zeros((2,1))
         for target_p, target_v in self.__trajectory:
             total_speed = np.array([0,0],dtype=float)
             for fan in self.fans:
@@ -572,8 +570,6 @@ class WindField:
             
                 # Generate control force
                 control_force = self.__pd.step(ep,ev)
-                # Add control force
-                force += control_force
                 # Include force in the computation
                 p = torch.FloatTensor([[self.__system.p[0],self.__system.p[1]]])
                 if k >= max_size:
@@ -614,8 +610,9 @@ class WindField:
                 k+=1
             
             # Simulate Dynamics
-            self.__system.discrete_dynamics(force)
+            self.__system.discrete_dynamics(force+control_force)
             dummy.set_state(self.__system.p.copy(),self.__system.v.copy())
+
             t+=1
 
         # Plots
@@ -834,9 +831,6 @@ class WindField:
         Plots the animation showing the evolution of the system following the trajectory
         in the wind field
         '''
-        if not self.__xs:
-            print('No data to plot!')
-            return
         
         file_name = self.__trajectory_name
 
