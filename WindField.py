@@ -657,8 +657,8 @@ class WindField:
         fig.suptitle(f'One Step-Ahead Prediction (x-axis) {self.__trajectory_name} Trajectory with {kernel_name} Kernel')
         fig.tight_layout(pad=3.0)
         ax[0].set_xlim([0,T[-1]])
-        ax[0].plot(T[idxs],x_pred,'b-',label="estimated Wind Force")
         ax[0].plot(T,self.__wind_force_x,'--',color='orange',label='Real Wind Force')
+        ax[0].plot(T[idxs],x_pred,'b-',label="estimated Wind Force")
         ax[0].fill_between(T[idxs], x_lower, x_upper, alpha=0.5, color='cyan',label='Confidence')
         # ax[0].plot(T[idxs],self.__wind_force_x[idxs],'g*',label="Sampled Data")
         ax[0].legend()
@@ -674,8 +674,8 @@ class WindField:
         ax[1].title.set_text('GP Prediction Error')
 
         if save is not None:
-            fig.savefig(save+'-x.png')
-            fig.savefig(save+'-x.svg')
+            fig.savefig(save+f'-x-wind-{self.__trajectory_name}-{kernel_name}.png')
+            fig.savefig(save+f'-x-wind-{self.__trajectory_name}-{kernel_name}.svg')
 
         # Plot y prediction
         fig, ax = plt.subplots(2,1)
@@ -683,8 +683,8 @@ class WindField:
         fig.suptitle(f'One Step-Ahead Prediction (y-axis) {self.__trajectory_name} Trajectory with {kernel_name} Kernel')
         fig.tight_layout(pad=3.0)
         ax[0].set_xlim([0,T[-1]])
-        ax[0].plot(T[idxs],y_pred,'b-',label="estimated Wind Force")
         ax[0].plot(T,self.__wind_force_y,'--',color='orange',label='Real Wind Force')
+        ax[0].plot(T[idxs],y_pred,'b-',label="estimated Wind Force")
         ax[0].fill_between(T[idxs], y_lower, y_upper, alpha=0.5, color='cyan',label='Confidence')
         # ax[0].plot(T[idxs],self.__wind_force_y[idxs],'g*',label="Sampled Data")
         ax[0].legend()
@@ -699,6 +699,10 @@ class WindField:
         ax[1].set_ylabel(r'$e_{F_{wy}}$ $[N]$')
         ax[1].title.set_text('GP Prediction Error')
 
+        if save is not None:
+            fig.savefig(save+f'-y-wind-{self.__trajectory_name}-{kernel_name}.png')
+            fig.savefig(save+f'-y-wind-{self.__trajectory_name}-{kernel_name}.svg')
+
         fig, ax = plt.subplots(2,1)
         fig.set_size_inches(16,9)
         fig.suptitle(r'$x$-Position Prediction')
@@ -710,6 +714,10 @@ class WindField:
         ax[1].set_xlim([0,T[-1]])
         ax[1].plot(np.array(self.__xs[idxs])-np.array(predicted_x_pos),label="Prediction Error")
         ax[1].legend()
+
+        if save is not None:
+            fig.savefig(save+f'-x-{self.__trajectory_name}-{kernel_name}.png')
+            fig.savefig(save+f'-x-{self.__trajectory_name}-{kernel_name}.svg')
 
         fig, ax = plt.subplots(2,1)
         fig.set_size_inches(16,9)
@@ -724,8 +732,8 @@ class WindField:
         ax[1].legend()
 
         if save is not None:
-            fig.savefig(save+'-y.png')
-            fig.savefig(save+'-y.svg')
+            fig.savefig(save+f'-y-{self.__trajectory_name}-{kernel_name}.png')
+            fig.savefig(save+f'-y-{self.__trajectory_name}-{kernel_name}.svg')
 
         tr, _ = self.__trajectory.trajectory()
         fig, ax = plt.subplots()
@@ -752,8 +760,8 @@ class WindField:
         ax.legend()
 
         if save is not None:
-            fig.savefig(save+f'system-trajectory-{self.__trajectory_name}.png')
-            fig.savefig(save+f'system-trajectory-{self.__trajectory_name}.svg')
+            fig.savefig(save+f'system-trajectory-{self.__trajectory_name}-{kernel_name}.png')
+            fig.savefig(save+f'system-trajectory-{self.__trajectory_name}-{kernel_name}.svg')
 
         fig, ax = plt.subplots()
         fig.set_size_inches(16,9)
@@ -776,7 +784,7 @@ class WindField:
         plt.close()
 
         # self.animate(
-        #     f'imgs/animations/{kernel_name}-{self.__trajectory_name}-trajectory.gif'
+        #     # f'imgs/animations/{kernel_name}-{self.__trajectory_name}-trajectory.gif'
         # )
 
     def reset(self, wind_field_conf_file=None, mass_conf_file=None, gp_predictor_x=None, gp_predictor_y=None):
