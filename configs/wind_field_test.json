@@ -16,7 +16,7 @@
             "generator": {
                 "function": "constant",
                 "parameters": {
-                    "v0": 6
+                    "v0": 12
                 }
             }
         },
@@ -29,7 +29,7 @@
             "generator": {
                 "function": "constant",
                 "parameters": {
-                    "v0": 6
+                    "v0": 12
                 }
             }
         },
@@ -38,11 +38,11 @@
             "y0": 4,
             "alpha": 135,
             "noise_var": 0.1,
-            "length": 2,
+            "length": 4,
             "generator": {
                 "function": "constant",
                 "parameters": {
-                    "v0": 6
+                    "v0": 8
                 }
             }
         },
@@ -55,7 +55,7 @@
             "generator": {
                 "function": "constant",
                 "parameters": {
-                    "v0": 6
+                    "v0": 8
                 }
             }
         }
