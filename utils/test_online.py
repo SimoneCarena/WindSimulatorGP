@@ -61,7 +61,7 @@ def __test_online_exact_mogp(wind_field, trajectories_folder, model, name, windo
     for file in os.listdir(trajectories_folder):
         file_name = Path(file).stem
         wind_field.set_trajectory(trajectories_folder+'/'+file,file_name,laps)
-        wind_field.simulate_continuous_update_mogp(window_size,model,show=True,save=None,kernel_name=name) 
+        wind_field.simulate_continuous_update_mogp(window_size,model,show=True,save='imgs/gp_updates',kernel_name=name) 
         wind_field.reset()
         wind_field.reset_gp()
 

@@ -510,7 +510,7 @@ class WindField:
         plt.close()
 
     @torch.no_grad
-    def simulate_continuous_update_mogp(self, max_size, predictor, show=False, save=None, kernel_name='', horizon=1):
+    def simulate_continuous_update_mogp(self, max_size, predictor, show=False, save=None, kernel_name=''):
         if self.__trajectory is None:
             raise MissingTrajectoryException()
         
@@ -548,8 +548,6 @@ class WindField:
 
             # Generate wind force
             wind_force = (0.5*self.__air_density*self.__system.surf)*total_speed**2*np.sign(total_speed)
-            # Total force
-            force = wind_force.copy()
             ep = target_p - self.__system.p
             ev = target_v - self.__system.v
             self.__xs.append(self.__system.p[0])
@@ -575,7 +573,7 @@ class WindField:
                 if k >= max_size:
                     idxs.append(t)
                     predicted_wind_force = predictor(p)
-                    force -= predicted_wind_force.mean[0].numpy()
+                    control_force -= predicted_wind_force.mean[0].numpy()
                     # Collect Data For Plot
                     covs.append(predicted_wind_force.covariance_matrix)
                     x_pred.append(predicted_wind_force.mean[0,0].item())
@@ -610,7 +608,7 @@ class WindField:
                 k+=1
             
             # Simulate Dynamics
-            self.__system.discrete_dynamics(force+control_force)
+            self.__system.discrete_dynamics(wind_force+control_force)
             dummy.set_state(self.__system.p.copy(),self.__system.v.copy())
 
             t+=1
@@ -656,7 +654,7 @@ class WindField:
         # # Plot x prediction
         fig, ax = plt.subplots(2,1)
         fig.set_size_inches(16,9)
-        fig.suptitle(f'{horizon} Step-Ahead Prediction (x-axis) {self.__trajectory_name} Trajectory with {kernel_name} Kernel')
+        fig.suptitle(f'One Step-Ahead Prediction (x-axis) {self.__trajectory_name} Trajectory with {kernel_name} Kernel')
         fig.tight_layout(pad=3.0)
         ax[0].set_xlim([0,T[-1]])
         ax[0].plot(T[idxs],x_pred,'b-',label="estimated Wind Force")
@@ -682,7 +680,7 @@ class WindField:
         # Plot y prediction
         fig, ax = plt.subplots(2,1)
         fig.set_size_inches(16,9)
-        fig.suptitle(f'{horizon} Step-Ahead Prediction (y-axis) {self.__trajectory_name} Trajectory with {kernel_name} Kernel')
+        fig.suptitle(f'One Step-Ahead Prediction (y-axis) {self.__trajectory_name} Trajectory with {kernel_name} Kernel')
         fig.tight_layout(pad=3.0)
         ax[0].set_xlim([0,T[-1]])
         ax[0].plot(T[idxs],y_pred,'b-',label="estimated Wind Force")
@@ -753,6 +751,10 @@ class WindField:
         ax.plot(self.__xs[0],self.__ys[0],'bo',markersize=5,label='Starting Position')
         ax.legend()
 
+        if save is not None:
+            fig.savefig(save+f'system-trajectory-{self.__trajectory_name}.png')
+            fig.savefig(save+f'system-trajectory-{self.__trajectory_name}.svg')
+
         fig, ax = plt.subplots()
         fig.set_size_inches(16,9)
         fig.tight_layout(pad=5)
@@ -765,13 +767,16 @@ class WindField:
             ax.add_patch(ellipse)
         ax.plot(np.nan,color='cyan',alpha=0.5,label='Confidence')
         ax.legend()
+        if save is not None:
+            fig.savefig(save+f'estimated-trajectory-{self.__trajectory_name}-{kernel_name}.png')
+            fig.savefig(save+f'estimated-trajectory-{self.__trajectory_name}-{kernel_name}.svg')
 
         if show:
             plt.show()
         plt.close()
 
         # self.animate(
-        #     # f'imgs/animations/{kernel_name}-{self.__trajectory_name}-trajectory.gif'
+        #     f'imgs/animations/{kernel_name}-{self.__trajectory_name}-trajectory.gif'
         # )
 
     def reset(self, wind_field_conf_file=None, mass_conf_file=None, gp_predictor_x=None, gp_predictor_y=None):
