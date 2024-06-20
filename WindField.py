@@ -498,8 +498,8 @@ class WindField:
         ax[1].title.set_text('GP Prediction Error')
 
         if save is not None:
-            fig.savefig(save+f'-x-wind-{self.__trajectory_name}-{kernel_name}.png')
-            fig.savefig(save+f'-x-wind-{self.__trajectory_name}-{kernel_name}.svg')
+            fig.savefig(save+f'wind-x-{self.__trajectory_name}-{kernel_name}.png')
+            fig.savefig(save+f'wind-x-{self.__trajectory_name}-{kernel_name}.svg')
 
         # Plot y prediction
         fig, ax = plt.subplots(2,1)
@@ -524,8 +524,8 @@ class WindField:
         ax[1].title.set_text('GP Prediction Error')
 
         if save is not None:
-            fig.savefig(save+f'-y-wind-{self.__trajectory_name}-{kernel_name}.png')
-            fig.savefig(save+f'-y-wind-{self.__trajectory_name}-{kernel_name}.svg')
+            fig.savefig(save+f'wind-y-{self.__trajectory_name}-{kernel_name}.png')
+            fig.savefig(save+f'wind-y-{self.__trajectory_name}-{kernel_name}.svg')
 
         fig, ax = plt.subplots(2,1)
         fig.set_size_inches(16,9)
@@ -540,8 +540,8 @@ class WindField:
         ax[1].legend()
 
         if save is not None:
-            fig.savefig(save+f'-x-{self.__trajectory_name}-{kernel_name}.png')
-            fig.savefig(save+f'-x-{self.__trajectory_name}-{kernel_name}.svg')
+            fig.savefig(save+f'position-x-{self.__trajectory_name}-{kernel_name}.png')
+            fig.savefig(save+f'position-x-{self.__trajectory_name}-{kernel_name}.svg')
 
         fig, ax = plt.subplots(2,1)
         fig.set_size_inches(16,9)
@@ -556,8 +556,8 @@ class WindField:
         ax[1].legend()
 
         if save is not None:
-            fig.savefig(save+f'-y-{self.__trajectory_name}-{kernel_name}.png')
-            fig.savefig(save+f'-y-{self.__trajectory_name}-{kernel_name}.svg')
+            fig.savefig(save+f'position-y-{self.__trajectory_name}-{kernel_name}.png')
+            fig.savefig(save+f'position-y-{self.__trajectory_name}-{kernel_name}.svg')
 
         tr, _ = self.__trajectory.trajectory()
         fig, ax = plt.subplots()
@@ -775,8 +775,8 @@ class WindField:
         ax[1].title.set_text('GP Prediction Error')
 
         if save is not None:
-            fig.savefig(save+f'-x-wind-{self.__trajectory_name}-{kernel_name}.png')
-            fig.savefig(save+f'-x-wind-{self.__trajectory_name}-{kernel_name}.svg')
+            fig.savefig(save+f'wind-x-{self.__trajectory_name}-{kernel_name}.png')
+            fig.savefig(save+f'wind-x-{self.__trajectory_name}-{kernel_name}.svg')
 
         # Plot y prediction
         fig, ax = plt.subplots(2,1)
@@ -801,8 +801,8 @@ class WindField:
         ax[1].title.set_text('GP Prediction Error')
 
         if save is not None:
-            fig.savefig(save+f'-y-wind-{self.__trajectory_name}-{kernel_name}.png')
-            fig.savefig(save+f'-y-wind-{self.__trajectory_name}-{kernel_name}.svg')
+            fig.savefig(save+f'wind-y-{self.__trajectory_name}-{kernel_name}.png')
+            fig.savefig(save+f'wind-y-{self.__trajectory_name}-{kernel_name}.svg')
 
         fig, ax = plt.subplots(2,1)
         fig.set_size_inches(16,9)
@@ -817,8 +817,8 @@ class WindField:
         ax[1].legend()
 
         if save is not None:
-            fig.savefig(save+f'-x-{self.__trajectory_name}-{kernel_name}.png')
-            fig.savefig(save+f'-x-{self.__trajectory_name}-{kernel_name}.svg')
+            fig.savefig(save+f'position-x-{self.__trajectory_name}-{kernel_name}.png')
+            fig.savefig(save+f'position-x-{self.__trajectory_name}-{kernel_name}.svg')
 
         fig, ax = plt.subplots(2,1)
         fig.set_size_inches(16,9)
@@ -833,8 +833,8 @@ class WindField:
         ax[1].legend()
 
         if save is not None:
-            fig.savefig(save+f'-y-{self.__trajectory_name}-{kernel_name}.png')
-            fig.savefig(save+f'-y-{self.__trajectory_name}-{kernel_name}.svg')
+            fig.savefig(save+f'position-y-{self.__trajectory_name}-{kernel_name}.png')
+            fig.savefig(save+f'position-y-{self.__trajectory_name}-{kernel_name}.svg')
 
         tr, _ = self.__trajectory.trajectory()
         fig, ax = plt.subplots()

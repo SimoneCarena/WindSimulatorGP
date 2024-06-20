@@ -10,3 +10,5 @@ readme_plots.py
 *.gif
 imgs/gp_updates/*.png
 imgs/wind_field/*.png
+imgs/gp_updates/*.svg
+imgs/wind_field/*.svg

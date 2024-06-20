@@ -65,12 +65,12 @@ for file in os.listdir('trajectories'):
     wind_field.set_trajectory('trajectories/'+file,file)
     wind_field.simulate_wind_field()
     wind_field.draw_wind_field(
-        True if (save_plots == 'train' or save_plots == 'all') else False,
-        'imgs/wind_field' if (show_plots == 'train' or show_plots == 'all') else None
+        show=True if (show_plots == 'train' or show_plots == 'all') else False,
+        save='imgs/wind_field' if (save_plots == 'train' or save_plots == 'all') else None
     )
     wind_field.plot(
-        True if (save_plots == 'train' or save_plots == 'all') else False,
-        'imgs/wind_field' if (show_plots == 'train' or show_plots == 'all') else None
+        show=True if (show_plots == 'train' or show_plots == 'all') else False,
+        save='imgs/wind_field' if (save_plots == 'train' or save_plots == 'all') else None
     )
     wind_field.reset()
 # exit()
@@ -92,8 +92,8 @@ else:
         svgp_options,
         window_size=50,
         laps=1,
-        show = True if (save_plots == 'test' or save_plots == 'all') else False,
-        save = 'imgs/gp_updates/ExactGP/' if (show_plots == 'test' or show_plots == 'all') else None
+        show = True if (show_plots == 'test' or show_plots == 'all') else False,
+        save = 'imgs/gp_updates/SVGP/' if (save_plots == 'test' or save_plots == 'all') else None
     )
     test_exact_gp(
         wind_field,
@@ -101,8 +101,8 @@ else:
         exact_gp_options,
         window_size=50,
         laps=1,
-        show = True if (save_plots == 'test' or save_plots == 'all') else False,
-        save = 'imgs/gp_updates/SVGP/' if (show_plots == 'test' or show_plots == 'all') else None
+        show = True if (show_plots == 'test' or show_plots == 'all') else False,
+        save = 'imgs/gp_updates/ExactGP/' if (save_plots == 'test' or save_plots == 'all') else None
     )
     test_exact_mogp(
         wind_field,
@@ -110,6 +110,6 @@ else:
         mo_exact_gp_options,
         window_size=50,
         laps=1,
-        show = True if (save_plots == 'test' or save_plots == 'all') else False,
-        save = 'imgs/gp_updates/MultiOutputExactGP/' if (show_plots == 'test' or show_plots == 'all') else None
+        show = True if (show_plots == 'test' or show_plots == 'all') else False,
+        save = 'imgs/gp_updates/MultiOutputExactGP/' if (save_plots == 'test' or save_plots == 'all') else None
     )
