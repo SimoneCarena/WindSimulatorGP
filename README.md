@@ -2,18 +2,20 @@
 
 $\verb|json|$ formatting to generate wind-generating functions. The function description field is called $\verb|"generator"|$, and is one of the fan's fields. In the examples reported here, only the $\verb|"generator"|$ field of the fan is reported.
 
+To each function $v_0(t)$ is also added a Gaussian noise $\mathcal{N}(0,\sigma_n^2)$, where $\sigma_n^2$ is specified by the `nosie_var` parameter in the $\verb|json|$ file, and represents the variability in the generated wind.
+
 ## $\sin$ and $\cos$ Functions
-$\verb|"function"|$ parameter name: $\verb|"sin"|$, $\verb|"cos"|$
+`"function"` parameter name: `"sin"`, `"cos"`
 $$
 v_0(t)=\frac{V_0}{2}\sin(2\pi ft+\phi_0)+\frac{V_0}{2}
 $$
 $$
 v_0(t)=\frac{V_0}{2}\cos(2\pi ft+\phi_0)+\frac{V_0}{2}
 $$
-Function $\verb|"parameters"|$:
-- $f$: $\verb|"frequency"|$ parameter
-- $\phi_0$: $\verb|"phase"|$ parameter
-- $V_0$: $\verb|"v0"|$ parameter
+Function `"parameters"`:
+- $f$: `"frequency"` parameter
+- $\phi_0$: `"phase"` parameter
+- $V_0$: `"v0"` parameter
 
 <u>Example:</u>
 ```{json}
@@ -38,13 +40,13 @@ Function $\verb|"parameters"|$:
 ```
 
 ## Square Function
-$\verb|"function"|$ parameter name: $\verb|"square"|$
+`"function"` parameter name: `"square"`
 $$
     v_0(t)=\frac{V_0}{2}\,\text{sign}\left(\sin\left( 2\pi ft\right)\right)+\frac{V_0}{2}
 $$
-Function $\verb|"parameters"|$:
-- $f$: $\verb|"frequency"|$ parameter
-- $V_0$: $\verb|"v0"|$ parameter
+Function `"parameters"`:
+- $f$: `"frequency"` parameter
+- $V_0$: `"v0"` parameter
 
 <u>Example:</u>
 ```{json}
@@ -62,8 +64,8 @@ $\verb|"function"|$ parameter name: $\verb|"constant"|$
 $$
     v_0(t)=V_0
 $$
-Function $\verb|"parameters"|$:
-- $V_0$: $\verb|"v0"|$ parameter
+Function `"parameters"`:
+- $V_0$: `"v0"` parameter
 
 <u>Example:</u>
 ```{json}
@@ -79,10 +81,20 @@ Function $\verb|"parameters"|$:
 
 $$
 
-v(x,y,t) = \frac{v_0(t)}{2}\frac{\tanh\left( \frac{d_\perp+\frac{L}{2}}{w|d_\parallel|} \right)-\left(\frac{d_\perp-\frac{L}{2}}{w|d_\parallel|}\right)}{\left| d_\parallel \right|+1}
+v(t,d_\perp,d_\parallel) = \frac{v_0(t)}{2}\frac{\tanh\left( \frac{d_\perp+\frac{L}{2}}{w\cdot d_\parallel} \right)-\left(\frac{d_\perp-\frac{L}{2}}{w\cdot d_\parallel}\right)}{d_\parallel+1}
 
 $$
 where:
 - $v_0(t)$ is the velocity in the center, as defined before
 - $L$ is the width of the fan
 - $w = 0.002 $
+- $d_\perp$ and $d_\parallel$ are the distances between the center of the fan and the point $\mathbf{p}=[x,y]^{\text{T}}$ along, respectively, the axis perpendicular to the wind direction versor $\mathbf{u}_0$ and the axis parallel to it. Such distances are computed as
+$$
+d_\parallel=\left| \mathbf{p}\cdot\mathbf{u}_0 \right|
+$$
+$$
+d_\perp=\left| \mathbf{p}\cdot\mathbf{u}_0^\perp \right|
+$$
+
+!['Wind Speed'](imgs/readme/fan_xyz.png)
+!['Wind Speed Profile'](imgs/readme/fan_xy.png)
