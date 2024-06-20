@@ -6,12 +6,15 @@ To each function $v_0(t)$ is also added a Gaussian noise $\mathcal{N}(0,\sigma_n
 
 ## $\sin$ and $\cos$ Functions
 `"function"` parameter name: `"sin"`, `"cos"`
+
 $$
 v_0(t)=\frac{V_0}{2}\sin(2\pi ft+\phi_0)+\frac{V_0}{2}
 $$
+
 $$
 v_0(t)=\frac{V_0}{2}\cos(2\pi ft+\phi_0)+\frac{V_0}{2}
 $$
+
 Function `"parameters"`:
 - $f$: `"frequency"` parameter
 - $\phi_0$: `"phase"` parameter
@@ -41,9 +44,11 @@ Function `"parameters"`:
 
 ## Square Function
 `"function"` parameter name: `"square"`
+
 $$
     v_0(t)=\frac{V_0}{2}\,\text{sign}\left(\sin\left( 2\pi ft\right)\right)+\frac{V_0}{2}
 $$
+
 Function `"parameters"`:
 - $f$: `"frequency"` parameter
 - $V_0$: `"v0"` parameter
@@ -61,9 +66,11 @@ Function `"parameters"`:
 
 ## Constant Function
 $\verb|"function"|$ parameter name: $\verb|"constant"|$
+
 $$
     v_0(t)=V_0
 $$
+
 Function `"parameters"`:
 - $V_0$: `"v0"` parameter
 
