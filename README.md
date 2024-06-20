@@ -80,18 +80,19 @@ Function `"parameters"`:
 # Fan Generation Function
 
 $$
-
 v(t,d_\perp,d_\parallel) = \frac{v_0(t)}{2}\frac{\tanh\left( \frac{d_\perp+\frac{L}{2}}{w\cdot d_\parallel} \right)-\left(\frac{d_\perp-\frac{L}{2}}{w\cdot d_\parallel}\right)}{d_\parallel+1}
-
 $$
+
 where:
 - $v_0(t)$ is the velocity in the center, as defined before
 - $L$ is the width of the fan
 - $w = 0.002 $
 - $d_\perp$ and $d_\parallel$ are the distances between the center of the fan and the point $\mathbf{p}=[x,y]^{\text{T}}$ along, respectively, the axis perpendicular to the wind direction versor $\mathbf{u}_0$ and the axis parallel to it. Such distances are computed as
+
 $$
 d_\parallel=\left| \mathbf{p}\cdot\mathbf{u}_0 \right|
 $$
+
 $$
 d_\perp=\left| \mathbf{p}\cdot\mathbf{u}_0^\perp \right|
 $$

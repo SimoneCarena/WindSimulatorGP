@@ -2,6 +2,11 @@ __pycache__
 *.slxc
 slprj
 .DS_Store
-test.py
 .metadata
 readme_plots.py
+*.pt
+*.pth
+*.svg
+*.gif
+imgs/gp_updates/*.png
+imgs/wind_field/*.png
