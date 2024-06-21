@@ -58,28 +58,28 @@ device = (
     else "cpu" # Use the cpu otherwise
 )
 
-wind_field = WindField('configs/wind_field.json','configs/mass.json')
-
-# Run the simulation for the different trajectories
-for file in os.listdir('trajectories'):
-    wind_field.set_trajectory('trajectories/'+file,file)
-    wind_field.simulate_wind_field()
-    wind_field.draw_wind_field(
-        show=True if (show_plots == 'train' or show_plots == 'all') else False,
-        save='imgs/wind_field' if (save_plots == 'train' or save_plots == 'all') else None
-    )
-    wind_field.plot(
-        show=True if (show_plots == 'train' or show_plots == 'all') else False,
-        save='imgs/wind_field' if (save_plots == 'train' or save_plots == 'all') else None
-    )
-    wind_field.reset()
-# exit()
-
-# Get GP data
-gp_data, x_labels, y_labels = wind_field.get_gp_data()
-
 # Train Models
 if not test:
+    wind_field = WindField('configs/wind_field.json','configs/mass.json')
+
+    # Run the simulation for the different trajectories
+    for file in os.listdir('trajectories'):
+        wind_field.set_trajectory('trajectories/'+file,file)
+        wind_field.simulate_wind_field()
+        wind_field.draw_wind_field(
+            show=True if (show_plots == 'train' or show_plots == 'all') else False,
+            save='imgs/wind_field' if (save_plots == 'train' or save_plots == 'all') else None
+        )
+        wind_field.plot(
+            show=True if (show_plots == 'train' or show_plots == 'all') else False,
+            save='imgs/wind_field' if (save_plots == 'train' or save_plots == 'all') else None
+        )
+        wind_field.reset()
+
+    # Get GP data
+    gp_data, x_labels, y_labels = wind_field.get_gp_data()
+
+    # Train the models
     train_ExactGP(gp_data,x_labels,y_labels,exact_gp_options,device,2000)
     train_MultiOutputExactGP(gp_data,x_labels,y_labels,mo_exact_gp_options,device,2000)
     train_SVGP(gp_data,x_labels,y_labels,svgp_options,device,2000)

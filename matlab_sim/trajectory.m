@@ -35,7 +35,7 @@ b = 1.5;
 theta_0 = 0;
 theta_f = 2*pi;
 T = 30;
-duration = 3000;
+duration = 30000;
 
 [q,qd,qdd,tvec,pp] = trapveltraj([theta_0,theta_f],duration,EndTime=T);
 
@@ -51,7 +51,7 @@ XD = double(subs(xd,{diff(theta(t),t) theta(t)},{qd q}));
 YD = double(subs(yd,{diff(theta(t),t) theta(t)},{qd q}));
 
 data = [X;Y;XD;YD];
-% save('../trajectories/ellipse.mat','data','-v4')
+save('../trajectories/ellipse.mat','data','-v4')
 
 %% Plots
 
@@ -137,7 +137,7 @@ a = 1.5;
 theta_0 = 0;
 theta_f = 2*pi;
 T = 30;
-duration = 3000;
+duration = 30000;
 
 [q,qd,qdd,tvec,pp] = trapveltraj([theta_0,theta_f],duration,EndTime=T);
 
@@ -153,7 +153,7 @@ XD = double(subs(xd,{diff(theta(t),t) theta(t)},{qd q}));
 YD = double(subs(yd,{diff(theta(t),t) theta(t)},{qd q}));
 
 data = [X;Y;XD;YD];
-% save('../trajectories/lemniscate.mat','data','-v4')
+save('../trajectories/lemniscate.mat','data','-v4')
 
 %% Plots
 
@@ -240,7 +240,7 @@ a = 1.5;
 theta_0 = 0;
 theta_f = 2*pi;
 T = 30;
-duration = 3000;
+duration = 30000;
 
 [q,qd,qdd,tvec,pp] = trapveltraj([theta_0,theta_f],duration,EndTime=T);
 
@@ -343,7 +343,7 @@ a = 1.5;
 theta_0 = 0;
 theta_f = 2*pi;
 T = 30;
-duration = 3000;
+duration = 30000;
 alpha = pi/4;
 
 [q,qd,qdd,tvec,pp] = trapveltraj([theta_0,theta_f],duration,EndTime=T);
@@ -451,7 +451,7 @@ b = 1.5;
 theta_0 = 0;
 theta_f = 2*pi;
 T = 30;
-duration = 3000;
+duration = 30000;
 alpha = -pi/4;
 
 [q,qd,qdd,tvec,pp] = trapveltraj([theta_0,theta_f],duration,EndTime=T);
@@ -556,7 +556,7 @@ a = 1.5;
 theta_0 = 0;
 theta_f = 2*pi;
 T = 30;
-duration = 3000;
+duration = 30000;
 alpha = -pi/4;
 
 [q,qd,qdd,tvec,pp] = trapveltraj([theta_0,theta_f],duration,EndTime=T);
@@ -575,7 +575,7 @@ XD = double(subs(xd,{diff(theta(t),t) theta(t)},{qd q}));
 YD = double(subs(yd,{diff(theta(t),t) theta(t)},{qd q}));
 
 data = [X;Y;XD;YD];
-save('../lemniscate4.mat','data','-v4')
+save('../test_trajectories/lemniscate4.mat','data','-v4')
 
 %% Plots
 

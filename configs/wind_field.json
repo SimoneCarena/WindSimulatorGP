@@ -2,10 +2,10 @@
     "height": 4,
     "width": 4,
     "grid_resolution": 30,
-    "duration": 3000,
-    "dt": 0.01,
+    "duration": 30000,
+    "dt": 0.001,
     "air_density": 1.2,
-    "control_frequency": 10,
+    "control_frequency": 100,
     "fans": [
         {
             "x0": 2,
