@@ -87,10 +87,13 @@ class WindField:
         self.__system = System(m,r,self.__dt)
 
         # Controller Matrices
-        Kp = np.diag([32.0,15.0])
-        Kd = np.diag([13.0,9.0])
+        Kp = np.diag(data["Kp"])
+        Kd = np.diag(data["Kd"])
         # The controller's parameter were retrieved using MATLAB
         self.__pd = PD(Kp,Kd)
+        # Setup controller saturation
+        self.__lower_control_lim = data["u_min"]
+        self.__upper_control_lim = data["u_max"]
         
     def __setup_gp(self):
         # Create arrays to train the GP model
@@ -317,7 +320,7 @@ class WindField:
             self.__system.discrete_dynamics(wind_force+control_force)
             t+=1
 
-    def simulate_gp(self, max_size, predictors, show=False, save=None, kernel_name=''):
+    def simulate_gp(self, max_size, predictors, p0=None, show=False, save=None, kernel_name=''):
         if self.__trajectory is None:
             raise MissingTrajectoryException()
         
@@ -404,9 +407,6 @@ class WindField:
                     predicted_x_pos.append(dummy.p[0])
                     predicted_y_pos.append(dummy.p[1])
 
-                    self.__ctl_forces_x.append(control_force[0])
-                    self.__ctl_forces_y.append(control_force[1])
-
                     # Collect labels for GP
                     self.__gp_label_x.append(wind_force[0])
                     self.__gp_label_y.append(wind_force[1])
@@ -431,6 +431,10 @@ class WindField:
                     predictor_y.set_train_data(torch.cat([gp_data,p],dim=0),torch.cat([gp_labels,torch.FloatTensor([wind_force[1]])],dim=0),strict=False)
                 k+=1
             
+            control_force = control_force.clip(self.__lower_control_lim,self.__upper_control_lim)
+            self.__ctl_forces_x.append(control_force[0])
+            self.__ctl_forces_y.append(control_force[1])
+
             # Simulate Dynamics
             self.__system.discrete_dynamics(wind_force+control_force)
             dummy.set_state(self.__system.p.copy(),self.__system.v.copy())
@@ -611,7 +615,7 @@ class WindField:
         #     # f'imgs/animations/{kernel_name}-{self.__trajectory_name}-trajectory.gif'
         # )
 
-    def simulate_mogp(self, max_size, predictor, show=False, save=None, kernel_name=''):
+    def simulate_mogp(self, max_size, predictor, p0=None, show=False, save=None, kernel_name=''):
         if self.__trajectory is None:
             raise MissingTrajectoryException()
         
@@ -628,8 +632,12 @@ class WindField:
 
         # Set the mass initial conditions
         p,_ = self.__trajectory.trajectory()
-        x0 = p[0,0]
-        y0 = p[1,0]
+        if p0 is None:
+            x0 = p[0,0]
+            y0 = p[1,0]
+        else:
+            x0 = p0[0]
+            y0 = p0[1]
         self.__system.p[0] = x0
         self.__system.p[1] = y0
 
@@ -688,9 +696,6 @@ class WindField:
                     predicted_x_pos.append(dummy.p[0])
                     predicted_y_pos.append(dummy.p[1])
 
-                    self.__ctl_forces_x.append(control_force[0])
-                    self.__ctl_forces_y.append(control_force[1])
-
                     # Collect labels for GP
                     self.__gp_label_x.append(wind_force[0])
                     self.__gp_label_y.append(wind_force[1])
@@ -708,6 +713,10 @@ class WindField:
                     predictor.set_train_data(torch.cat([gp_data,p],dim=0),torch.cat([gp_labels,torch.FloatTensor([wind_force])],dim=0),strict=False)
                 k+=1
             
+            control_force = control_force.clip(self.__lower_control_lim,self.__upper_control_lim)
+            self.__ctl_forces_x.append(control_force[0])
+            self.__ctl_forces_y.append(control_force[1])
+
             # Simulate Dynamics
             self.__system.discrete_dynamics(wind_force+control_force)
             dummy.set_state(self.__system.p.copy(),self.__system.v.copy())
@@ -885,9 +894,9 @@ class WindField:
             plt.show()
         plt.close('all')
 
-        # self.animate(
-        #     # f'imgs/animations/{kernel_name}-{self.__trajectory_name}-trajectory.gif'
-        # )
+        self.animate(
+            # f'imgs/animations/{kernel_name}-{self.__trajectory_name}-trajectory.gif'
+        )
 
     def reset(self, wind_field_conf_file=None, mass_conf_file=None, gp_predictor_x=None, gp_predictor_y=None):
         '''
@@ -938,7 +947,7 @@ class WindField:
         '''
         self.__setup_gp()
 
-    def animate(self, save=None):
+    def animate(self, save=None, scale=25, interval=10):
         '''
         Plots the animation showing the evolution of the system following the trajectory
         in the wind field
@@ -950,22 +959,23 @@ class WindField:
         fig.suptitle(f'{file_name} Trajectory')
         fig.set_size_inches(16,9)
         def animation_function(t):
+            t = int(t*scale)
             ax.clear()
             ax.set_xlim([0,self.__width])
             ax.set_ylim([0,self.__height])
             ax.plot(np.NaN, np.NaN, '-', color='none', label='t={0:.2f} s'.format(t*self.__dt))
-            ax.plot(self.__tr_p[0,t],self.__tr_p[1,t],'o',color='orange',markersize=7,label='Target Distance=[{0:.2f},{0:.2f}] m'.format(self.__ex[int(t/self.__control_frequency)],self.__ey[int(t/self.__control_frequency)])) # Traget Location
+            ax.plot(self.__tr_p[0,t],self.__tr_p[1,t],'o',color='orange',markersize=7,label='Target Distance=[{0:.2f},{0:.2f}] m'.format(self.__ex[t],self.__ey[t])) # Traget Location
             ax.plot(self.__xs[t],self.__ys[t],'bo',markersize=5) # Object Moving
-            ax.quiver(self.__xs[t],self.__ys[t],self.__wind_force_x[t],self.__wind_force_y[t],scale=20,width=0.003,color='r',label='Wind Force=[{0:.2f},{0:.2f}] N'.format(self.__wind_force_x[t],self.__wind_force_y[t])) # Wind Force
-            ax.quiver(self.__xs[t],self.__ys[t],self.__ctl_forces_x[int(t/self.__control_frequency)],self.__ctl_forces_y[int(t/self.__control_frequency)],scale=20,width=0.003,color="#4DBEEE",label='Control Force=[{0:.2f},{0:.2f}] N'.format(self.__ctl_forces_x[int(t/self.__control_frequency)],self.__ctl_forces_y[int(t/self.__control_frequency)])) # Control Force
+            ax.quiver(self.__xs[t],self.__ys[t],self.__wind_force_x[t],self.__wind_force_y[t],scale=75,width=0.003,color='r',label='Wind Force=[{0:.2f},{0:.2f}] N'.format(self.__wind_force_x[t],self.__wind_force_y[t])) # Wind Force
+            ax.quiver(self.__xs[t],self.__ys[t],self.__ctl_forces_x[t],self.__ctl_forces_y[t],scale=75,width=0.003,color="#4DBEEE",label='Control Force=[{0:.2f},{0:.2f}] N'.format(self.__ctl_forces_x[t],self.__ctl_forces_y[t])) # Control Force
             ax.plot(self.__xs[:t],self.__ys[:t],'b')
             ax.plot(self.__tr_p[0,:t],self.__tr_p[1,:t],'--',color='orange')
             ax.legend()
 
-        anim = animation.FuncAnimation(fig,animation_function,frames=self.__duration,interval=10,repeat=False)
+        anim = animation.FuncAnimation(fig,animation_function,frames=int(self.__duration/scale),interval=interval,repeat=False)
 
         if save is not None:
-            anim.save(save,writer=animation.FFMpegWriter(fps=60))
+            anim.save(save,writer=animation.FFMpegWriter(fps=30))
 
         plt.show()
         plt.close('all')

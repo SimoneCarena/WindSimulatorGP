@@ -44,6 +44,8 @@ class Fan:
         du_perp = np.abs(np.dot(ut,p))
         w = 0.002
         # Compute the speed
+        if du_par==0:
+            du_par = 1e-4
         speed = v0/2*(np.tanh((du_perp+self.width/2)/(w*np.abs(du_par)))-np.tanh((du_perp-self.width/2)/(w*np.abs(du_par))))/(np.abs(du_par+1))
         
         return speed

@@ -3,6 +3,7 @@ import json
 import torch
 import warnings
 import os
+import numpy as np
 
 from WindField import WindField
 from utils.train import *
@@ -60,7 +61,7 @@ device = (
 
 # Train Models
 if not test:
-    wind_field = WindField('configs/wind_field.json','configs/mass.json')
+    wind_field = WindField('configs/wind_field.json','configs/system.json')
 
     # Run the simulation for the different trajectories
     for file in os.listdir('trajectories'):
@@ -85,13 +86,14 @@ if not test:
     train_SVGP(gp_data,x_labels,y_labels,svgp_options,device,2000)
 # Test Models
 else:
-    wind_field = WindField('configs/wind_field_test.json','configs/mass.json')
+    wind_field = WindField('configs/wind_field_test.json','configs/system.json')
     test_svgp(
         wind_field,
         'test_trajectories',
         svgp_options,
-        window_size=50,
-        laps=1,
+        window_size = 50,
+        p0 = None,
+        laps = 1,
         show = True if (show_plots == 'test' or show_plots == 'all') else False,
         save = 'imgs/gp_updates/SVGP/' if (save_plots == 'test' or save_plots == 'all') else None
     )
@@ -99,8 +101,9 @@ else:
         wind_field,
         'test_trajectories',
         exact_gp_options,
-        window_size=50,
-        laps=1,
+        window_size = 50,
+        p0 = None,
+        laps = 1,
         show = True if (show_plots == 'test' or show_plots == 'all') else False,
         save = 'imgs/gp_updates/ExactGP/' if (save_plots == 'test' or save_plots == 'all') else None
     )
@@ -108,8 +111,9 @@ else:
         wind_field,
         'test_trajectories',
         mo_exact_gp_options,
-        window_size=50,
-        laps=1,
+        window_size = 50,
+        p0 = np.array([0.0,0.0]),
+        laps = 1,
         show = True if (show_plots == 'test' or show_plots == 'all') else False,
         save = 'imgs/gp_updates/MultiOutputExactGP/' if (save_plots == 'test' or save_plots == 'all') else None
     )
