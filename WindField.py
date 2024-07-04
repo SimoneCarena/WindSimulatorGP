@@ -875,6 +875,7 @@ class WindField:
         for ellipse in ellipses:
             ax.add_patch(ellipse)
         ax.plot(np.nan,color='cyan',alpha=0.5,label='Confidence')
+        ax.axis('equal')
         ax.legend()
         if save is not None:
             fig.savefig(save+f'estimated-trajectory-{self.__trajectory_name}-{kernel_name}.png')
