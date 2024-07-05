@@ -59,7 +59,7 @@ def __test_exact_mogp(wind_field, trajectories_folder, model, name, window_size,
         if horizon == 1:
             wind_field.simulate_mogp(window_size,model,p0,show=show,save=save,kernel_name=name) 
         else:
-            wind_field.simulate_mogp_horizon(window_size,model,10,p0,show=show,save=False,kernel_name=name) 
+            wind_field.simulate_mogp_horizon(window_size,model,horizon,p0,show=show,save=False,kernel_name=name) 
         wind_field.reset()
         wind_field.reset_gp()
 

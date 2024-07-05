@@ -103,6 +103,7 @@ $$
 $$
 d_\perp=\left| \mathbf{p}\cdot\mathbf{u}_0^\perp \right|
 $$
+For numerical reasons, if $d_\parallel=0$, its value is set to $10^{-4}$
 
 !['Wind Speed'](imgs/readme/fan_xyz.png)
 !['Wind Speed Profile'](imgs/readme/fan_xy.png)

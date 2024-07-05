@@ -611,7 +611,7 @@ class WindField:
         ax.plot(self.__xs,self.__ys,'--',color='orange',label='System Trajectory')
         for ellipse in ellipses:
             ax.add_patch(ellipse)
-        ax.plot(np.nan,color='cyan',alpha=0.5,label='Confidence')
+        ax.plot(np.nan,'s',color='cyan',alpha=0.5,label='Confidence')
         ax.legend()
         if save is not None:
             fig.savefig(save+f'estimated-trajectory-{self.__trajectory_name}-{kernel_name}.png')
@@ -898,7 +898,7 @@ class WindField:
         ax.plot(self.__xs,self.__ys,'--',color='orange',label='System Trajectory')
         for ellipse in ellipses:
             ax.add_patch(ellipse)
-        ax.plot(np.nan,color='cyan',alpha=0.5,label='Confidence')
+        ax.plot(np.nan,'s',color='cyan',alpha=0.5,label='Confidence')
         ax.axis('equal')
         ax.legend()
         if save is not None:
@@ -1090,7 +1090,7 @@ class WindField:
                 )
                 for ellipse in ellipses:
                     ax.add_patch(ellipse)
-            ax.plot(np.NaN, np.NaN,'c',alpha=0.5,label='Confidence')
+            ax.plot(np.NaN, np.NaN,'cs',alpha=0.5,label='Confidence')
             ax.legend()
 
         anim = animation.FuncAnimation(fig,animation_function,frames=int(self.__duration/scale),interval=100,repeat=False)
