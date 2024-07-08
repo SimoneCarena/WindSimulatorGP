@@ -53,6 +53,10 @@ def __test_exact_mogp(wind_field, trajectories_folder, model, name, window_size,
     wind_field.reset()
     wind_field.reset_gp()
 
+    # print(f"{model.covar_module.data_covar_module.lengthscale = }")
+    # print(f"{model.likelihood.noise = }")
+    # exit()
+
     for file in os.listdir(trajectories_folder):
         file_name = Path(file).stem
         wind_field.set_trajectory(trajectories_folder+'/'+file,file_name,laps)
