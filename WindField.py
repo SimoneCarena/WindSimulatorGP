@@ -964,7 +964,7 @@ class WindField:
                 control_force = self.__pd.step(ep,ev)
                 p = torch.FloatTensor([[self.__system.p[0],self.__system.p[1]]])
                 # Simulate system's evolution within the horizon
-                if k >= window_size:
+                if k > 0:
                     idxs.append(t)
                     predicted_x_pos = []
                     predicted_y_pos = []
@@ -1068,20 +1068,37 @@ class WindField:
         fig.tight_layout(pad=4)
         fig.suptitle(f'{horizon}-Step Ahead Prediction')
         scale = self.__control_frequency # Plot frequency
+        ax.set_xlabel(r'$x$ $[m]$')
+        ax.set_ylabel(r'$y$ $[m]$')
+        # Create colorbar for wind speed
+        _, _, _, _, v = self.__draw_wind_field_grid()
+        v_max = np.max(v)
+        colors = [(1, 0, 0, alpha) for alpha in np.linspace(0, 1, 256)]
+        orange_transparency_cmap = LinearSegmentedColormap.from_list('orange_transparency', colors, N=256)
+        bar = ax.imshow(np.array([[0,v_max]]), cmap=orange_transparency_cmap)
+        bar.set_visible(False)
+        cb = fig.colorbar(bar,orientation="vertical")
+        cb.set_label(label=r'Wind Speed $[m/s]$',labelpad=10)
         def animation_function(t):
             ax.clear()
             t = int(t*scale)
-            k = t//scale - window_size
+            k = t//scale - 1
+            start = max(0,k-window_size)*scale
+            # Draw wind field
+            xs, ys, vx, vy, v = self.__draw_wind_field_grid()
+            for i in range(len(xs)):
+                for j in range(len(ys)):
+                    ax.arrow(xs[i],ys[j],vx[i,j]/100,vy[i,j]/100,length_includes_head=False,head_width=0.015,head_length=0.015,width=0.005,color='r',alpha=min(v[i,j]/v_max,1.0))
             ax.set_xlim([0.0,self.__width])
             ax.set_ylim([0.0,self.__height])
             ax.plot(np.NaN, np.NaN, '-', color='none', label='t={0:.2f} s'.format(t*self.__dt))
-            ax.plot(self.__xs[:t],self.__ys[:t],'b')
-            ax.plot(self.__xs[t],self.__ys[t],'bo',label='System Trajectory')
-            ax.plot(target_p[0,:t],target_p[1,:t],'--',color='orange')
-            ax.plot(target_p[0,t],target_p[1,t],'o',color='orange',label='Reference Trajectory')
+            ax.plot(self.__xs[:t],self.__ys[:t],'b',label='System Trajectory')
+            ax.plot(target_p[0,t],target_p[1,t],'o',color='orange')
+            ax.plot(self.__xs[t],self.__ys[t],'bo')
+            ax.plot(target_p[0,:t],target_p[1,:t],'--',color='orange',label='Reference Trajectory')
+            ax.plot(self.__xs[start:t:scale],self.__ys[start:t:scale],'o-',color=(0.878, 0.867, 0.137,0.5),markerfacecolor=(0.878, 0.867, 0.137,1.0),markeredgecolor=(0.878, 0.867, 0.137,1.0),linewidth=8,markersize=2,label='Active Window')
             if k>=0:
                 ellipses = Ellipses[k]
-                idx = min(t+horizon*scale,len(target_p)-1)
                 ax.plot(predicted_X_pos[k,:],predicted_Y_pos[k,:],'go-',label='Predicted Trajectory',markersize=2,linewidth=1)
                 ax.plot(
                     [self.__xs[t],predicted_X_pos[k,0]],
@@ -1090,7 +1107,7 @@ class WindField:
                 )
                 for ellipse in ellipses:
                     ax.add_patch(ellipse)
-            ax.plot(np.NaN, np.NaN,'cs',alpha=0.5,label='Confidence')
+            ax.plot(np.NaN, np.NaN,'c-',linewidth=5,alpha=0.5,label='Confidence')
             ax.legend()
 
         anim = animation.FuncAnimation(fig,animation_function,frames=int(self.__duration/scale),interval=100,repeat=False)
