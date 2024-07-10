@@ -1066,7 +1066,7 @@ class WindField:
         fig, ax = plt.subplots()
         fig.set_size_inches(16,9)
         fig.tight_layout(pad=4)
-        fig.suptitle(f'{horizon}-Step Ahead Prediction')
+        fig.suptitle(f'{horizon}-Step Ahead Prediction using {kernel_name} Kernel')
         scale = self.__control_frequency # Plot frequency
         ax.set_xlabel(r'$x$ $[m]$')
         ax.set_ylabel(r'$y$ $[m]$')
