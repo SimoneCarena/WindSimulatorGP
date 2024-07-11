@@ -1085,7 +1085,7 @@ class WindField:
             k = t//scale - 1
             start = max(0,k-window_size)*scale
             # Draw wind field
-            xs, ys, vx, vy, v = self.__draw_wind_field_grid()
+            xs, ys, vx, vy, v = self.__draw_wind_field_grid(t*self.__dt)
             for i in range(len(xs)):
                 for j in range(len(ys)):
                     ax.arrow(xs[i],ys[j],vx[i,j]/100,vy[i,j]/100,length_includes_head=False,head_width=0.015,head_length=0.015,width=0.005,color='r',alpha=min(v[i,j]/v_max,1.0))

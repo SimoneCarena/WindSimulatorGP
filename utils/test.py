@@ -57,6 +57,7 @@ def __test_exact_mogp(wind_field, trajectories_folder, model, name, window_size,
     # print(f"{model.likelihood.noise = }")
     # for name, param in model.named_parameters():
     #     print(name,param)
+    # print(model.covar_module.task_covar_module.covar_matrix)
     # exit()
 
     for file in os.listdir(trajectories_folder):
@@ -68,6 +69,8 @@ def __test_exact_mogp(wind_field, trajectories_folder, model, name, window_size,
             wind_field.simulate_mogp_horizon(window_size,model,horizon,p0,show=show,save=True,kernel_name=name) 
         wind_field.reset()
         wind_field.reset_gp()
+        print('Done')
+        # exit()
 
 def test_svgp(wind_field, trajecotries_folder, options, window_size=100, p0=None, laps=1, show=False, save=None):
     file = open(".metadata/svgp_dict","rb")

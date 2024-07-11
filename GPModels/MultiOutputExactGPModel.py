@@ -6,6 +6,10 @@ class MultiOutputExactGPModelRBF(gpytorch.models.ExactGP):
         self.mean_module = gpytorch.means.MultitaskMean(
             gpytorch.means.ConstantMean(), num_tasks=2
         )
+        # rank (int):
+        #     Rank of :math:`B` matrix. Controls the degree of
+        #     correlation between the outputs. With a rank of 1 the
+        #     outputs are identical except for a scaling factor.
         self.covar_module = gpytorch.kernels.MultitaskKernel(
             gpytorch.kernels.RBFKernel(), num_tasks=2, rank=1
         )

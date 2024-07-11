@@ -22,6 +22,17 @@ class _SquareFunction:
         self.__f = f
     def __call__(self,t):
         return self.__v0*np.sign(np.sin(2*np.pi**self.__f*t))/2+self.__v0/2
+    
+class _RandomGustFunction:
+    def __init__(self,v0,p):
+        self.__v0 = v0
+        self.__p = p
+        self.__prev = 1
+    def __call__(self,t):
+        val = np.random.binomial(1,self.__p)
+        if not val:
+            self.__prev = 1-self.__prev
+        return self.__v0*self.__prev
 
 
 def parse_generator(generator):
@@ -46,6 +57,11 @@ def parse_generator(generator):
         v0 = parameters['v0']
         f = parameters['frequency']
         generator_function = _SquareFunction(v0,f)
+        return generator_function
+    elif generator['function'] == 'random gust':
+        v0 = parameters['v0']
+        p = parameters['p']
+        generator_function = _RandomGustFunction(v0,p)
         return generator_function
 
     else:

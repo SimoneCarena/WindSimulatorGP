@@ -84,16 +84,56 @@ Function `"parameters"`:
 }
 ```
 
+## Random Gust
+$\verb|"function"|$ parameter name: $\verb|"random gust"|$
+
+$$
+    v_0(t)=V_0\cdot X(t)
+$$
+
+where $X(t)\in\{0,1\}$ is such that
+
+$$
+    X(t)=\left\{ 
+        \begin{array}{cl}
+        \left.
+        \begin{array}{cl}
+                X(t-1) & \text{with probability }p\\
+                1-X(t-1) & \text{with probability }1-p\\
+        \end{array} 
+        \right\}& \text{if }t\neq0\\
+        \begin{array}{c}
+            1 
+        \end{array} & \text{if }t=0
+        \end{array}
+    \right.
+$$
+
+Function `"parameters"`:
+ - $V_0$: `"v0"` parameter
+ - $p$: `"p"` parameter $\left(\,p\in[0,1]\,\right)$
+
+<u>Example:</u>
+```{json}
+"generator": {
+    "function": "random gust",
+    "parameters": {
+        "v0": 10,
+        "p": 0.8
+    }
+}
+```
+
 # Fan Generation Function
 
 $$
-v(t,d_\perp,d_\parallel) = \frac{v_0(t)}{2}\frac{\tanh\left( \frac{d_\perp+\frac{L}{2}}{w\cdot d_\parallel} \right)-\tanh\left(\frac{d_\perp-\frac{L}{2}}{w\cdot d_\parallel}\right)}{d_\parallel+1}
+v(t,d_\perp,d_\parallel) = \frac{v_0(t)}{2}\frac{\tanh\left( \frac{d_\perp+\frac{L}{2}}{w\cdot \left(d_\parallel+1\right)} \right)-\tanh\left(\frac{d_\perp-\frac{L}{2}}{w\cdot \left(d_\parallel+1\right)}\right)}{d_\parallel+1}
 $$
 
 where:
 - $v_0(t)$ is the velocity in the center, as defined before
 - $L$ is the width of the fan
-- $w = 0.002 $
+- $w = 0.002 $ determines the spread of the wind cone
 - $d_\perp$ and $d_\parallel$ are the distances between the center of the fan and the point $\mathbf{p}=[x,y]^{\text{T}}$ along, respectively, the axis perpendicular to the wind direction versor $\mathbf{u}_0$ and the axis parallel to it. Such distances are computed as
 
 $$
@@ -103,7 +143,5 @@ $$
 $$
 d_\perp=\left| \mathbf{p}\cdot\mathbf{u}_0^\perp \right|
 $$
-For numerical reasons, if $d_\parallel=0$, its value is set to $10^{-4}$
 
 !['Wind Speed'](imgs/readme/fan_xyz.png)
-!['Wind Speed Profile'](imgs/readme/fan_xy.png)
