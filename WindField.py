@@ -621,9 +621,233 @@ class WindField:
             plt.show()
         plt.close('all')
 
-        # self.animate(
-        #     # f'imgs/animations/{kernel_name}-{self.__trajectory_name}-trajectory.gif'
-        # )
+        self.animate(
+            # f'imgs/animations/{kernel_name}-{self.__trajectory_name}-trajectory.gif'
+        )
+
+    def simulate_gp_horizon(self, window_size, predictors, horizon=1, p0=None, show=False, save=False, kernel_name=''):
+        if self.__trajectory is None:
+            raise MissingTrajectoryException()
+        
+        predictor_x = predictors[0]
+        predictor_y = predictors[1]
+        
+        predicted_X_pos = []
+        predicted_Y_pos = []
+        idxs = []
+        Covs = []
+
+        # Set the mass initial conditions
+        p,_ = self.__trajectory.trajectory()
+        if p0 is None:
+            x0 = p[0,0]
+            y0 = p[1,0]
+        else:
+            x0 = p0[0]
+            y0 = p0[1]
+        self.__system.p[0] = x0
+        self.__system.p[1] = y0
+
+        dummy = System(self.__system.m,self.__system.r,self.__system.dt*self.__control_frequency)
+        dummy.p[0] = x0
+        dummy.p[1] = y0
+
+        k = 0
+        control_force = np.zeros((2,))
+        target_p, target_v = self.__trajectory.trajectory()
+        for t in range(len(self.__trajectory)):
+            total_speed = np.array([0,0],dtype=float)
+            for fan in self.fans:
+                speed = fan.generate_wind(self.__system.p[0],self.__system.p[1],t*self.__dt)
+                total_speed+=speed
+
+            # Generate wind force
+            wind_force = (0.5*self.__air_density*self.__system.surf)*total_speed**2*np.sign(total_speed)
+            ep = target_p[:,t] - self.__system.p
+            ev = target_v[:,t] - self.__system.v
+            self.__xs.append(self.__system.p[0])
+            self.__ys.append(self.__system.p[1])
+            self.__vxs.append(self.__system.v[0])
+            self.__vys.append(self.__system.v[1])
+            self.__ex.append(ep[0])
+            self.__ey.append(ep[1])
+            self.__evx.append(ev[0])
+            self.__evy.append(ev[1])
+            self.__wind_force_x.append(wind_force[0])
+            self.__wind_force_y.append(wind_force[1])
+            if t%self.__control_frequency==0:
+                control_force = self.__pd.step(ep,ev)
+                p = torch.FloatTensor([[self.__system.p[0],self.__system.p[1]]])
+                # Simulate system's evolution within the horizon
+                if k > 0:
+                    idxs.append(t)
+                    predicted_x_pos = []
+                    predicted_y_pos = []
+                    covs = []
+                    for j in range(horizon):
+                        idx = min(t+j*self.__control_frequency,len(self.__trajectory)-1)
+                        ep = target_p[:,idx] - dummy.p
+                        ev = target_v[:,idx] - dummy.v
+                        dummy_control_force = self.__pd.step(ep,ev)
+                        dummy_pos = torch.FloatTensor([[
+                            dummy.p[0],
+                            dummy.p[1]
+                        ]])
+                        predicted_wind_force_x = predictor_x(dummy_pos)
+                        predicted_wind_force_y = predictor_y(dummy_pos)
+                        # Collect Data For Plot
+                        covs.append(np.diag([
+                            predicted_wind_force_x.covariance_matrix.item(),
+                            predicted_wind_force_y.covariance_matrix.item()
+                        ]))
+                        dummy_control_force = dummy_control_force.clip(self.__lower_control_lim,self.__upper_control_lim)
+                        dummy.discrete_dynamics(dummy_control_force)
+                        predicted_x_pos.append(dummy.p[0])
+                        predicted_y_pos.append(dummy.p[1])
+                    predicted_X_pos.append(predicted_x_pos)
+                    predicted_Y_pos.append(predicted_y_pos)
+                    Covs.append(covs)
+
+                    # Generate control force for the real system
+                    predicted_wind_force_x = predictor_x(p)
+                    predicted_wind_force_y = predictor_y(p)
+                    control_force -= np.array([
+                        predicted_wind_force_x.mean.item(),
+                        predicted_wind_force_y.mean.item()
+                    ])
+
+                # Update GP Model
+                # Update GP Model
+                if k==0:
+                    predictor_x.set_train_data(p,torch.FloatTensor([wind_force[0]]),strict=False)
+                    predictor_y.set_train_data(p,torch.FloatTensor([wind_force[1]]),strict=False)
+                elif k>=window_size:
+                    gp_data = predictor_x.train_inputs[0]
+                    gp_labels = predictor_x.train_targets
+                    predictor_x.set_train_data(torch.cat([gp_data[1:,],p],dim=0),torch.cat([gp_labels[1:],torch.FloatTensor([wind_force[0]])]),strict=False)
+                    gp_data = predictor_y.train_inputs[0]
+                    gp_labels = predictor_y.train_targets
+                    predictor_y.set_train_data(torch.cat([gp_data[1:,],p],dim=0),torch.cat([gp_labels[1:],torch.FloatTensor([wind_force[1]])]),strict=False)
+                elif k<window_size:
+                    gp_data = predictor_x.train_inputs[0]
+                    gp_labels = predictor_x.train_targets
+                    predictor_x.set_train_data(torch.cat([gp_data,p],dim=0),torch.cat([gp_labels,torch.FloatTensor([wind_force[0]])],dim=0),strict=False)
+                    gp_data = predictor_y.train_inputs[0]
+                    gp_labels = predictor_y.train_targets
+                    predictor_y.set_train_data(torch.cat([gp_data,p],dim=0),torch.cat([gp_labels,torch.FloatTensor([wind_force[1]])],dim=0),strict=False)
+                k+=1
+            
+            control_force = control_force.clip(self.__lower_control_lim,self.__upper_control_lim)
+            self.__ctl_forces_x.append(control_force[0])
+            self.__ctl_forces_y.append(control_force[1])
+
+            # Simulate Dynamics
+            self.__system.discrete_dynamics(wind_force+control_force)
+            dummy.set_state(self.__system.p.copy(),self.__system.v.copy())
+
+            t+=1
+
+        # Derive Uncertainties
+        Pos_upper = []
+        Pos_lower = []
+        Ellipses = []
+        for k in range(len(Covs)):
+            covs = Covs[k]
+            predicted_x_pos = predicted_X_pos[k]
+            predicted_y_pos = predicted_Y_pos[k]
+            pos_var = np.array(covs)*(self.__dt*self.__control_frequency)**2
+            eigs = []
+            eigenvectors = []
+            for m in pos_var:
+                eigs.append(np.linalg.eigvals(m))
+                eigenvectors.append(np.linalg.eig(m)[1])
+            angles = []
+            for e in eigenvectors:
+                angles.append(np.arctan2(e[1, 0], e[0, 0]))
+            confidence_intervals = [
+                [np.sqrt(5.991*eigs[i][0]),np.sqrt(5.991*eigs[i][1])] for i in range(len(eigs))
+            ]
+            pos_lower = np.array([[
+                predicted_x_pos[i]-confidence_intervals[i][0],
+                predicted_y_pos[i]-confidence_intervals[i][1],
+            ] for i in range(len(confidence_intervals))])
+            pos_upper = np.array([[
+                predicted_x_pos[i]+confidence_intervals[i][0],
+                predicted_y_pos[i]+confidence_intervals[i][1],
+            ] for i in range(len(confidence_intervals))])
+            ellipses = []
+            for i in range(len(predicted_x_pos)):
+                ellipses.append(
+                    Ellipse((predicted_x_pos[i],predicted_y_pos[i]),
+                            confidence_intervals[i][0],
+                            confidence_intervals[i][1],
+                            angle=angles[i],
+                            facecolor='cyan',
+                            alpha=0.5)
+                )
+
+            Pos_upper.append(pos_upper)
+            Pos_lower.append(pos_lower)
+            Ellipses.append(ellipses)
+
+        # Animation
+        predicted_X_pos = np.array(predicted_X_pos)
+        predicted_Y_pos = np.array(predicted_Y_pos)
+
+        fig, ax = plt.subplots()
+        fig.set_size_inches(16,9)
+        fig.tight_layout(pad=4)
+        fig.suptitle(f'{horizon}-Step Ahead Prediction using {kernel_name} Kernel')
+        scale = self.__control_frequency # Plot frequency
+        ax.set_xlabel(r'$x$ $[m]$')
+        ax.set_ylabel(r'$y$ $[m]$')
+        # Create colorbar for wind speed
+        _, _, _, _, v = self.__draw_wind_field_grid()
+        v_max = np.max(v)
+        colors = [(1, 0, 0, alpha) for alpha in np.linspace(0, 1, 256)]
+        orange_transparency_cmap = LinearSegmentedColormap.from_list('orange_transparency', colors, N=256)
+        bar = ax.imshow(np.array([[0,v_max]]), cmap=orange_transparency_cmap)
+        bar.set_visible(False)
+        cb = fig.colorbar(bar,orientation="vertical")
+        cb.set_label(label=r'Wind Speed $[m/s]$',labelpad=10)
+        def animation_function(t):
+            ax.clear()
+            t = int(t*scale)
+            k = t//scale - 1
+            start = max(0,k-window_size)*scale
+            # Draw wind field
+            xs, ys, vx, vy, v = self.__draw_wind_field_grid(t*self.__dt)
+            for i in range(len(xs)):
+                for j in range(len(ys)):
+                    ax.arrow(xs[i],ys[j],vx[i,j]/100,vy[i,j]/100,length_includes_head=False,head_width=0.015,head_length=0.015,width=0.005,color='r',alpha=min(v[i,j]/v_max,1.0))
+            ax.set_xlim([0.0,self.__width])
+            ax.set_ylim([0.0,self.__height])
+            ax.plot(np.NaN, np.NaN, '-', color='none', label='t={0:.2f} s'.format(t*self.__dt))
+            ax.plot(self.__xs[:t],self.__ys[:t],'b',label='System Trajectory')
+            ax.plot(target_p[0,t],target_p[1,t],'o',color='orange')
+            ax.plot(self.__xs[t],self.__ys[t],'bo')
+            ax.plot(target_p[0,:t],target_p[1,:t],'--',color='orange',label='Reference Trajectory')
+            ax.plot(self.__xs[start:t:scale],self.__ys[start:t:scale],'o-',color=(0.878, 0.867, 0.137,0.5),markerfacecolor=(0.878, 0.867, 0.137,1.0),markeredgecolor=(0.878, 0.867, 0.137,1.0),linewidth=8,markersize=2,label='Active Window')
+            if k>=0:
+                ellipses = Ellipses[k]
+                ax.plot(predicted_X_pos[k,:],predicted_Y_pos[k,:],'go-',label='Predicted Trajectory',markersize=2,linewidth=1)
+                ax.plot(
+                    [self.__xs[t],predicted_X_pos[k,0]],
+                    [self.__ys[t],predicted_Y_pos[k,0]],
+                    'go-',markersize=2,linewidth=1
+                )
+                for ellipse in ellipses:
+                    ax.add_patch(ellipse)
+            ax.plot(np.NaN, np.NaN,'c-',linewidth=5,alpha=0.5,label='Confidence')
+            ax.legend()
+
+        anim = animation.FuncAnimation(fig,animation_function,frames=int(self.__duration/scale),interval=100,repeat=False)
+
+        if show:
+            plt.show()
+        if save:
+            anim.save(f'imgs/animations/square-uncertainty-{kernel_name}-{self.__trajectory_name}-{horizon}-step-prediction.gif',writer=animation.FFMpegWriter(fps=30))
+        plt.close('all')
 
     def simulate_mogp(self, window_size, predictor, p0=None, show=False, save=None, kernel_name=''):
         if self.__trajectory is None:
@@ -979,6 +1203,10 @@ class WindField:
                             dummy.p[1]
                         ]])
                         predicted_wind_force = predictor(dummy_pos)
+                        # lower, upper = predicted_wind_force.confidence_region()
+                        # mean = predicted_wind_force.mean
+                        # print(lower+mean, upper-mean)
+                        # exit()
                         # Collect Data For Plot
                         covs.append(predicted_wind_force.covariance_matrix)
                         dummy_control_force = dummy_control_force.clip(self.__lower_control_lim,self.__upper_control_lim)

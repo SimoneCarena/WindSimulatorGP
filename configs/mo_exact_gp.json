@@ -2,7 +2,7 @@
     "GaussianMixture": false,
     "Matern_32": false,
     "Matern_52": false,
-    "RBF": true,
+    "RBF": false,
     "RBFPeriodic": false,
     "RBFProduct": false,
     "SpectralMixture_10": false,
