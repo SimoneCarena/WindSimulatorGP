@@ -1,5 +1,7 @@
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 import json
 import torch
 
@@ -7,6 +9,8 @@ from matplotlib import animation
 from matplotlib.colors import LinearSegmentedColormap
 from pathlib import Path
 from matplotlib.patches import Ellipse
+from matplotlib.cm import ScalarMappable
+from matplotlib.colors import Normalize
 
 from modules.Fan import Fan
 from modules.System import System
@@ -327,16 +331,15 @@ class WindField:
         predictor_x = predictors[0]
         predictor_y = predictors[1]
         
-        x_pred = []
-        y_pred = []
-        x_lower = []
-        x_upper = []
-        y_lower = []
-        y_upper = []
         predicted_x_pos = []
         predicted_y_pos = []
-        idxs = []
         covs = []
+        x_wind_map = []
+        y_wind_map = []
+        x_uncertainty_map = []
+        y_uncertainty_map = []
+        real_wind_x_map = []
+        real_wind_y_map= []
 
         # Set the mass initial conditions
         p,_ = self.__trajectory.trajectory()
@@ -357,7 +360,8 @@ class WindField:
         t = 0
         k = 0
         control_force = np.zeros((2,1))
-        for target_p, target_v in self.__trajectory:
+        target_p, target_v = self.__trajectory.trajectory()
+        for t in range(len(self.__trajectory)):
             total_speed = np.array([0,0],dtype=float)
             for fan in self.fans:
                 speed = fan.generate_wind(self.__system.p[0],self.__system.p[1],t*self.__dt)
@@ -365,8 +369,8 @@ class WindField:
 
             # Generate wind force
             wind_force = (0.5*self.__air_density*self.__system.surf)*total_speed**2*np.sign(total_speed)
-            ep = target_p - self.__system.p
-            ev = target_v - self.__system.v
+            ep = target_p[:,t] - self.__system.p
+            ev = target_v[:,t] - self.__system.v
             self.__xs.append(self.__system.p[0])
             self.__ys.append(self.__system.p[1])
             self.__vxs.append(self.__system.v[0])
@@ -387,22 +391,13 @@ class WindField:
                 control_force = self.__pd.step(ep,ev)
                 # Include force in the computation
                 p = torch.FloatTensor([[self.__system.p[0],self.__system.p[1]]])
-                if k >= window_size:
-                    idxs.append(t)
+                if k > 0:
                     predicted_wind_force_x = predictor_x(p)
                     predicted_wind_force_y = predictor_y(p)
                     # Collect Data For Plot
                     cov_x = predicted_wind_force_x.covariance_matrix.item()
                     cov_y = predicted_wind_force_y.covariance_matrix.item()
                     covs.append(np.diag([cov_x,cov_y]))
-                    x_pred.append(predicted_wind_force_x.mean.item())
-                    y_pred.append(predicted_wind_force_y.mean.item())
-                    lower, upper = predicted_wind_force_x.confidence_region()
-                    x_lower.append(lower.item())
-                    x_upper.append(upper.item())
-                    lower, upper = predicted_wind_force_y.confidence_region()
-                    y_lower.append(lower.item())
-                    y_upper.append(upper.item())
                     dummy.discrete_dynamics(
                         np.clip(
                             control_force,
@@ -420,6 +415,41 @@ class WindField:
                     # Collect labels for GP
                     self.__gp_label_x.append(wind_force[0])
                     self.__gp_label_y.append(wind_force[1])
+
+                    # Generate Heatmap
+                    current_x_wind_map = []
+                    current_y_wind_map = []
+                    current_x_unc_map = []
+                    current_y_unc_map = []
+                    for i in np.linspace(0,self.__width,self.__grid_resolution):
+                        x_wind_pred = []
+                        y_wind_pred = []
+                        x_std_pred = []
+                        y_std_pred = []
+                        for j in np.linspace(0,self.__width,self.__grid_resolution):
+                            heatmap_pred_x = predictor_x(torch.FloatTensor([[i,j]]))
+                            heatmap_pred_y = predictor_y(torch.FloatTensor([[i,j]]))
+                            x_wind_pred.append(heatmap_pred_x.mean.item())
+                            y_wind_pred.append(heatmap_pred_y.mean.item())
+                            x_std_pred.append(np.sqrt(
+                                heatmap_pred_x.covariance_matrix.item()
+                            ))
+                            y_std_pred.append(np.sqrt(
+                                heatmap_pred_y.covariance_matrix.item()
+                            ))
+                        current_x_wind_map.append(x_wind_pred)
+                        current_y_wind_map.append(y_wind_pred)
+                        current_x_unc_map.append(x_std_pred)
+                        current_y_unc_map.append(y_std_pred)
+                    x_wind_map.append(current_x_wind_map)
+                    y_wind_map.append(current_y_wind_map)
+                    x_uncertainty_map.append(current_x_unc_map)
+                    y_uncertainty_map.append(current_y_unc_map)
+                    _, _, real_vx, real_vy, _ = self.__draw_wind_field_grid(t*self.__dt)
+                    real_fx = (0.5*self.__air_density*self.__system.surf)*real_vx**2*np.sign(real_vx)
+                    real_fy = (0.5*self.__air_density*self.__system.surf)*real_vy**2*np.sign(real_vy)
+                    real_wind_x_map.append(real_fx.copy())
+                    real_wind_y_map.append(real_fy.copy())
 
                 # Update GP Model
                 if k==0:
@@ -458,172 +488,89 @@ class WindField:
         self.__xs = np.array(self.__xs)
         self.__ys = np.array(self.__ys)
 
-        pos_var = np.array(covs)*(self.__dt*self.__control_frequency)**2
-        eigs = []
-        eigenvectors = []
-        for m in pos_var:
-            eigs.append(np.linalg.eigvals(m))
-            eigenvectors.append(np.linalg.eig(m)[1])
-        angles = []
-        for e in eigenvectors:
-            angles.append(np.arctan2(e[1, 0], e[0, 0]))
-        confidence_intervals = [
-            [np.sqrt(5.991*eigs[i][0]),np.sqrt(5.991*eigs[i][1])] for i in range(len(eigs))
-        ]
-        pos_lower = np.array([[
-            predicted_x_pos[i]-confidence_intervals[i][0],
-            predicted_y_pos[i]-confidence_intervals[i][1],
-        ] for i in range(len(confidence_intervals))])
-        pos_upper = np.array([[
-            predicted_x_pos[i]+confidence_intervals[i][0],
-            predicted_y_pos[i]+confidence_intervals[i][1],
-        ] for i in range(len(confidence_intervals))])
-        ellipses = []
-        for i in range(len(predicted_x_pos)):
-            ellipses.append(
-                Ellipse((predicted_x_pos[i],predicted_y_pos[i]),
-                        confidence_intervals[i][0],
-                        confidence_intervals[i][1],
-                        angle=angles[i],
-                        facecolor='cyan',
-                        alpha=0.5)
-            )
 
-        # # Plot x prediction
-        fig, ax = plt.subplots(2,1)
-        fig.set_size_inches(16,9)
-        fig.suptitle(f'One Step-Ahead Prediction (x-axis) {self.__trajectory_name} Trajectory with {kernel_name} Kernel')
-        fig.tight_layout(pad=3.0)
-        ax[0].set_xlim([0,T[-1]])
-        ax[0].plot(T,self.__wind_force_x,'--',color='orange',label='Real Wind Force')
-        ax[0].plot(T[idxs],x_pred,'b-',label="estimated Wind Force")
-        ax[0].fill_between(T[idxs], x_lower, x_upper, alpha=0.5, color='cyan',label='Confidence')
-        # ax[0].plot(T[idxs],self.__wind_force_x[idxs],'g*',label="Sampled Data")
-        ax[0].legend()
-        ax[0].set_xlabel(r'$t$ $[s]$')
-        ax[0].set_ylabel(r'$F_{wx}$ $[N]$')
-        ax[0].title.set_text('GP Wind Prediction')
-        ## Plot Estimation Error
-        ax[1].set_xlim([0,T[-1]])
-        ax[1].plot(T[idxs],self.__wind_force_x[idxs]-np.array(x_pred),label='Prediction Error')
-        ax[1].legend()
-        ax[1].set_xlabel(r'$t$ $[s]$')
-        ax[1].set_ylabel(r'$e_{F_{wx}}$ $[N]$')
-        ax[1].title.set_text('GP Prediction Error')
+        # Setup Plots
+        x_wind_map = np.array(x_wind_map)
+        y_wind_map = np.array(y_wind_map)
+        x_uncertainty_map = np.array(x_uncertainty_map)
+        y_uncertainty_map = np.array(y_uncertainty_map)
+        real_wind_x_map = np.array(real_wind_x_map)
+        real_wind_y_map = np.array(real_wind_y_map)
+        max_std_x = np.max(x_uncertainty_map)
+        max_std_y = np.max(y_uncertainty_map)
+        max_std = np.max(np.array([max_std_x,max_std_y]))
+        min_std_x = np.min(x_uncertainty_map)
+        min_std_y = np.min(y_uncertainty_map)
+        min_std = np.min(np.array([min_std_x,min_std_y]))
 
-        if save is not None:
-            fig.savefig(save+f'wind-x-{self.__trajectory_name}-{kernel_name}.png')
-            fig.savefig(save+f'wind-x-{self.__trajectory_name}-{kernel_name}.svg')
-
-        # Plot y prediction
-        fig, ax = plt.subplots(2,1)
-        fig.set_size_inches(16,9)
-        fig.suptitle(f'One Step-Ahead Prediction (y-axis) {self.__trajectory_name} Trajectory with {kernel_name} Kernel')
-        fig.tight_layout(pad=3.0)
-        ax[0].set_xlim([0,T[-1]])
-        ax[0].plot(T,self.__wind_force_y,'--',color='orange',label='Real Wind Force')
-        ax[0].plot(T[idxs],y_pred,'b-',label="estimated Wind Force")
-        ax[0].fill_between(T[idxs], y_lower, y_upper, alpha=0.5, color='cyan',label='Confidence')
-        # ax[0].plot(T[idxs],self.__wind_force_y[idxs],'g*',label="Sampled Data")
-        ax[0].legend()
-        ax[0].set_xlabel(r'$t$ $[s]$')
-        ax[0].set_ylabel(r'$F_{wy}$ $[N]$')
-        ax[0].title.set_text('GP Wind Prediction')
-        ## Plot Estimation Error
-        ax[1].set_xlim([0,T[-1]])
-        ax[1].plot(T[idxs],self.__wind_force_y[idxs]-np.array(y_pred),label='Prediction Error')
-        ax[1].legend()
-        ax[1].set_xlabel(r'$t$ $[s]$')
-        ax[1].set_ylabel(r'$e_{F_{wy}}$ $[N]$')
-        ax[1].title.set_text('GP Prediction Error')
-
-        if save is not None:
-            fig.savefig(save+f'wind-y-{self.__trajectory_name}-{kernel_name}.png')
-            fig.savefig(save+f'wind-y-{self.__trajectory_name}-{kernel_name}.svg')
-
-        fig, ax = plt.subplots(2,1)
-        fig.set_size_inches(16,9)
-        fig.suptitle(r'$x$-Position Prediction')
-        ax[0].set_xlim([0,T[-1]])
-        ax[0].plot(T,self.__xs,'--',color='orange',label=r'Real $x$ Position')
-        ax[0].plot(T[idxs],predicted_x_pos,'b',label=r'Prediction $x$',alpha=0.5)
-        ax[0].fill_between(T[idxs], pos_lower[:,0], pos_upper[:,0], alpha=0.5, color='cyan',label='Confidence')
-        ax[0].legend()
-        ax[1].set_xlim([0,T[-1]])
-        ax[1].plot(np.array(self.__xs[idxs])-np.array(predicted_x_pos),label="Prediction Error")
-        ax[1].legend()
-
-        if save is not None:
-            fig.savefig(save+f'position-x-{self.__trajectory_name}-{kernel_name}.png')
-            fig.savefig(save+f'position-x-{self.__trajectory_name}-{kernel_name}.svg')
-
-        fig, ax = plt.subplots(2,1)
-        fig.set_size_inches(16,9)
-        fig.suptitle(r'$y$-Position Prediction')
-        ax[0].set_xlim([0,T[-1]])
-        ax[0].plot(T,self.__ys,'--',color='orange',label=r'Real $y$ Position')
-        ax[0].plot(T[idxs],predicted_y_pos,'b',label=r'Prediction $y$',alpha=0.5)
-        ax[0].fill_between(T[idxs], pos_lower[:,1], pos_upper[:,1], alpha=0.5, color='cyan',label='Confidence')
-        ax[0].legend()
-        ax[1].set_xlim([0,T[-1]])
-        ax[1].plot(np.array(self.__ys[idxs])-np.array(predicted_y_pos),label="Prediction Error")
-        ax[1].legend()
-
-        if save is not None:
-            fig.savefig(save+f'position-y-{self.__trajectory_name}-{kernel_name}.png')
-            fig.savefig(save+f'position-y-{self.__trajectory_name}-{kernel_name}.svg')
-
-        tr, _ = self.__trajectory.trajectory()
-        fig, ax = plt.subplots()
-        fig.set_size_inches(16,9)
-        fig.suptitle('Real vs Reference Trajectory')
-        fig.tight_layout()
-        xs, ys, vx, vy, v = self.__draw_wind_field_grid()
-        v_max = np.max(v)
-        ax.set_xlim([0.0,self.__width])
-        ax.set_ylim([0.0,self.__height])
-        for i in range(len(xs)):
-            for j in range(len(ys)):
-                ax.arrow(xs[i],ys[j],vx[i,j]/100,vy[i,j]/100,length_includes_head=False,head_width=0.015,head_length=0.015,width=0.005,color='orange',alpha=v[i,j]/v_max)
-        # Create custom colormap
-        colors = [(1, 0.5, 0, alpha) for alpha in np.linspace(0, 1, 256)]
-        orange_transparency_cmap = LinearSegmentedColormap.from_list('orange_transparency', colors, N=256)
-        bar = ax.imshow(np.array([[0,v_max]]), cmap=orange_transparency_cmap)
-        bar.set_visible(False)
-        cb = fig.colorbar(bar,orientation="vertical")
-        cb.set_label(label=r'Wind Speed $[m/s]$',labelpad=10)
-        ax.plot(self.__xs,self.__ys,'b',label='System Trajectory')
-        ax.plot(tr[0,:],tr[1,:],'--',color='chartreuse',label='Reference Trajectory')
-        ax.plot(self.__xs[0],self.__ys[0],'bo',markersize=5,label='Starting Position')
-        ax.legend()
-
-        if save is not None:
-            fig.savefig(save+f'system-trajectory-{self.__trajectory_name}-{kernel_name}.png')
-            fig.savefig(save+f'system-trajectory-{self.__trajectory_name}-{kernel_name}.svg')
-
-        fig, ax = plt.subplots()
-        fig.set_size_inches(16,9)
+        # Plots
+        fig = plt.figure(figsize=(16, 9))
+        outer = gridspec.GridSpec(1, 3, width_ratios = [0.48, 0.48, 0.04])
+        ax1 = plt.Subplot(fig, outer[0])
+        fig.add_subplot(ax1)
+        inner = gridspec.GridSpecFromSubplotSpec(2, 1,subplot_spec=outer[1], wspace=0.1, hspace=0.4)
+        ax21 = plt.Subplot(fig, inner[0])
+        ax22 = plt.Subplot(fig, inner[1])
+        fig.add_subplot(ax21)
+        fig.add_subplot(ax22)
+        norm = Normalize(vmin=min_std, vmax=max_std)
+        sm = ScalarMappable(cmap='RdBu_r', norm=norm)
+        sm.set_array([])
+        cbar_ax = plt.subplot(outer[2])
+        cbar = fig.colorbar(sm, cax=cbar_ax,ticks=np.linspace(min_std, max_std, 5),format='%.2f')
+        cbar.set_label(r'Uncertainty $\sqrt{\sigma^2}$ $[N]$')
         fig.tight_layout(pad=5)
-        fig.suptitle('Predicted vs System Trajectory')
-        ax.set_xlim([0.0,self.__width])
-        ax.set_ylim([0.0,self.__height])
-        ax.plot(predicted_x_pos,predicted_y_pos,'b-',label='Predicted Trajectory')
-        ax.plot(self.__xs,self.__ys,'--',color='orange',label='System Trajectory')
-        for ellipse in ellipses:
-            ax.add_patch(ellipse)
-        ax.plot(np.nan,'s',color='cyan',alpha=0.5,label='Confidence')
-        ax.legend()
-        if save is not None:
-            fig.savefig(save+f'estimated-trajectory-{self.__trajectory_name}-{kernel_name}.png')
-            fig.savefig(save+f'estimated-trajectory-{self.__trajectory_name}-{kernel_name}.svg')
+
+        # Create Grid
+        x_grid, y_grid = np.meshgrid(np.linspace(0.0,self.__width,self.__grid_resolution),np.linspace(0.0,self.__height,self.__grid_resolution),indexing='ij')
+
+        scale = self.__control_frequency
+        def animation_function(t):
+            # Clear figures and setup plots
+            ax1.clear()
+            ax21.clear()
+            ax22.clear()
+            ax1.set_xlabel(r'$x$ $[m]$')
+            ax1.set_ylabel(r'$y$ $[m]$')
+            ax21.set_xlabel(r'$x$ $[m]$')
+            ax21.set_ylabel(r'$y$ $[m]$')
+            ax22.set_xlabel(r'$x$ $[m]$')
+            ax22.set_ylabel(r'$y$ $[m]$')
+
+            t = int(t*scale)
+            k = t//scale - 1
+            start = max(0,k-window_size)*scale
+            ax1.set_xlim([0.0,self.__width])
+            ax1.set_ylim([0.0,self.__height])
+            ax21.title.set_text('Uncertainty Heatmap x Prediction')
+            ax22.title.set_text('Uncertainty Heatmap y Prediction')
+
+            # Plot System Evolution
+            ax1.plot(np.NaN, np.NaN, '-', color='none', label='t={0:.2f} s'.format(t*self.__dt))
+            ax1.plot(self.__xs[t],self.__ys[t],'bo',label='System\'s Position')
+            ax1.plot(self.__xs[start:t:scale],self.__ys[start:t:scale],'o-',color=(0.878, 0.867, 0.137,0.5),markerfacecolor=(0.878, 0.867, 0.137,1.0),markeredgecolor=(0.878, 0.867, 0.137,1.0),linewidth=8,markersize=2,label='Active Window')
+            
+            # Plot Heatmaps
+            if k>0:
+                ax21.imshow(x_uncertainty_map[k],cmap='RdBu_r',vmin=min_std,vmax=max_std,extent=(0.0,4.0,0.0,4.0))
+                ax22.imshow(y_uncertainty_map[k],cmap='RdBu_r',vmin=min_std,vmax=max_std,extent=(0.0,4.0,0.0,4.0))
+                for i in range(self.__grid_resolution):
+                    for j in range(self.__grid_resolution):
+                        ax1.arrow(x_grid[i,j],y_grid[i,j],real_wind_x_map[k,i,j]/25,real_wind_y_map[k,i,j]/25,color='r',alpha=0.5,head_width=0.015,head_length=0.015,width=0.008)
+                        ax1.arrow(x_grid[i,j],y_grid[i,j],x_wind_map[k,i,j]/25,y_wind_map[k,i,j]/25,color='c',alpha=0.5,head_width=0.015,head_length=0.015,width=0.008)
+                ax1.plot(np.nan,np.nan,'>',color='r',alpha=0.5,label='Real Wind Force')
+                ax1.plot(np.nan,np.nan,'>',color='c',alpha=0.5,label='Estimated Wind Force')
+
+            ax1.legend()
+            
+        anim = animation.FuncAnimation(fig,animation_function,frames=int(self.__duration/scale),interval=100,repeat=True)
 
         if show:
             plt.show()
+        if save:
+            print('Rendering...')
+            anim.save(f'imgs/animations/heatmap-{kernel_name}-{self.__trajectory_name}.gif',writer=animation.FFMpegWriter(fps=30))
         plt.close('all')
-
-        self.animate(
-            # f'imgs/animations/{kernel_name}-{self.__trajectory_name}-trajectory.gif'
-        )
 
     def simulate_gp_horizon(self, window_size, predictors, horizon=1, p0=None, show=False, save=False, kernel_name=''):
         if self.__trajectory is None:

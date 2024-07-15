@@ -45,7 +45,7 @@ def __test_exact_gp(wind_field, trajectories_folder, model_x, model_y, name, win
         file_name = Path(file).stem
         wind_field.set_trajectory(trajectories_folder+'/'+file,file_name,laps)
         if horizon == 1:
-            wind_field.simulate_gp(window_size,[model_x,model_y],p0,show=show,save=save,kernel_name=name) 
+            wind_field.simulate_gp(window_size,[model_x,model_y],p0,show=show,save=True,kernel_name=name) 
         else:
             wind_field.simulate_gp_horizon(window_size,[model_x,model_y],horizon,p0,show=show,save=True,kernel_name=name) 
         wind_field.reset()
