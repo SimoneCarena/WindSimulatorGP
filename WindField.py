@@ -793,7 +793,7 @@ class WindField:
         if show:
             plt.show()
         if save:
-            anim.save(f'imgs/animations/square-uncertainty-{kernel_name}-{self.__trajectory_name}-{horizon}-step-prediction.gif',writer=animation.FFMpegWriter(fps=30))
+            anim.save(f'imgs/animations/sin-wind-{kernel_name}-{self.__trajectory_name}-{horizon}-step-prediction.gif',writer=animation.FFMpegWriter(fps=30))
         plt.close('all')
 
     def simulate_mogp(self, window_size, predictor, p0=None, show=False, save=None, kernel_name=''):
@@ -1204,6 +1204,8 @@ class WindField:
             eigenvectors = []
             for m in pos_var:
                 eigs.append(np.linalg.eigvals(m))
+                # print(eigs)
+                # exit()
                 eigenvectors.append(np.linalg.eig(m)[1])
             angles = []
             for e in eigenvectors:

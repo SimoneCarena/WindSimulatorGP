@@ -145,7 +145,12 @@ def train_MultiOutputExactGP(gp_data, x_labels, y_labels, options, device, train
             train_y_labels = torch.FloatTensor(y_labels).index_select(0,idxs).clone().to(device)
             ## Stack labels to get single 2-dimensional label
             train_labels = torch.stack([train_x_labels,train_y_labels],dim=1).to(device)
-            likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=2).to(device)
+            likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(
+                num_tasks=2,
+                rank=0,
+                has_global_noise = True,
+                has_task_noise = False
+            ).to(device)
             model = mo_exact_gp_dict[name](train_data, train_labels, likelihood).to(device)
             __train_ExactMultiOutputExactGP(train_data,train_labels,model,likelihood,name,training_iter)
 

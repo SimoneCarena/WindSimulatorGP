@@ -1,4 +1,5 @@
 import gpytorch
+import torch
 
 class MultiOutputExactGPModelRBF(gpytorch.models.ExactGP):
     def __init__(self, gp_data, labels, likelihood):
@@ -7,8 +8,10 @@ class MultiOutputExactGPModelRBF(gpytorch.models.ExactGP):
             gpytorch.means.ConstantMean(), num_tasks=2
         )
         self.covar_module = gpytorch.kernels.MultitaskKernel(
-            gpytorch.kernels.RBFKernel(), num_tasks=2, rank=1
+            gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel()), num_tasks=2, rank=0
         )
+
+        self.covar_module.task_covar_module._parameters['raw_var'] = torch.zeros_like(self.covar_module.task_covar_module._parameters['raw_var'])
 
     def forward(self, x):
         mean_x = self.mean_module(x)
@@ -28,8 +31,10 @@ class MultiOutputExactGPModelRBFPeriodic(gpytorch.models.ExactGP):
                 gpytorch.kernels.PeriodicKernel()
             ), 
             num_tasks=2, 
-            rank=1
+            rank=0
         )
+
+        self.covar_module.task_covar_module._parameters['raw_var'] = torch.zeros_like(self.covar_module.task_covar_module._parameters['raw_var'])
 
     def forward(self, x):
         mean_x = self.mean_module(x)
@@ -45,8 +50,10 @@ class MultiOutputExactGPModelRBFProduct(gpytorch.models.ExactGP):
         self.covar_module = gpytorch.kernels.MultitaskKernel(
             gpytorch.kernels.RBFKernel()*gpytorch.kernels.LinearKernel(),
             num_tasks=2, 
-            rank=1
+            rank=0
         )
+
+        self.covar_module.task_covar_module._parameters['raw_var'] = torch.zeros_like(self.covar_module.task_covar_module._parameters['raw_var'])
 
     def forward(self, x):
         mean_x = self.mean_module(x)
@@ -60,8 +67,10 @@ class MultiOutputExactGPModelMatern_32(gpytorch.models.ExactGP):
             gpytorch.means.ConstantMean(), num_tasks=2
         )
         self.covar_module = gpytorch.kernels.MultitaskKernel(
-            gpytorch.kernels.MaternKernel(1.5), num_tasks=2, rank=1
+            gpytorch.kernels.MaternKernel(1.5), num_tasks=2, rank=0
         )
+
+        self.covar_module.task_covar_module._parameters['raw_var'] = torch.zeros_like(self.covar_module.task_covar_module._parameters['raw_var'])
 
     def forward(self, x):
         mean_x = self.mean_module(x)
@@ -75,8 +84,10 @@ class MultiOutputExactGPModelMatern_52(gpytorch.models.ExactGP):
             gpytorch.means.ConstantMean(), num_tasks=2
         )
         self.covar_module = gpytorch.kernels.MultitaskKernel(
-            gpytorch.kernels.MaternKernel(2.5), num_tasks=2, rank=1
+            gpytorch.kernels.MaternKernel(2.5), num_tasks=2, rank=0
         )
+
+        self.covar_module.task_covar_module._parameters['raw_var'] = torch.zeros_like(self.covar_module.task_covar_module._parameters['raw_var'])
 
     def forward(self, x):
         mean_x = self.mean_module(x)
@@ -98,8 +109,10 @@ class MultiOutputExactGPModelGaussianMixture(gpytorch.models.ExactGP):
                 gpytorch.kernels.RBFKernel()
             ), 
             num_tasks=2, 
-            rank=1
+            rank=0
         )
+
+        self.covar_module.task_covar_module._parameters['raw_var'] = torch.zeros_like(self.covar_module.task_covar_module._parameters['raw_var'])
 
     def forward(self, x):
         mean_x = self.mean_module(x)
@@ -113,7 +126,7 @@ class MultiOutputExactGPModelSpectralMixture_3(gpytorch.models.ExactGP):
             gpytorch.means.ConstantMean(), num_tasks=2
         )
         self.covar_module = gpytorch.kernels.MultitaskKernel(
-            gpytorch.kernels.SpectralMixtureKernel(num_mixtures=3,ard_num_dims=2), num_tasks=2, rank=1
+            gpytorch.kernels.SpectralMixtureKernel(num_mixtures=3,ard_num_dims=1), num_tasks=2, rank=0
         )
 
     def forward(self, x):

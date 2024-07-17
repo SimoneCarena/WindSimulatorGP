@@ -61,11 +61,10 @@ def __test_exact_mogp(wind_field, trajectories_folder, model, name, window_size,
     wind_field.reset()
     wind_field.reset_gp()
 
-    # print(f"{model.covar_module.data_covar_module.lengthscale = }")
-    # print(f"{model.likelihood.task_noises = }")
+    # model.covar_module.data_covar_module.base_kernel.lengthscale = 0.7537
+    # model.likelihood.noise = 0.1158
     # for name, param in model.named_parameters():
     #     print(name,param)
-    # print(model.covar_module.task_noises)
     # exit()
 
     for file in os.listdir(trajectories_folder):
@@ -78,7 +77,6 @@ def __test_exact_mogp(wind_field, trajectories_folder, model, name, window_size,
         wind_field.reset()
         wind_field.reset_gp()
         print('Done')
-        # exit()
 
 def test_svgp(wind_field, trajecotries_folder, options, window_size=100, p0=None, laps=1, show=False, save=None):
     file = open(".metadata/svgp_dict","rb")
@@ -139,11 +137,16 @@ def test_exact_gp(wind_field, trajecotries_folder, options, window_size=100, p0=
 
 def test_exact_mogp(wind_field, trajecotries_folder, options, window_size=100, p0=None, laps=1, horizon = 1, show=False, save=None):
     file = open(".metadata/mo_exact_gp_dict","rb")
-    mo_exact_gp_dict = pickle.load(file) 
+    mo_exact_gp_dict = pickle.load(file)
 
     for name in mo_exact_gp_dict:
         if options[name]:
-            likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=2)
+            likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(
+                num_tasks=2,
+                rank=0,
+                has_global_noise = True,
+                has_task_noise = False
+            )
             likelihood_dict = torch.load(f'models/MultiOutputExactGP/likelihood-{name}.pth')
             likelihood.load_state_dict(likelihood_dict)
             model = mo_exact_gp_dict[name](torch.empty((0,2)),torch.empty((0,2)),likelihood)
