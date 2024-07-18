@@ -77,7 +77,7 @@ class Quadrotor:
         state_dot = ca.vertcat(p_dot, v_dot, att_dot)
 
         # Define CasADi function
-        self.ideal_dynamics = ca.Function('ideal_dynamics', [state, u], [state_dot])
+        self.ideal_dynamics = ca.Function('dynamics', [state, u], [state_dot])
 
     def step(self, u, wind):
         """
@@ -96,7 +96,7 @@ class Quadrotor:
         k4 = self.dynamics(x + self.dt * k3, u, wind)
         x_next = x + self.dt/6 * (k1 + 2*k2 + 2*k3 + k4)
 
-        self.state = x_next.full().flatten()
+        self.state = x_next
 
     def set_state(self, new_state):
         self.state = new_state

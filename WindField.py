@@ -155,7 +155,7 @@ class WindField:
         p,v = self.__trajectory.trajectory()
         file_name = Path(self.__trajectory_name).stem
         sys_tr = np.stack([self.__xs,self.__ys])
-        rmse = np.sqrt(1/len(p)*np.linalg.norm(sys_tr-p)**2)
+        rmse = np.sqrt(1/len(self.__xs)*np.linalg.norm(sys_tr-p)**2)
 
         fig, ax = plt.subplots(1,2)
         ax[0].plot(T,self.__xs,label='Object Position')
@@ -192,7 +192,7 @@ class WindField:
             plt.savefig(save+f'/{file_name}-trajectory-y-position.svg')
 
         fig, ax = plt.subplots()
-        ax.plot(np.NaN, np.NaN, '-', color='none', label='RMSE={:.2f} m'.format(rmse))
+        # ax.plot(np.NaN, np.NaN, '-', color='none', label='RMSE={:.2f} m'.format(rmse))
         ax.plot(self.__xs,self.__ys,label='System Trajectory')
         ax.plot(p[0,:],p[1,:],'--',label='Trajectory to Track')
         ax.title.set_text(r'Trajectory')
@@ -201,6 +201,7 @@ class WindField:
         ax.set_ylabel(r'$y$ $[m]$')
         ax.set_xlim([0.0,self.__width])
         ax.set_ylim([0.0,self.__height])
+        ax.set_aspect('equal', 'box')
         fig.suptitle(f'{file_name} Trajectory')
         fig.set_size_inches(16,9)
         if save is not None:
@@ -275,8 +276,8 @@ class WindField:
 
         # Set the mass initial conditions
         p,v = self.__trajectory.trajectory()
-        x0 = p[0,0]
-        y0 = p[1,0]
+        x0 = 4.0
+        y0 = 2.0
         self.__system.p[0] = x0
         self.__system.p[1] = y0
         self.__idx_control = []
@@ -1088,6 +1089,7 @@ class WindField:
         if self.__trajectory is None:
             raise MissingTrajectoryException()
         
+        
         predicted_X_pos = []
         predicted_Y_pos = []
         idxs = []
@@ -1191,6 +1193,23 @@ class WindField:
 
             t+=1
 
+        # target_p, target_v = self.__trajectory.trajectory()
+        # fig, ax = plt.subplots()
+        # fig.set_size_inches(16,9)
+        # fig.suptitle(f'GP Tracking')
+        # ax.plot(self.__xs,self.__ys,'b',label='System Trajectory')
+        # ax.plot(target_p[0,:],target_p[1,:],'--',color='orange',label='Reference Trajectory')
+        # ax.set_xlim([0,4])
+        # ax.set_ylim([0,4])
+        # ax.set_aspect('equal', 'box')
+        # ax.set_xlabel(r'$x$ $[m]$')
+        # ax.set_ylabel(r'$y$ $[m]$')
+        # ax.legend()
+        # fig.savefig(f'imgs/gp_updates/gp-trajectory-{self.__trajectory_name}-trajectory.png')
+        # plt.show()
+        # plt.close('all')
+        # return
+
         # Derive Uncertainties
         Pos_upper = []
         Pos_lower = []
@@ -1292,7 +1311,7 @@ class WindField:
         if show:
             plt.show()
         if save:
-            anim.save(f'imgs/animations/{kernel_name}-{self.__trajectory_name}-{horizon}-step-prediction.gif',writer=animation.FFMpegWriter(fps=30))
+            anim.save(f'imgs/animations/sin-wind-{kernel_name}-{self.__trajectory_name}-{horizon}-step-prediction.gif',writer=animation.FFMpegWriter(fps=30))
         plt.close('all')
 
     def reset(self, wind_field_conf_file=None, mass_conf_file=None, gp_predictor_x=None, gp_predictor_y=None):

@@ -12,11 +12,13 @@
             "y0": 2,
             "alpha": 0,
             "noise_var": 0.1,
-            "length": 2,
+            "length": 4,
             "generator": {
-                "function": "constant",
+                "function": "sin",
                 "parameters": {
-                    "v0": 12
+                    "v0": 12,
+                    "frequency": 0.2,
+                    "phase": 0
                 }
             }
         }
