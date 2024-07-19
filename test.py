@@ -5,14 +5,14 @@ from modules.Quadrotor import Quadrotor
 from modules.MPC import MPC
 from modules.Trajectory import Trajectory
 
-trajectory = Trajectory('trajectories/lemniscate.mat',1,[2,0])
+trajectory = Trajectory('trajectories/lemniscate2.mat',1,[2,0])
 target_p, target_v = trajectory.trajectory()
 
-# Instantiate the Quadrotor and MPCController
+# Instantiate the Quadrotor and MPC
 dt = 0.001
-control_frequency = 100
+control_frequency = 150
 x0 = np.array([
-    target_p[0,0], target_p[1,0], target_p[2,0],
+    target_p[0,0], target_p[1,0], 0,
     target_v[0,0], target_v[1,0], target_v[2,0],
     0,0,0,0
 ])
@@ -22,8 +22,8 @@ mpc = MPC(
     quadrotor.get_ideal_dynamics(),
     control_horizon=control_horizon, 
     dt=dt*control_frequency, 
-    Q=3000*np.eye(6), 
-    R=0.0001*np.eye(4)
+    Q=100*np.eye(6), 
+    R=0.1*np.eye(4)
 )
 
 states = []
@@ -71,7 +71,7 @@ for t in range(len(target_p[0,:])):
     u_psi.append(u[2])
     u_a.append(u[3])
     # Compute System's Dynamics
-    quadrotor.step(u, np.zeros(3)) 
+    quadrotor.step(u, np.array([0,0,0])) 
     T.append(t*dt)
 
 print('')

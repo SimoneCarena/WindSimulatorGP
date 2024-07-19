@@ -35,7 +35,7 @@ class Trajectory:
         x = opti.variable(self.nx, self.N + 1) # State Variable
         x0 = opti.parameter(self.nx ) # Initial State
         ref = opti.parameter(3, self.N)
-        t = opti.variable() # Total Timw
+        t = opti.variable() # Total Time
 
         self.u = u
         self.x = x
