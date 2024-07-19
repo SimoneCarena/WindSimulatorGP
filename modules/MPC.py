@@ -8,7 +8,7 @@ class MPC:
         self.dt = dt
 
         self.nx = 10 # State Dimension
-        self.ny = 4 # Tracking Dimension
+        self.ny = 6 # Tracking Dimension
         self.nu = 4 # Control Dimension
 
         # Define the cost function to focus on the first 5 state elements
@@ -31,7 +31,7 @@ class MPC:
 
         for k in range(self.N):
             # Compute Cost
-            self.J += (self.x[6:,k]-self.ref[:,k]).T@self.Q@(self.x[6:,k]-self.ref[:,k])
+            self.J += (self.x[:self.ny,k]-self.ref[:,k]).T@self.Q@(self.x[:self.ny,k]-self.ref[:,k])
             # Compute Dynamics
             x_next = self.__step(self.x[:,k],self.u[:,k],self.dt) 
             # Add Dynamics Constraint   

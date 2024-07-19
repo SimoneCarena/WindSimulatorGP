@@ -14,7 +14,7 @@ class Trajectory:
         if extend is not None:
             pz = extend[0]
             p = np.concatenate([p,pz*np.ones((1,data.shape[1]))])
-            vz = extend[0]
+            vz = extend[1]
             v = np.concatenate([v,vz*np.ones((1,data.shape[1]))])
         self.p = p
         self.v = v
