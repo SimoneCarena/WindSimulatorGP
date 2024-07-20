@@ -12,7 +12,20 @@
             "y0": 2,
             "alpha": 0,
             "noise_var": 0.1,
-            "length": 2,
+            "length": 4,
+            "generator": {
+                "function": "constant",
+                "parameters": {
+                    "v0": 12
+                }
+            }
+        },
+        {
+            "x0": 2,
+            "y0": 4,
+            "alpha": -90,
+            "noise_var": 0.1,
+            "length": 4,
             "generator": {
                 "function": "constant",
                 "parameters": {

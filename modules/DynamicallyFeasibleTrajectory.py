@@ -2,12 +2,12 @@ import numpy as np
 import casadi as ca
 
 class Trajectory:
-    def __init__(self, dynamics, dt, N, nx, nu):
+    def __init__(self, dynamics, dt, N):
         self.dynamics = dynamics
         self.dt = dt
         self.N = N
-        self.nx = nx
-        self.nu = nu
+        self.nx = 10
+        self.nu = 4
         self.__setup_solver()
 
     def __step(self, x, u, dt):

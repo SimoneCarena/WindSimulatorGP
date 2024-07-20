@@ -61,7 +61,7 @@ device = (
 
 # Train Models
 if not test:
-    wind_field = WindField('configs/wind_field.json','configs/system.json')
+    wind_field = WindField('configs/wind_field.json')
 
     # Run the simulation for the different trajectories
     for file in os.listdir('trajectories'):
@@ -86,7 +86,7 @@ if not test:
     train_SVGP(gp_data,x_labels,y_labels,svgp_options,device,2000)
 # Test Models
 else:
-    wind_field = WindField('configs/wind_field_test.json','configs/system.json')
+    wind_field = WindField('configs/wind_field_test.json')
     test_svgp(
         wind_field,
         'test_trajectories',

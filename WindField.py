@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import json
@@ -13,12 +12,12 @@ from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Normalize
 
 from modules.Fan import Fan
-from modules.System import System
+from modules.Quadrotor import Quadrotor
 from modules.Trajectory import Trajectory
-from modules.PD import PD
+from modules.MPC import MPC
 from utils.function_parser import parse_generator
 from utils.obstacle_parser import parse_obstacles
-from utils.exceptions import MissingTrajectoryException, NoModelException
+from utils.exceptions import MissingTrajectoryException
 
 class WindField:
     '''
@@ -26,9 +25,8 @@ class WindField:
     The Wind Field is constructed by passing it the wind field configuration file, and the 
     mass configuration file.
     '''
-    def __init__(self, wind_field_conf_file, mass_conf_file, gp_predictor_x=None, gp_predictor_y=None):
+    def __init__(self, wind_field_conf_file, gp_predictor_x=None, gp_predictor_y=None):
         self.__wind_field_conf_file = wind_field_conf_file
-        self.__mass_config_file = mass_conf_file
         self.__trajectory = None
         self.__gp_predictor_x = gp_predictor_x
         self.__gp_predictor_y = gp_predictor_y
@@ -37,7 +35,7 @@ class WindField:
             self.__gp_predictor_y.eval()
 
         self.__setup_wind_field(wind_field_conf_file)
-        self.__setup_system(mass_conf_file)
+        self.__setup_system()
         self.__setup_gp()
         self.__setup_plots()
 
@@ -80,24 +78,19 @@ class WindField:
             self.fans.append(f)
         file.close()
 
-    def __setup_system(self, mass_conf_file):
-        # Parse system data
-        file = open(mass_conf_file)
-        data = json.load(file)
-        m = data["m"]
-        r = data["r"]
-
-        # Actual system moving in the wind-field
-        self.__system = System(m,r,self.__dt)
-
-        # Controller Matrices
-        Kp = np.diag(data["Kp"])
-        Kd = np.diag(data["Kd"])
-        # The controller's parameter were retrieved using MATLAB
-        self.__pd = PD(Kp,Kd)
-        # Setup controller saturation
-        self.__lower_control_lim = data["u_min"]
-        self.__upper_control_lim = data["u_max"]
+    def __setup_system(self):
+        self.__quadrotor = Quadrotor(
+            self.__dt,
+            np.zeros(10)
+        )
+        self.__control_horizon = 10
+        self.__mpc = MPC(
+            self.__quadrotor.get_ideal_dynamics(),
+            self.__control_horizon,
+            self.__dt*self.__control_frequency,
+            Q=100*np.eye(6), 
+            R=0.1*np.eye(4)
+        )       
         
     def __setup_gp(self):
         # Create arrays to train the GP model
@@ -109,16 +102,22 @@ class WindField:
         # Create Plots arrays
         self.__xs = [] # List of x positions
         self.__ys = [] # List of y positions
+        self.__zs = [] # List of z positions
         self.__vxs = [] # List of x velocities
         self.__vys = [] # List of y velocities
-        self.__ctl_forces_x = [] # List of x control forces
-        self.__ctl_forces_y = [] # List of y control forces
+        self.__vzs = [] # List of z velocities
+        self.__ctl_phi = [] # List of phi control 
+        self.__ctl_theta = [] # List of theta control 
+        self.__ctl_psi = [] # List of psi control 
+        self.__ctl_a = [] # List of thrust control 
         self.__wind_force_x = [] # List of x wind forces
         self.__wind_force_y = [] # List of y wind forces
         self.__ex = [] # List of x position traking errors
         self.__ey = [] # List of y position traking errors
+        self.__ez = [] # List of y position traking errors
         self.__evx = [] # List of x velocity traking errors
         self.__evy = [] # List of y velocity traking errors
+        self.__evz = [] # List of z velocity traking errors
 
     def __draw_wind_field_grid(self,t=0.0):
         vxs = []
@@ -154,7 +153,7 @@ class WindField:
         T = [t*self.__dt for t in range(self.__duration)]
         p,v = self.__trajectory.trajectory()
         file_name = Path(self.__trajectory_name).stem
-        sys_tr = np.stack([self.__xs,self.__ys])
+        sys_tr = np.stack([self.__xs,self.__ys,self.__zs])
         rmse = np.sqrt(1/len(self.__xs)*np.linalg.norm(sys_tr-p)**2)
 
         fig, ax = plt.subplots(1,2)
@@ -191,52 +190,91 @@ class WindField:
             plt.savefig(save+f'/{file_name}-trajectory-y-position.png',dpi=300)
             plt.savefig(save+f'/{file_name}-trajectory-y-position.svg')
 
-        fig, ax = plt.subplots()
-        # ax.plot(np.NaN, np.NaN, '-', color='none', label='RMSE={:.2f} m'.format(rmse))
-        ax.plot(self.__xs,self.__ys,label='System Trajectory')
-        ax.plot(p[0,:],p[1,:],'--',label='Trajectory to Track')
-        ax.title.set_text(r'Trajectory')
-        ax.legend()
-        ax.set_xlabel(r'$x$ $[m]$')
-        ax.set_ylabel(r'$y$ $[m]$')
-        ax.set_xlim([0.0,self.__width])
-        ax.set_ylim([0.0,self.__height])
-        ax.set_aspect('equal', 'box')
+        fig, ax = plt.subplots(1,2)
+        ax[0].plot(T,self.__zs,label='Object Position')
+        ax[0].plot(T,p[2,:],'--',label='Reference Position')
+        ax[0].title.set_text(r'Position ($z$)')
+        ax[0].legend()
+        ax[0].set_xlabel(r'$t$ $[s]$')
+        ax[0].set_ylabel(r'$z$ $[m]$')
+        ax[1].plot(T,self.__ez)
+        ax[1].title.set_text(r'Traking error ($e_z$)')
+        ax[1].set_xlabel(r'$t$ $[s]$')
+        ax[1].set_ylabel(r'$e_y$ $[m]$')
         fig.suptitle(f'{file_name} Trajectory')
         fig.set_size_inches(16,9)
+        if save is not None:
+            plt.savefig(save+f'/{file_name}-trajectory-z-position.png',dpi=300)
+            plt.savefig(save+f'/{file_name}-trajectory-z-position.svg')
+
+        fig = plt.figure()
+        ax = plt.axes(projection='3d')
+        fig.set_size_inches(16,9)
+        fig.tight_layout(pad=5)
+        fig.suptitle('System Trajectory')
+        ax.plot(self.__xs,self.__ys,self.__zs,'-',color='c',label='System Trajectory')
+        ax.plot(p[0,:],p[1,:],p[2,:],'--',color='orange',label='Reference Trajectory')
+        ax.plot(self.__xs[0],self.__ys[0],self.__zs[0],'bo',label='Starting Position')
+        ax.plot(self.__xs[-1],self.__ys[-1],self.__zs[-1],'ro',label='End Position')
+        ax.set_xlabel(r'$x$ $[m]$')
+        ax.set_ylabel(r'$y$ $[m]$')
+        ax.set_zlabel(r'$z$ $[m]$')
+        ax.set_xlim([0,4])
+        ax.set_ylim([0,4])
+        ax.set_zlim([0,4])
+        ax.legend()
+        plt.show()
         if save is not None:
             plt.savefig(save+f'/{file_name}-trajectory-traking.png',dpi=300)
             plt.savefig(save+f'/{file_name}-trajectory-traking.svg')
 
-        fig, ax = plt.subplots(1,2)
-        ax[0].plot(T,self.__vxs)
+        fig, ax = plt.subplots(3,1)
+        ax[0].plot(T,self.__vxs,label='Quadrotor Speed')
+        ax[0].plot(T,v[0,:],'--',label='Reference Speed')
         ax[0].set_xlabel(r'$t$ $[s]$')
         ax[0].set_ylabel(r'$V_x$ $[m/s]$')
         ax[0].title.set_text(r'Velocity ($V_x$)')
-        ax[1].plot(T,self.__vys)
+        ax[1].plot(T,self.__vys,label='Quadrotor Speed')
+        ax[1].plot(T,v[1,:],'--',label='Reference Speed')
         ax[1].set_xlabel(r'$t$ $[s]$')
         ax[1].set_ylabel(r'$V_y$ $[m/s]$')
         ax[1].title.set_text(r'Velocity ($V_y$)')
+        ax[2].plot(T,self.__vzs,label='Quadrotor Speed')
+        ax[2].plot(T,v[2,:],'--',label='Reference Speed')
+        ax[2].set_xlabel(r'$t$ $[s]$')
+        ax[2].set_ylabel(r'$V_z$ $[m/s]$')
+        ax[2].title.set_text(r'Velocity ($V_z$)')
+        ax[0].legend()
+        ax[1].legend()
+        ax[2].legend()
         fig.suptitle(f'{file_name} Trajectory')
         fig.set_size_inches(16,9)
         if save is not None:
             plt.savefig(save+f'/{file_name}-trajectory-velocity.png',dpi=300)
             plt.savefig(save+f'/{file_name}-trajectory-velocity.svg')
 
-        fig, ax = plt.subplots(1,2)
-        ax[0].plot(np.array(self.__idx_control)*self.__dt,self.__ctl_forces_x)
+        fig, ax = plt.subplots(4,1)
+        ax[0].plot(np.array(self.__idx_control)*self.__dt,self.__ctl_phi)
         ax[0].set_xlabel(r'$t$ $[s]$')
-        ax[0].set_ylabel(r'$u_x$ $[N]$')
-        ax[0].title.set_text(r'Control Force ($u_x$)')
-        ax[1].plot(np.array(self.__idx_control)*self.__dt,self.__ctl_forces_y)
+        ax[0].set_ylabel(r'$\phi^c$ $[red]$')
+        ax[0].title.set_text(r'Control $\phi$ ($\phi^c$)')
+        ax[1].plot(np.array(self.__idx_control)*self.__dt,self.__ctl_theta)
         ax[1].set_xlabel(r'$t$ $[s]$')
-        ax[1].set_ylabel(r'$u_y$ $[N]$')
-        ax[1].title.set_text(r'Control Force ($u_y$)')
+        ax[1].set_ylabel(r'$\theta^c$ $[red]$')
+        ax[1].title.set_text(r'Control $\theta$ ($\theta^c$)')
+        ax[2].plot(np.array(self.__idx_control)*self.__dt,self.__ctl_psi)
+        ax[2].set_xlabel(r'$t$ $[s]$')
+        ax[2].set_ylabel(r'$\psi^c$ $[red]$')
+        ax[2].title.set_text(r'Control $\psi$ ($\psi^c$)')
+        ax[3].plot(np.array(self.__idx_control)*self.__dt,self.__ctl_a)
+        ax[3].set_xlabel(r'$t$ $[s]$')
+        ax[3].set_ylabel(r'$a_c$ $[m/s^2]$')
+        ax[3].title.set_text(r'Control Thrust ($a^c$)')
         fig.suptitle(f'{file_name} Trajectory')
         fig.set_size_inches(16,9)
         if save is not None:
-            plt.savefig(save+f'/{file_name}-trajectory-control-force.png',dpi=300)
-            plt.savefig(save+f'/{file_name}-trajectory-control-force.svg')
+            plt.savefig(save+f'/{file_name}-trajectory-control-action.png',dpi=300)
+            plt.savefig(save+f'/{file_name}-trajectory-control-action.svg')
 
         fig, ax = plt.subplots(1,2)
         ax[0].plot(T,self.__wind_force_x)
@@ -260,7 +298,7 @@ class WindField:
 
     def set_trajectory(self, trajectory_file,trajectory_name,laps=1):
         # Generate Trajectory
-        self.__trajectory = Trajectory(trajectory_file,laps)
+        self.__trajectory = Trajectory(trajectory_file,laps,[2,0])
         self.__duration*=laps
         self.__trajectory_name = trajectory_name
         self.__tr_p, self.__tr_v = self.__trajectory.trajectory()
@@ -275,36 +313,64 @@ class WindField:
             raise MissingTrajectoryException()
 
         # Set the mass initial conditions
-        p,v = self.__trajectory.trajectory()
-        x0 = 4.0
-        y0 = 2.0
-        self.__system.p[0] = x0
-        self.__system.p[1] = y0
+        target_p,target_v = self.__trajectory.trajectory()
+        self.__quadrotor.set_state(np.array([
+            target_p[0,0], target_p[1,0], 0,
+            target_v[0,0], target_v[1,0], target_v[2,0],
+            0,0,0,0
+        ])
+        )
         self.__idx_control = []
 
         # Simulate the field 
-        t = 0
-        control_force = np.zeros((2,1))
-        for target_p, target_v in self.__trajectory:
+        control_force = np.zeros((4,1))
+        print(f'Simulating {self.__trajectory_name} Trajectory...')
+        for t in range(len(self.__trajectory)):
+            print(
+                '|{}{}| {:.2f}% ({:.2f}/{:.2f} s)'.format(
+                    '█'*int(20*(t+1)/len(target_p[0,:])),
+                    ' '*(20-int(20*(t+1)/len(target_p[0,:]))),
+                    (t+1)/len(target_p[0,:])*100,
+                    (t+1)*self.__dt,
+                    len(target_p[0,:])*self.__dt
+                ),
+                end='\r'
+            )
             total_speed = np.array([0,0],dtype=float)
+            state = self.__quadrotor.get_state()
             for fan in self.fans:
-                speed = fan.generate_wind(self.__system.p[0],self.__system.p[1],t)
+                speed = fan.generate_wind(state[0],state[1],t)
                 total_speed+=speed
 
             # Generate wind force
-            wind_force = (0.5*self.__air_density*self.__system.surf)*total_speed**2*np.sign(total_speed)
-            ep = target_p - self.__system.p
-            ev = target_v - self.__system.v
+            wind_force = 0.1*total_speed*np.sign(total_speed)
+            ep = target_p[:,t] - state[:3]
+            ev = target_v[:,t] - state[3:6]
             if t%self.__control_frequency == 0:
                 self.__idx_control.append(t)
                 # Collect inputs for GP
-                self.__gp_data.append([self.__system.p[0],self.__system.p[1]])
-                
+                state = self.__quadrotor.get_state()
+                self.__gp_data.append([state[0],state[1]])
+                # Generate MPC Reference
+                idx = min(t+self.__control_horizon*self.__control_frequency,len(self.__trajectory))
+                ref = np.concatenate([
+                        target_p[:,t:idx:self.__control_frequency],
+                        target_v[:,t:idx:self.__control_frequency]
+                ],axis=0)
+                # If the remaining trajectory is < than the control horizon
+                # expand it using the last refence
+                if (idx-t)//self.__control_frequency < self.__control_horizon:
+                    ref = np.concatenate([
+                        ref,
+                        np.repeat(ref[:,-1,np.newaxis],self.__control_horizon-(idx-t)//self.__control_frequency,axis=1)
+                    ],axis=1)
                 # Generate control force
-                control_force = self.__pd.step(ep,ev)
+                control_force = self.__mpc(state,ref)
                 
-                self.__ctl_forces_x.append(control_force[0])
-                self.__ctl_forces_y.append(control_force[1])
+                self.__ctl_phi.append(control_force[0])
+                self.__ctl_theta.append(control_force[1])
+                self.__ctl_psi.append(control_force[2])
+                self.__ctl_a.append(control_force[3])
 
                 # Collect labels for GP
                 self.__gp_label_x.append(wind_force[0])
@@ -312,18 +378,25 @@ class WindField:
 
             self.__ex.append(ep[0])
             self.__ey.append(ep[1])
+            self.__ez.append(ep[2])
             self.__evx.append(ev[0])
             self.__evy.append(ev[1])
-            self.__xs.append(self.__system.p[0])
-            self.__ys.append(self.__system.p[1])
-            self.__vxs.append(self.__system.v[0])
-            self.__vys.append(self.__system.v[1])
+            self.__evz.append(ev[2])
+            state = self.__quadrotor.get_state()
+            self.__xs.append(state[0])
+            self.__ys.append(state[1])
+            self.__zs.append(state[2])
+            self.__vxs.append(state[3])
+            self.__vys.append(state[4])
+            self.__vzs.append(state[5])
             self.__wind_force_x.append(wind_force[0])
             self.__wind_force_y.append(wind_force[1])
 
             # Simulate Dynamics
-            self.__system.discrete_dynamics(wind_force+control_force)
+            self.__quadrotor.step(control_force,np.append(wind_force,0))
             t+=1
+        
+        print('')
 
     def simulate_gp(self, window_size, predictors, p0=None, show=False, save=None, kernel_name=''):
         if self.__trajectory is None:
@@ -1327,11 +1400,7 @@ class WindField:
         else:
             self.__setup_wind_field(self.__wind_field_conf_file)
         
-        if mass_conf_file is not None:
-            self.__setup_system(mass_conf_file)
-            self.__mass_config_file = mass_conf_file
-        else:
-            self.__setup_system(self.__mass_config_file)
+        self.__setup_system()
 
         if gp_predictor_x is not None:
             self.__gp_predictor_x = gp_predictor_x
