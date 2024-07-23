@@ -68,6 +68,10 @@ class GPModel:
             self.__size += 1
 
     def __call__(self, x):
+        '''
+        Computes the predictive distribution, given one input\\
+        Returns the predictive mean and covariance
+        '''
         labels = np.array(self.__labels)
         for k in range(self.__window_size):
             self.__Kxx[k] = self.__kernel(x,self.__inputs[k])
