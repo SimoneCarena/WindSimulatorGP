@@ -76,6 +76,7 @@ if not test:
             save='imgs/wind_field' if (save_plots == 'train' or save_plots == 'all') else None
         )
         wind_field.reset()
+        exit()
 
     # Get GP data
     gp_data, x_labels, y_labels = wind_field.get_gp_data()
