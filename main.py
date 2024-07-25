@@ -76,7 +76,6 @@ if not test:
             save='imgs/wind_field' if (save_plots == 'train' or save_plots == 'all') else None
         )
         wind_field.reset()
-        exit()
 
     # Get GP data
     gp_data, x_labels, y_labels = wind_field.get_gp_data()
@@ -114,9 +113,8 @@ else:
         'test_trajectories',
         mo_exact_gp_options,
         window_size = 50,
-        p0 = np.array([4.0,2.0]),
         laps = 1,
-        horizon = 100,
+        horizon = 1,
         show = True if (show_plots == 'test' or show_plots == 'all') else False,
         save = 'imgs/gp_updates/MultiOutputExactGP/' if (save_plots == 'test' or save_plots == 'all') else None
     )

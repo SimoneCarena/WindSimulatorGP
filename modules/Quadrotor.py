@@ -39,7 +39,7 @@ class Quadrotor:
 
         return state_dot
 
-    def get_ideal_dynamics(self):
+    def get_dynamics(self):
         # Define the state variables
         p = ca.SX.sym('p', 3)       # Position [x, y, z]
         v = ca.SX.sym('v', 3)       # Velocity [vx, vy, vz]
@@ -48,6 +48,8 @@ class Quadrotor:
 
         # Control Inputs
         u = ca.SX.sym('u', 4) # Control input [phi_c, theta_c, psi_c, thrust_c]
+        # Wind Force
+        wind = ca.SX.sym('wind',3)
 
         # Define the dynamics
         p_dot = v
@@ -61,7 +63,7 @@ class Quadrotor:
             ca.sin(phi)*ca.sin(psi) + ca.cos(phi)*ca.sin(theta)*ca.cos(psi),
             -ca.sin(phi)*ca.cos(psi) + ca.cos(phi)*ca.sin(theta)*ca.sin(psi),
             ca.cos(phi)*ca.cos(psi)
-        ) * thrust - self.g
+        ) * thrust - self.g + wind
 
         att_dot = self.Tau @ att + self.K * u
 
@@ -69,7 +71,7 @@ class Quadrotor:
         state_dot = ca.vertcat(p_dot, v_dot, att_dot)
 
         # Define CasADi function
-        return ca.Function('dynamics', [state, u], [state_dot])
+        return ca.Function('dynamics', [state, u, wind], [state_dot])
 
     def step(self, u, wind):
         """
