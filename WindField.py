@@ -1044,7 +1044,7 @@ class WindField:
         #     )
 
         self.plot(True)
-        exit()
+        print('')
         
     def simulate_mogp_horizon(self, window_size, predictor, horizon=1, p0=None, show=False, save=False, kernel_name=''):
         if self.__trajectory is None:

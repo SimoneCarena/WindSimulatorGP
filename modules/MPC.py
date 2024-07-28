@@ -54,7 +54,7 @@ class MPC:
                 for j in range(self.window_size):
                     self.K_xx = ca.vertcat(self.K_xx,self.predictor.kernel(self.x[:self.input_dim,k],self.X[:,j]))
                 mean = self.K_xx.T@self.K@self.y
-                # cov = self.predictor.kernel(self.ref[:2,k],self.ref[:2,k])-self.K_xx.T@self.K@self.K_xx
+                cov = self.predictor.kernel(self.ref[:2,k],self.ref[:2,k])-self.K_xx.T@self.K@self.K_xx
                 x_next = self.__step(self.x[:, k], self.u[:, k], mean, self.dt)
             ## Otherwise compute the dynamics without the wind
             else:
