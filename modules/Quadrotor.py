@@ -12,6 +12,7 @@ class Quadrotor:
         self.g = np.array([0.0,0.0,9.81])
         self.nx = 10 # Number of States
         self.nu = 4 # Number of Control Inputs
+        self.r = 0.1 # Radius
 
     def __dynamics(self,x,u,wind):
         p = x[:3]

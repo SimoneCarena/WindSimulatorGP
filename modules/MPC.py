@@ -1,8 +1,11 @@
 import numpy as np
 import casadi as ca
+from scipy.special import erfinv
+
+from scipy.stats import chi2
 
 class MPC:
-    def __init__(self, dynamics, control_horizon, dt, Q, R, input_dim ,output_dim, window_size, predictor=None):
+    def __init__(self, dynamics, control_horizon, dt, Q, R, input_dim ,output_dim, window_size, predictor=None, obstacles = []):
         self.dynamics = dynamics
         self.N = control_horizon
         self.dt = dt
@@ -12,6 +15,14 @@ class MPC:
         self.window_size = window_size
         self.lower = np.array([-np.pi/6, -np.pi/6, -np.pi/6, 5])
         self.upper = np.array([np.pi/6, np.pi/6, np.pi/6, 15])
+        # Chi^2 value for the uncertainty
+        self.chi2 = chi2.ppf(0.95, df=output_dim)
+        # Eigenvectors for the direction of the ellipse,
+        # assumed to be identical over all the directions
+        self.eigs = np.eye(output_dim)
+        self.obstacles = obstacles
+        self.quadrotor_r = 0.1
+        self.delta = 0.05
 
         self.nx = 10  # State Dimension
         self.ny = 6  # Tracking Dimension
@@ -55,7 +66,23 @@ class MPC:
                     self.K_xx = ca.vertcat(self.K_xx,self.predictor.kernel(self.x[:self.input_dim,k],self.X[:,j]))
                 mean = self.K_xx.T@self.K@self.y
                 cov = self.predictor.kernel(self.ref[:2,k],self.ref[:2,k])-self.K_xx.T@self.K@self.K_xx
+                # Derive the covariance on the position
+                cov = self.dt**2/6*cov
                 x_next = self.__step(self.x[:, k], self.u[:, k], mean, self.dt)
+                # Chance Constraints
+                for obstacle in self.obstacles:
+                    # Get obstacle radius
+                    r = obstacle.r
+                    # Get obstacle position
+                    p = obstacle.get_center()
+                    # Compute cosntraints quantity
+                    a = (x_next[:2]-p)/np.linalg.norm(x_next[:2]-p)
+                    b = r + self.quadrotor_r
+                    c = erfinv(1-2*self.delta)*np.sqrt(2*a.T@cov@a)
+                    # Add constraint
+                    self.opti.subject_to(
+                        a.T@x_next-b >= c
+                    )
             ## Otherwise compute the dynamics without the wind
             else:
                 x_next = self.__step(self.x[:, k], self.u[:, k], ca.MX.zeros(3), self.dt) 

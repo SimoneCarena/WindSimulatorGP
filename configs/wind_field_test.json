@@ -32,7 +32,52 @@
                     "v0": 20
                 }
             }
+        },
+        {
+            "x0": 4,
+            "y0": 4,
+            "alpha": 225,
+            "noise_var": 0.1,
+            "length": 2,
+            "generator": {
+                "function": "constant",
+                "parameters": {
+                    "v0": 12
+                }
+            }
+        },
+        {
+            "x0": 4,
+            "y0": 0,
+            "alpha": 135,
+            "noise_var": 0.1,
+            "length": 2,
+            "generator": {
+                "function": "constant",
+                "parameters": {
+                    "v0": 12
+                }
+            }
+        },
+        {
+            "x0": 2,
+            "y0": 0,
+            "alpha": 90,
+            "noise_var": 0.1,
+            "length": 2,
+            "generator": {
+                "function": "constant",
+                "parameters": {
+                    "v0": 22
+                }
+            }
         }
     ],
-    "obstacles": []
+    "obstacles": [
+        {
+            "x": 2,
+            "y": 2,
+            "r": 0.5
+        }
+    ]
 }
