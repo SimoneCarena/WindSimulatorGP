@@ -880,9 +880,6 @@ class WindField:
             window_size,
         )
         
-        predicted_x_pos = []
-        predicted_y_pos = []
-        covs = []
         self.__idx_control = []
 
         # Set the mass initial conditions
@@ -1007,6 +1004,11 @@ class WindField:
             # Simulate Dynamics
             self.__quadrotor.step(control_force,np.hstack([wind_force,0.0]))
 
+        # Plots
+        T = np.linspace(0,self.__duration*self.__dt,self.__duration)
+        control_limit_low = self.__mpc.lower
+        control_limit_upper = self.__mpc.upper
+
         fig = plt.figure()
         ax = plt.axes(projection='3d')
         fig.set_size_inches(16,9)
@@ -1043,6 +1045,35 @@ class WindField:
             o = Ellipse((obstacle.x,obstacle.y),2*obstacle.r,2*obstacle.r,edgecolor='k',fc='k')
             ax.add_patch(o)
         ax.legend()
+
+        fig, ax = plt.subplots(4,1)
+        fig.set_size_inches(16,9)
+        fig.tight_layout(pad=4)
+        ax[0].plot(T[self.__idx_control],self.__ctl_phi)
+        ax[0].axhline(y=control_limit_low[0],color='k',linestyle='dashed',label=r'$\phi^{\lim}$')
+        ax[0].axhline(y=control_limit_upper[0],color='k',linestyle='dashed')
+        ax[0].set_ylabel(r'$\phi^c$ $[rad]$')
+        ax[0].legend()
+        ax[0].set_xlim([0,self.__duration*self.__dt])
+        ax[1].plot(T[self.__idx_control],self.__ctl_theta)
+        ax[1].axhline(y=control_limit_low[1],color='k',linestyle='dashed',label=r'$\theta^{\lim}$')
+        ax[1].axhline(y=control_limit_upper[1],color='k',linestyle='dashed')
+        ax[1].set_ylabel(r'$\theta^c$ $[rad]$')
+        ax[1].legend()
+        ax[1].set_xlim([0,self.__duration*self.__dt])
+        ax[2].plot(T[self.__idx_control],self.__ctl_psi)
+        ax[2].axhline(y=control_limit_low[2],color='k',linestyle='dashed',label=r'$\psi^{\lim}$')
+        ax[2].axhline(y=control_limit_upper[2],color='k',linestyle='dashed')
+        ax[2].set_ylabel(r'$\psi^c$ $[rad]$')
+        ax[2].legend()
+        ax[2].set_xlim([0,self.__duration*self.__dt])
+        ax[3].plot(T[self.__idx_control],self.__ctl_a)
+        ax[3].axhline(y=control_limit_low[3],color='k',linestyle='dashed',label=r'$a^{\lim}$')
+        ax[3].axhline(y=control_limit_upper[3],color='k',linestyle='dashed')
+        ax[3].set_ylabel(r'$a^c$ $[m/s]$')
+        ax[3].set_xlabel(r'$t$ $[s]$')
+        ax[3].legend()
+        ax[3].set_xlim([0,self.__duration*self.__dt])
 
         plt.show()
 
