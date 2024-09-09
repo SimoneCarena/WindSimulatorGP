@@ -22,7 +22,7 @@ class MPC:
         self.eigs = np.eye(output_dim)
         self.obstacles = obstacles
         self.quadrotor_r = 0.1
-        self.delta = 0.05
+        self.delta = 0.01
 
         self.nx = 10  # State Dimension
         self.ny = 6  # Tracking Dimension
@@ -66,26 +66,32 @@ class MPC:
                     self.K_xx = ca.vertcat(self.K_xx,self.predictor.kernel(self.x[:self.input_dim,k],self.X[:,j]))
                 mean = self.K_xx.T@self.K@self.y
                 cov = self.predictor.kernel(self.ref[:2,k],self.ref[:2,k])-self.K_xx.T@self.K@self.K_xx
-                # Derive the covariance on the position
-                cov = self.dt**2/6*cov
                 x_next = self.__step(self.x[:, k], self.u[:, k], mean, self.dt)
+                # Compute the uncertainty on the position for the next state, via uncertainty propagation
+                cov = 1/6*self.dt**2*cov
                 # Chance Constraints
                 for obstacle in self.obstacles:
                     # Get obstacle radius
                     r = obstacle.r
                     # Get obstacle position
-                    p = obstacle.get_center()
+                    p0 = obstacle.get_center()
                     # Compute cosntraints quantity
-                    a = (x_next[:2]-p)/np.linalg.norm(x_next[:2]-p)
+                    a = (x_next[:2]-p0)/ca.sqrt((x_next[:2]-p0).T@(x_next[:2]-p0))
                     b = r + self.quadrotor_r
-                    c = erfinv(1-2*self.delta)*np.sqrt(2*a.T@cov@a)
+                    c = erfinv(1-2*self.delta)*ca.sqrt(2*a.T@cov@a)
                     # Add constraint
                     self.opti.subject_to(
-                        a.T@x_next-b >= c
+                        a.T@(x_next[:2]-p0)-b>=c
                     )
             ## Otherwise compute the dynamics without the wind
             else:
                 x_next = self.__step(self.x[:, k], self.u[:, k], ca.MX.zeros(3), self.dt) 
+                for obstacle in self.obstacles:
+                    r = obstacle.r
+                    p = obstacle.p
+                    self.opti.subject_to(
+                        (x_next[0]-p[0])**2+(x_next[1]-p[1])**2>(r+self.quadrotor_r)**2
+                    )
             # Add Dynamics Constraint
             self.opti.subject_to(self.x[:, k + 1] == x_next)
             # Control Constraints (Upper Bound)

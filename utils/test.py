@@ -2,6 +2,7 @@ import gpytorch
 import torch
 import os
 import pickle
+import numpy as np
 
 from pathlib import Path
 
@@ -75,10 +76,7 @@ def __test_exact_mogp(wind_field, trajectories_folder, model, name, window_size,
     for file in os.listdir(trajectories_folder):
         file_name = Path(file).stem
         wind_field.set_trajectory(trajectories_folder+'/'+file,file_name,laps)
-        if horizon == 1:
-            wind_field.simulate_mogp(window_size,model,p0,show=show,save=save,kernel_name=name) 
-        else:
-            wind_field.simulate_mogp_horizon(window_size,model,horizon,p0,show=show,save=True,kernel_name=name) 
+        wind_field.simulate_mogp(window_size,model,p0,show=show,save=save,kernel_name=name) 
         wind_field.reset()
         wind_field.reset_gp()
         print('Done')
