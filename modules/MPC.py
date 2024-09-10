@@ -22,7 +22,7 @@ class MPC:
         self.eigs = np.eye(output_dim)
         self.obstacles = obstacles
         self.quadrotor_r = 0.1
-        self.delta = 0.01
+        self.delta = 0.05
 
         self.nx = 10  # State Dimension
         self.ny = 6  # Tracking Dimension
@@ -49,6 +49,8 @@ class MPC:
 
         # Define cost variable
         self.J = 0.0
+        # List of covariance matrices (for plot)
+        Cov = []
 
         # Add Initial State Constraint
         self.opti.subject_to(self.x[:, 0] == self.x0)
@@ -68,7 +70,8 @@ class MPC:
                 cov = self.predictor.kernel(self.ref[:2,k],self.ref[:2,k])-self.K_xx.T@self.K@self.K_xx
                 x_next = self.__step(self.x[:, k], self.u[:, k], mean, self.dt)
                 # Compute the uncertainty on the position for the next state, via uncertainty propagation
-                cov = 1/6*self.dt**2*cov
+                cov = 1/3.6*self.dt**2*cov*np.eye(2)
+                Cov = ca.vertcat(Cov,cov)
                 # Chance Constraints
                 for obstacle in self.obstacles:
                     # Get obstacle radius
@@ -83,6 +86,8 @@ class MPC:
                     self.opti.subject_to(
                         a.T@(x_next[:2]-p0)-b>=c
                     )
+                # Setup Covariance Extraction
+                self.CovFuntion = ca.Function('Cov',[self.x, self.u, self.ref,  self.x0, self.X, self.y, self.K], [Cov])
             ## Otherwise compute the dynamics without the wind
             else:
                 x_next = self.__step(self.x[:, k], self.u[:, k], ca.MX.zeros(3), self.dt) 
@@ -161,8 +166,14 @@ class MPC:
         # Extract the solution
         u_opt = sol.value(self.u)
         x_opt = sol.value(self.x)
+
+        # Extract Covariance
+        if self.predictor is not None:
+            Cov = np.array(self.CovFuntion(x_opt,u_opt,ref,x,inputs,labels,K))
+        else:
+            Cov = None
         
-        return np.array(u_opt[:, 0]).flatten(), np.array(x_opt[:, 1:])
+        return np.array(u_opt[:, 0]).flatten(), np.array(x_opt[:2, 1:]), Cov
 
     def update_predictor(self, input, label):
         self.predictor.update(

@@ -80,6 +80,7 @@ def __test_exact_mogp(wind_field, trajectories_folder, model, name, window_size,
         wind_field.reset()
         wind_field.reset_gp()
         print('Done')
+        exit()
 
 def test_svgp(wind_field, trajecotries_folder, options, window_size=100, p0=None, laps=1, show=False, save=None):
     file = open(".metadata/svgp_dict","rb")

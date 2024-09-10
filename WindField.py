@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import json
 
+from scipy.stats import chi2
+
 from matplotlib import animation
 from matplotlib.colors import LinearSegmentedColormap
 from pathlib import Path
@@ -880,7 +882,10 @@ class WindField:
             window_size,
         )
         
+        # Setup Plots 
         self.__idx_control = []
+        Covs = []
+        PredictedPos = []
 
         # Set the mass initial conditions
         target_p, target_v = self.__trajectory.trajectory()
@@ -943,7 +948,10 @@ class WindField:
                         np.repeat(ref[:,-1,np.newaxis],self.__control_horizon-(idx-t)//self.__control_frequency,axis=1)
                     ],axis=1)
                 # Generate control force
-                control_force, _ = self.__mpc(state,ref)
+                control_force, predicted_pos, pos_cov = self.__mpc(state,ref)
+                if pos_cov is not None:
+                    Covs.append(pos_cov.copy())
+                    PredictedPos.append(predicted_pos.copy())
                 
                 self.__ctl_phi.append(control_force[0])
                 self.__ctl_theta.append(control_force[1])
@@ -1008,6 +1016,9 @@ class WindField:
         T = np.linspace(0,self.__duration*self.__dt,self.__duration)
         control_limit_low = self.__mpc.lower
         control_limit_upper = self.__mpc.upper
+
+        ## Get Position Uncertainty
+
 
         fig = plt.figure()
         ax = plt.axes(projection='3d')
@@ -1077,7 +1088,72 @@ class WindField:
 
         plt.show()
 
+        # Animation
+        ## Add Obstacles
+        obstacles = []
+        for obstacle in self.__obstacles:
+            o = Ellipse((obstacle.x,obstacle.y),2*obstacle.r,2*obstacle.r,edgecolor='k',fc='k')
+            obstacles.append(o)
+
+        fig, ax = plt.subplots()
+        fig.set_size_inches(16,9)
+        fig.tight_layout(pad=2)
+        scale = self.__control_frequency
+
+        UncEllipses = []
+        chi2_val = np.sqrt(chi2.ppf(1-self.__mpc.delta, 2))
+        for i in range(len(Covs)):
+            unc = []
+            cov = Covs[i]
+            pos = PredictedPos[i]
+            for j in range(self.__mpc.N):
+                unc.append(
+                    Ellipse(
+                        (pos[0,j],pos[1,j]),
+                        2*cov[j,0]*chi2_val,
+                        2*cov[j+1,1]*chi2_val,
+                        fc='cyan',
+                        edgecolor='cyan',
+                        alpha=0.5
+                    )
+                )
+            UncEllipses.append(unc)
+
+        def animation_function(t):
+            # Clear figures and setup plots
+            ax.clear()
+
+            t = int(t*scale)
+            k = t//scale - window_size
+            start = max(0,k-window_size)*scale
+            ax.axis('equal')
+            ax.set_xlim([0.0,self.__width])
+            ax.set_ylim([0.0,self.__height])
+
+            # Plot System Evolution
+            ax.plot(np.NaN, np.NaN, '-', color='none', label='t={0:.2f} s'.format(t*self.__dt))
+            ax.plot(np.NaN, np.NaN, 'o', color='k', markersize=10, label='Obstacles')
+            ax.plot(np.NaN, np.NaN, '-', color='cyan', alpha=0.5, linewidth=10, label='Uncertainty')
+            ax.plot(target_p[0,:t],target_p[1,:t],'--',color='orange',label="Reference Trajectory")
+            ax.plot(target_p[0,t],target_p[1,t],'o',color='orange')
+            ax.plot(self.__xs[t],self.__ys[t],'bo',label='System Position')
+            ax.plot(self.__xs[start:t:scale],self.__ys[start:t:scale],'o-',color=(0.878, 0.867, 0.137,0.5),markerfacecolor=(0.878, 0.867, 0.137,1.0),markeredgecolor=(0.878, 0.867, 0.137,1.0),linewidth=8,markersize=2,label='Active Window')
+            ax.plot(self.__xs[:t],self.__ys[:t],'b--',label="System Trajectory")
+            if k>0:
+                unc = UncEllipses[k]
+                ax.plot([self.__xs[t],*PredictedPos[k][0,:]],[self.__ys[t],*PredictedPos[k][1,:]],'-o',color='g',markersize=2,linewidth=1,label="Predicted Position")
+                for i in range(self.__mpc.N):
+                    ax.add_patch(unc[i])
+            for o in obstacles:
+                ax.add_patch(o)
+
+            ax.legend()
+            
+        anim = animation.FuncAnimation(fig,animation_function,frames=int(self.__duration/scale),interval=100,repeat=False)
+        plt.show()
+
         print('')
+        exit()
 
     def simulate_goal_position(self, window_size, predictor, p0, xf, show=False, save=None, kernel_name=''):
         
