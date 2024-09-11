@@ -5,8 +5,9 @@ from scipy.special import erfinv
 from scipy.stats import chi2
 
 class MPC:
-    def __init__(self, dynamics, control_horizon, dt, Q, R, input_dim ,output_dim, window_size, predictor=None, obstacles = []):
-        self.dynamics = dynamics
+    def __init__(self, model, control_horizon, dt, Q, R, input_dim ,output_dim, window_size, predictor=None, obstacles = []):
+        self.dynamics = model.get_dynamics()
+        self.diff_dynamics = model.get_diff_dynamics()
         self.N = control_horizon
         self.dt = dt
         self.predictor = predictor
@@ -55,6 +56,8 @@ class MPC:
         # Add Initial State Constraint
         self.opti.subject_to(self.x[:, 0] == self.x0)
 
+        cov_x = np.zeros((10,10))
+
         for k in range(self.N):
             # Compute Cost
             self.J += (self.x[:self.ny, k] - self.ref[:, k]).T @ self.Q @ (self.x[:self.ny, k] - self.ref[:, k]) + self.u[:,k].T@self.R@self.u[:,k]
@@ -67,11 +70,39 @@ class MPC:
                 for j in range(self.window_size):
                     self.K_xx = ca.vertcat(self.K_xx,self.predictor.kernel(self.x[:self.input_dim,k],self.X[:,j]))
                 mean = self.K_xx.T@self.K@self.y
-                cov = self.predictor.kernel(self.ref[:2,k],self.ref[:2,k])-self.K_xx.T@self.K@self.K_xx
+                cov_gp = self.predictor.kernel(self.x[:2,k],self.x[:2,k])-self.K_xx.T@self.K@self.K_xx
+                cov_gp = cov_gp*np.eye(2)
                 x_next = self.__step(self.x[:, k], self.u[:, k], mean, self.dt)
+                # cov = cov_gp*self.dt**2
+                # Cov = ca.vertcat(Cov,cov)
+                ## Extend GP Covariance Matrix
+                cov_gp = ca.vertcat(
+                    ca.horzcat(cov_gp,np.zeros((2,8))),
+                    np.zeros((8,10))
+                )
                 # Compute the uncertainty on the position for the next state, via uncertainty propagation
-                cov = 1/3.6*self.dt**2*cov*np.eye(2)
-                Cov = ca.vertcat(Cov,cov)
+                ## Jacobian Matrix
+                A = self.diff_dynamics(self.x[:,k], self.u[:,k], mean)
+                ## Selection matrix
+                Bd = np.diag([1,1,0,0,0,0,0,0,0,0])
+                ## Compute the Derivative of the GP
+                K_xx_d = []
+                for j in range(self.window_size):
+                    K_xx_d = ca.vertcat(K_xx_d,self.predictor.kernel_derivative(self.x[:2,k],self.X[:,j]).T)
+                mean_d = K_xx_d.T@self.K@self.y
+                mean_d = ca.horzcat(mean_d,np.zeros((2,7)))
+                # Compute covariance matrix gp-state
+                Sigma_xd = mean_d@cov_x
+                Sigma_xd = ca.vertcat(Sigma_xd,np.zeros((8,10)))
+                # Compute Matrices for Casadi
+                _first_mat = ca.horzcat(A,Bd)
+                _upper = ca.horzcat(cov_x,Sigma_xd.T)
+                _lower = ca.horzcat(Sigma_xd,cov_gp)
+                _second_mat = ca.vertcat(_upper,_lower)
+                _third_mat = ca.horzcat(A,Bd).T
+                # Compute Propagated Uncertainty
+                cov = _first_mat@_second_mat@_third_mat
+                Cov = ca.vertcat(Cov,cov[:2,:2])
                 # Chance Constraints
                 for obstacle in self.obstacles:
                     # Get obstacle radius
@@ -79,15 +110,14 @@ class MPC:
                     # Get obstacle position
                     p0 = obstacle.get_center()
                     # Compute cosntraints quantity
-                    a = (x_next[:2]-p0)/ca.sqrt((x_next[:2]-p0).T@(x_next[:2]-p0))
+                    a = (self.x[:2,k+1]-p0)/ca.sqrt((self.x[:2,k+1]-p0).T@(self.x[:2,k+1]-p0))
                     b = r + self.quadrotor_r
-                    c = erfinv(1-2*self.delta)*ca.sqrt(2*a.T@cov@a)
+                    c = erfinv(1-2*self.delta)*ca.sqrt(2*a.T@cov[:2,:2]@a)
                     # Add constraint
                     self.opti.subject_to(
-                        a.T@(x_next[:2]-p0)-b>=c
+                        a.T@(self.x[:2,k+1]-p0)-b>=c
                     )
-                # Setup Covariance Extraction
-                self.CovFuntion = ca.Function('Cov',[self.x, self.u, self.ref,  self.x0, self.X, self.y, self.K], [Cov])
+                cov_x = cov
             ## Otherwise compute the dynamics without the wind
             else:
                 x_next = self.__step(self.x[:, k], self.u[:, k], ca.MX.zeros(3), self.dt) 
@@ -95,7 +125,7 @@ class MPC:
                     r = obstacle.r
                     p = obstacle.p
                     self.opti.subject_to(
-                        (x_next[0]-p[0])**2+(x_next[1]-p[1])**2>(r+self.quadrotor_r)**2
+                        (self.x[0,k+1]-p[0])**2+(self.x[1,k+1]-p[1])**2>(r+self.quadrotor_r)**2
                     )
             # Add Dynamics Constraint
             self.opti.subject_to(self.x[:, k + 1] == x_next)
@@ -106,6 +136,9 @@ class MPC:
 
         # Setup Optimization Problem
         self.opti.minimize(self.J)
+
+        # Setup Covariance Extraction
+        self.CovFuntion = ca.Function('Cov',[self.x, self.u, self.ref,  self.x0, self.X, self.y, self.K], [Cov])
 
         opts = {'ipopt.print_level': 0, 'print_time': 0, 'ipopt.sb': 'yes'}
         self.opti.solver(

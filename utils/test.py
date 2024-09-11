@@ -65,10 +65,8 @@ def __test_exact_mogp(wind_field, trajectories_folder, model, name, window_size,
     # model.covar_module.data_covar_module.base_kernel.lengthscale = 0.7537
     # model.likelihood.noise = 0.1158
     # print(model.covar_module.data_covar_module.outputscale)
-    # exit()
     # print(model.mean_module.base_means[0].constant)
     # print(model.mean_module.base_means[1].constant)
-    # exit()
     # for name, param in model.named_parameters():
     #     print(name,param)
     # exit()

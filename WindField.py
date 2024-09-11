@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import json
+import sys
 
 from scipy.stats import chi2
 
@@ -83,7 +84,7 @@ class WindField:
         )
         self.__control_horizon = 10
         self.__mpc = MPC(
-            self.__quadrotor.get_dynamics(),
+            self.__quadrotor,
             self.__control_horizon,
             self.__dt*self.__control_frequency,
             Q=100*np.eye(6), 
@@ -874,6 +875,7 @@ class WindField:
             predictor.covar_module.data_covar_module.base_kernel.lengthscale.item(),
             predictor.covar_module.data_covar_module.outputscale.item(),
         )
+
         predictor = GPModel(
             kernel,
             predictor.likelihood.noise.item(),
@@ -964,7 +966,7 @@ class WindField:
                 p = np.array(state[:2])
                 if k == window_size:
                     self.__mpc = MPC(
-                        self.__quadrotor.get_dynamics(),
+                        self.__quadrotor,
                         self.__control_horizon,
                         self.__dt*self.__control_frequency,
                         Q=100*np.eye(6), 
@@ -1107,11 +1109,12 @@ class WindField:
             cov = Covs[i]
             pos = PredictedPos[i]
             for j in range(self.__mpc.N):
+                print(cov[j,0],cov[j+1,1],file=sys.stderr)
                 unc.append(
                     Ellipse(
                         (pos[0,j],pos[1,j]),
-                        2*cov[j,0]*chi2_val,
-                        2*cov[j+1,1]*chi2_val,
+                        2*(cov[j,0]*chi2_val),
+                        2*(cov[j+1,1]*chi2_val),
                         fc='cyan',
                         edgecolor='cyan',
                         alpha=0.5
@@ -1153,7 +1156,6 @@ class WindField:
         plt.show()
 
         print('')
-        exit()
 
     def simulate_goal_position(self, window_size, predictor, p0, xf, show=False, save=None, kernel_name=''):
         
@@ -1227,7 +1229,7 @@ class WindField:
                 p = np.array(state[:2])
                 if k == window_size:
                     self.__mpc = MPC(
-                        self.__quadrotor.get_dynamics(),
+                        self.__quadrotor,
                         self.__control_horizon,
                         self.__dt*self.__control_frequency,
                         Q=100*np.eye(6), 

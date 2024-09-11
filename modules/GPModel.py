@@ -13,14 +13,15 @@ class GPModel:
     '''
     def __init__(
             self, 
-            kernel: callable, 
+            kernel, 
             noise_var: float,
             input_dim: int, 
             output_dim: int,
             window_size: int
         ):
 
-        self.kernel = kernel
+        self.kernel = kernel.get_kernel()
+        self.kernel_derivative = kernel.get_kernel_derivative()
         self.__noise_var = noise_var
         self.__input_dim = input_dim
         self.__output_dim = output_dim

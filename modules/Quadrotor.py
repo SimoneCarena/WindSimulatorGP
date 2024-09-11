@@ -13,6 +13,7 @@ class Quadrotor:
         self.nx = 10 # Number of States
         self.nu = 4 # Number of Control Inputs
         self.r = 0.1 # Radius
+        self.__setup_dynamics()
 
     def __dynamics(self,x,u,wind):
         p = x[:3]
@@ -41,7 +42,13 @@ class Quadrotor:
         return state_dot
 
     def get_dynamics(self):
-        # Define the state variables
+       return self.dynamics_function
+    
+    def get_diff_dynamics(self):
+        return self.diff_dynamics_function
+    
+    def __setup_dynamics(self):
+         # Define the state variables
         p = ca.SX.sym('p', 3)       # Position [x, y, z]
         v = ca.SX.sym('v', 3)       # Velocity [vx, vy, vz]
         att = ca.SX.sym('att', 4)   # Attitude [phi, theta, psi, thrust]
@@ -72,8 +79,12 @@ class Quadrotor:
         state_dot = ca.vertcat(p_dot, v_dot, att_dot)
 
         # Define CasADi function
-        return ca.Function('dynamics', [state, u, wind], [state_dot])
+        self.dynamics_function = ca.Function('dynamics', [state, u, wind], [state_dot])
+        
+        jacobian = ca.jacobian(state_dot,state)
+        self.diff_dynamics_function = ca.Function('diff_dynamics', [state, u, wind], [jacobian])
 
+    
     def step(self, u, wind):
         """
         Perform a single RK4 integration step.
