@@ -56,7 +56,7 @@ class MPC:
         # Add Initial State Constraint
         self.opti.subject_to(self.x[:, 0] == self.x0)
 
-        cov_x = np.zeros((10,10))
+        cov_x = np.zeros((2,2))
 
         for k in range(self.N):
             # Compute Cost
@@ -73,50 +73,29 @@ class MPC:
                 cov_gp = self.predictor.kernel(self.x[:2,k],self.x[:2,k])-self.K_xx.T@self.K@self.K_xx
                 cov_gp = cov_gp*np.eye(2)
                 x_next = self.__step(self.x[:, k], self.u[:, k], mean, self.dt)
-                # cov = cov_gp*self.dt**2
-                # Cov = ca.vertcat(Cov,cov)
-                ## Extend GP Covariance Matrix
-                cov_gp = ca.vertcat(
-                    ca.horzcat(cov_gp,np.zeros((2,8))),
-                    np.zeros((8,10))
-                )
-                # Compute the uncertainty on the position for the next state, via uncertainty propagation
-                ## Jacobian Matrix
-                A = self.diff_dynamics(self.x[:,k], self.u[:,k], mean)
-                ## Selection matrix
-                Bd = np.diag([1,1,0,0,0,0,0,0,0,0])
-                ## Compute the Derivative of the GP
+                # Propagate Uncertainty
+                A = self.diff_dynamics(self.x[:,k],self.u[:,k],mean)
+                A = A[:2,:2]
                 K_xx_d = []
                 for j in range(self.window_size):
-                    K_xx_d = ca.vertcat(K_xx_d,self.predictor.kernel_derivative(self.x[:2,k],self.X[:,j]).T)
-                mean_d = K_xx_d.T@self.K@self.y
-                mean_d = ca.horzcat(mean_d,np.zeros((2,7)))
-                # Compute covariance matrix gp-state
+                    K_xx_d = ca.vertcat(K_xx_d,self.predictor.kernel_derivative(self.x[:self.input_dim,k],self.X[:,j]).T)
+                mean_d = K_xx_d.T@self.K@self.y[:,:2]
                 Sigma_xd = mean_d@cov_x
-                Sigma_xd = ca.vertcat(Sigma_xd,np.zeros((8,10)))
-                # Compute Matrices for Casadi
-                _first_mat = ca.horzcat(A,Bd)
-                _upper = ca.horzcat(cov_x,Sigma_xd.T)
-                _lower = ca.horzcat(Sigma_xd,cov_gp)
-                _second_mat = ca.vertcat(_upper,_lower)
-                _third_mat = ca.horzcat(A,Bd).T
-                # Compute Propagated Uncertainty
-                cov = _first_mat@_second_mat@_third_mat
-                Cov = ca.vertcat(Cov,cov[:2,:2])
-                # Chance Constraints
+                _first_mat = ca.horzcat(A,np.eye(2))
+                _second_mat = ca.vertcat(
+                    ca.horzcat(cov_x, Sigma_xd),
+                    ca.horzcat(Sigma_xd.T, cov_gp)
+                )
+                _third_mat = _first_mat.T
+                cov = _first_mat@ _second_mat@ _third_mat
+                l = np.sqrt(chi2.ppf(1-self.delta, 2))*cov[0,0]
                 for obstacle in self.obstacles:
-                    # Get obstacle radius
                     r = obstacle.r
-                    # Get obstacle position
-                    p0 = obstacle.get_center()
-                    # Compute cosntraints quantity
-                    a = (self.x[:2,k+1]-p0)/ca.sqrt((self.x[:2,k+1]-p0).T@(self.x[:2,k+1]-p0))
-                    b = r + self.quadrotor_r
-                    c = erfinv(1-2*self.delta)*ca.sqrt(2*a.T@cov[:2,:2]@a)
-                    # Add constraint
+                    p = obstacle.p
                     self.opti.subject_to(
-                        a.T@(self.x[:2,k+1]-p0)-b>=c
+                        (self.x[0,k+1]-p[0])**2+(self.x[1,k+1]-p[1])**2>(r+self.quadrotor_r+l)**2
                     )
+                Cov = ca.vertcat(Cov,cov)
                 cov_x = cov
             ## Otherwise compute the dynamics without the wind
             else:

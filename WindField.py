@@ -878,7 +878,7 @@ class WindField:
 
         predictor = GPModel(
             kernel,
-            predictor.likelihood.noise.item(),
+            predictor.likelihood.noise.item()/8,
             2,
             3,
             window_size,
@@ -954,11 +954,6 @@ class WindField:
                 if pos_cov is not None:
                     Covs.append(pos_cov.copy())
                     PredictedPos.append(predicted_pos.copy())
-                
-                self.__ctl_phi.append(control_force[0])
-                self.__ctl_theta.append(control_force[1])
-                self.__ctl_psi.append(control_force[2])
-                self.__ctl_a.append(control_force[3])
 
                 # Collect labels for GP
                 self.__gp_label_x.append(wind_force[0])
@@ -1010,6 +1005,10 @@ class WindField:
             self.__evz.append(ev[2])
             self.__wind_force_x.append(wind_force[0])
             self.__wind_force_y.append(wind_force[1])
+            self.__ctl_phi.append(control_force[0])
+            self.__ctl_theta.append(control_force[1])
+            self.__ctl_psi.append(control_force[2])
+            self.__ctl_a.append(control_force[3])
 
             # Simulate Dynamics
             self.__quadrotor.step(control_force,np.hstack([wind_force,0.0]))
@@ -1062,25 +1061,25 @@ class WindField:
         fig, ax = plt.subplots(4,1)
         fig.set_size_inches(16,9)
         fig.tight_layout(pad=4)
-        ax[0].plot(T[self.__idx_control],self.__ctl_phi)
+        ax[0].plot(T,self.__ctl_phi)
         ax[0].axhline(y=control_limit_low[0],color='k',linestyle='dashed',label=r'$\phi^{\lim}$')
         ax[0].axhline(y=control_limit_upper[0],color='k',linestyle='dashed')
         ax[0].set_ylabel(r'$\phi^c$ $[rad]$')
         ax[0].legend()
         ax[0].set_xlim([0,self.__duration*self.__dt])
-        ax[1].plot(T[self.__idx_control],self.__ctl_theta)
+        ax[1].plot(T,self.__ctl_theta)
         ax[1].axhline(y=control_limit_low[1],color='k',linestyle='dashed',label=r'$\theta^{\lim}$')
         ax[1].axhline(y=control_limit_upper[1],color='k',linestyle='dashed')
         ax[1].set_ylabel(r'$\theta^c$ $[rad]$')
         ax[1].legend()
         ax[1].set_xlim([0,self.__duration*self.__dt])
-        ax[2].plot(T[self.__idx_control],self.__ctl_psi)
+        ax[2].plot(T,self.__ctl_psi)
         ax[2].axhline(y=control_limit_low[2],color='k',linestyle='dashed',label=r'$\psi^{\lim}$')
         ax[2].axhline(y=control_limit_upper[2],color='k',linestyle='dashed')
         ax[2].set_ylabel(r'$\psi^c$ $[rad]$')
         ax[2].legend()
         ax[2].set_xlim([0,self.__duration*self.__dt])
-        ax[3].plot(T[self.__idx_control],self.__ctl_a)
+        ax[3].plot(T,self.__ctl_a)
         ax[3].axhline(y=control_limit_low[3],color='k',linestyle='dashed',label=r'$a^{\lim}$')
         ax[3].axhline(y=control_limit_upper[3],color='k',linestyle='dashed')
         ax[3].set_ylabel(r'$a^c$ $[m/s]$')
@@ -1109,12 +1108,12 @@ class WindField:
             cov = Covs[i]
             pos = PredictedPos[i]
             for j in range(self.__mpc.N):
-                print(cov[j,0],cov[j+1,1],file=sys.stderr)
+                # print(cov[j,0],cov[j+1,1],file=sys.stderr)
                 unc.append(
                     Ellipse(
                         (pos[0,j],pos[1,j]),
-                        2*(cov[j,0]*chi2_val),
-                        2*(cov[j+1,1]*chi2_val),
+                        2*(cov[j,0]*chi2_val+self.__quadrotor.r),
+                        2*(cov[j+1,1]*chi2_val+self.__quadrotor.r),
                         fc='cyan',
                         edgecolor='cyan',
                         alpha=0.5
@@ -1127,13 +1126,15 @@ class WindField:
             ax.clear()
 
             t = int(t*scale)
-            k = t//scale - window_size
+            k = t//scale - window_size - 1
             start = max(0,k-window_size)*scale
             ax.axis('equal')
             ax.set_xlim([0.0,self.__width])
             ax.set_ylim([0.0,self.__height])
 
             # Plot System Evolution
+            for o in obstacles:
+                ax.add_patch(o)
             ax.plot(np.NaN, np.NaN, '-', color='none', label='t={0:.2f} s'.format(t*self.__dt))
             ax.plot(np.NaN, np.NaN, 'o', color='k', markersize=10, label='Obstacles')
             ax.plot(np.NaN, np.NaN, '-', color='cyan', alpha=0.5, linewidth=10, label='Uncertainty')
@@ -1147,8 +1148,6 @@ class WindField:
                 ax.plot([self.__xs[t],*PredictedPos[k][0,:]],[self.__ys[t],*PredictedPos[k][1,:]],'-o',color='g',markersize=2,linewidth=1,label="Predicted Position")
                 for i in range(self.__mpc.N):
                     ax.add_patch(unc[i])
-            for o in obstacles:
-                ax.add_patch(o)
 
             ax.legend()
             
