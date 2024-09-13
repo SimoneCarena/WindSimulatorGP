@@ -16,14 +16,14 @@ class MPC:
         self.window_size = window_size
         self.lower = np.array([-np.pi/6, -np.pi/6, -np.pi/6, 5])
         self.upper = np.array([np.pi/6, np.pi/6, np.pi/6, 15])
-        # Chi^2 value for the uncertainty
-        self.chi2 = chi2.ppf(0.95, df=output_dim)
         # Eigenvectors for the direction of the ellipse,
         # assumed to be identical over all the directions
         self.eigs = np.eye(output_dim)
         self.obstacles = obstacles
         self.quadrotor_r = 0.1
         self.delta = 0.05
+        self.unc_val = erfinv(1-2*self.delta) 
+        self.chi2_val = np.sqrt(chi2.ppf(1-self.delta, 2))
 
         self.nx = 10  # State Dimension
         self.ny = 6  # Tracking Dimension
@@ -50,13 +50,12 @@ class MPC:
 
         # Define cost variable
         self.J = 0.0
-        # List of covariance matrices (for plot)
-        Cov = []
 
         # Add Initial State Constraint
         self.opti.subject_to(self.x[:, 0] == self.x0)
 
         cov_x = np.zeros((2,2))
+        Cov = []
 
         for k in range(self.N):
             # Compute Cost
@@ -88,15 +87,22 @@ class MPC:
                 )
                 _third_mat = _first_mat.T
                 cov = _first_mat@ _second_mat@ _third_mat
-                l = np.sqrt(chi2.ppf(1-self.delta, 2))*cov[0,0]
+                # Compute the semi-axis of the ellipse
+                lx = cov[0,0]*ca.sqrt(self.chi2_val)
+                ly = cov[1,1]*ca.sqrt(self.chi2_val)
+                # Approximate the ellipse with a circle of radius equal to
+                # the maximum of the 2 semi-axis
+                l = ca.fmax(lx,ly)
+                # Compute ellipsoidal constraints
                 for obstacle in self.obstacles:
                     r = obstacle.r
-                    p = obstacle.p
+                    p0 = obstacle.p
+                    d2 = (r+self.quadrotor_r+l)**2
                     self.opti.subject_to(
-                        (self.x[0,k+1]-p[0])**2+(self.x[1,k+1]-p[1])**2>(r+self.quadrotor_r+l)**2
+                        (self.x[:2,k+1]-p0).T@(self.x[:2,k+1]-p0)>d2
                     )
-                Cov = ca.vertcat(Cov,cov)
                 cov_x = cov
+                Cov = ca.vertcat(Cov,cov)
             ## Otherwise compute the dynamics without the wind
             else:
                 x_next = self.__step(self.x[:, k], self.u[:, k], ca.MX.zeros(3), self.dt) 
