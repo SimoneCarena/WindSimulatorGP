@@ -1,8 +1,40 @@
 import numpy as np
 
-from modules.Obstacle import Obstacle
 
-class Fan:
+class RealFan:
+    '''
+    Class describing a real set of fans generated the wind. The data is assumed to be stored
+    in the constructor parameters. The size of the wind field, as well as the resolution
+    of the grid are necessary to compute the indices for when generating the wind.
+    Currently only time-invariant wind fields are supported
+    '''
+    def __init__(self, mean_map, var_map, width, height, resolution):
+        self.__mean_map = mean_map
+        self.__var_map = var_map
+        self.__width = width
+        self.__height = height
+        self.__resolution = resolution
+
+    def generate_wind(self,x,y,t):
+        # Get indeces for the grid
+        idx_x = int(x*self.__resolution//self.__width)
+        idx_y = int(y*self.__resolution//self.__height)
+
+        # Draw the speed from a multivariate normal with certain speed and covariance
+        speed = np.random.multivariate_normal(
+            mean = np.array([
+                self.__mean_map[0,self.__resolution-1-idx_y,idx_x], # x mean component
+                self.__mean_map[1,self.__resolution-1-idx_y,idx_x]  # y mean component
+            ]),
+            cov = np.diag([
+                self.__var_map[0,self.__resolution-1-idx_y,idx_x], # x var component
+                self.__var_map[1,self.__resolution-1-idx_y,idx_x]  # y var component
+            ])
+        )
+        
+        return speed
+
+class SimulatedFan:
     '''
     Class describing the fans generating the wind. The parameters
     are the position of the fan p0=(x0,y0), the orientation of the fan

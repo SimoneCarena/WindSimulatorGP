@@ -1,10 +1,60 @@
-# Function Generator
+# Fans for Wind Generation
+
+The wind field can be generated in either of the following two ways:
+- Using real data collected inside a grid
+- Using wind generating functions
+
+Each of the this approach can be specified in the $\verb|.json|$ configuration file for the wind field. The configurations are mutually exclusive.
+
+The type of the wind generation is specifed in the `"type"` field of the "`fans`" field in the configuration file, and can be `"real"` if a wind map data is provided, or `"simulated"` if the wind field is generated as a set of fan each one with its own properties.
+
+To generate a wind field using simulated fans, one must specify, inside the `"src"` attribute, an array of fans, each with its own properites, as described in the next section.
+
+<u>Example:</u>
+```{json}
+"fans": {
+    "type": "simulated",
+    "src": [
+        {
+            "x0": 0,
+            "y0": 2,
+            "alpha": 0,
+            "noise_var": 0.1,
+            "length": 4,
+            "generator": {
+                "function": "constant",
+                "parameters": {
+                    "v0": 20
+                }
+            }
+        },
+        {
+            "x0": 2,
+            "y0": 4,
+            "alpha": -90,
+            "noise_var": 0.1,
+            "length": 4,
+            "generator": {
+                "function": "constant",
+                "parameters": {
+                    "v0": 20
+                }
+            }
+        }
+    ]
+```
+
+To use a precomputed wind map, in the `"src"` field, two fields have to be specified:
+- the location of the wind field mean map, inside the `"mean"` field
+- the location of the wind field variance map, inside the `"var"` field
+
+## Function Generator
 
 $\verb|json|$ formatting to generate wind-generating functions. The function description field is called $\verb|"generator"|$, and is one of the fan's fields. In the examples reported here, only the $\verb|"generator"|$ field of the fan is reported.
 
 To each function $v_0(t)$ is also added a Gaussian noise $\mathcal{N}(0,\sigma_n^2)$, where $\sigma_n^2$ is specified by the `nosie_var` parameter in the $\verb|json|$ file, and represents the variability in the generated wind.
 
-## $\sin$ and $\cos$ Functions
+### $\sin$ and $\cos$ Functions
 `"function"` parameter name: `"sin"`, `"cos"`
 
 $$
@@ -42,7 +92,7 @@ Function `"parameters"`:
 }
 ```
 
-## Square Function
+### Square Function
 `"function"` parameter name: `"square"`
 
 $$
@@ -64,7 +114,7 @@ Function `"parameters"`:
 }
 ```
 
-## Constant Function
+### Constant Function
 $\verb|"function"|$ parameter name: $\verb|"constant"|$
 
 $$
@@ -84,47 +134,7 @@ Function `"parameters"`:
 }
 ```
 
-## Random Gust
-$\verb|"function"|$ parameter name: $\verb|"random gust"|$
-
-$$
-    v_0(t)=V_0\cdot X(t)
-$$
-
-where $X(t)\in\{0,1\}$ is such that
-
-$$
-    X(t)=\left\{ 
-        \begin{array}{cl}
-        \left.
-        \begin{array}{cl}
-                X(t-1) & \text{with probability }p\\
-                1-X(t-1) & \text{with probability }1-p\\
-        \end{array} 
-        \right\}& \text{if }t\neq0\\
-        \begin{array}{c}
-            1 
-        \end{array} & \text{if }t=0
-        \end{array}
-    \right.
-$$
-
-Function `"parameters"`:
- - $V_0$: `"v0"` parameter
- - $p$: `"p"` parameter $\left(\,p\in[0,1]\,\right)$
-
-<u>Example:</u>
-```{json}
-"generator": {
-    "function": "random gust",
-    "parameters": {
-        "v0": 10,
-        "p": 0.8
-    }
-}
-```
-
-# Fan Generation Function
+## Fan Generation Function
 
 $$
 v(t,d_\perp,d_\parallel) = \frac{v_0(t)}{2}\frac{\tanh\left( \frac{d_\perp+\frac{L}{2}}{w\cdot \left(d_\parallel+1\right)} \right)-\tanh\left(\frac{d_\perp-\frac{L}{2}}{w\cdot \left(d_\parallel+1\right)}\right)}{d_\parallel+1}
@@ -145,3 +155,22 @@ d_\perp=\left| \mathbf{p}\cdot\mathbf{u}_0^\perp \right|
 $$
 
 !['Wind Speed'](imgs/readme/fan_xyz.png)
+
+## Real Wind Field
+
+To use a wind field consisting of real world measurements, the `"type"` parameter has to be `"real"`, and the `"src"` parameter must contain the `"mean"` and `"var"` fields, specifying the location of the files for the, respectively, mean and variance wind map.
+
+Each file has to be a $\verb|numpy|$ file, i.e. a file with $\verb|.npy|$ format, containing an $N\times N\times 3$ matrix of wind measurements. 
+
+To compute the wind speed at position $(x,y)$ the following operations are performed:
+- The position is translated into a pair of indices $(i,j)$ for the grid, as
+
+    - $\verb|i| = x\cdot\frac{ \verb|grid_resolution|}{\verb|grid_width|}$
+
+    - $\verb|j| = y\cdot\frac{\verb|grid_resolution|}{\verb|grid_height|}$
+
+- The speed is drawn from a multivariate normal, with mean $\boldsymbol{\mu^{V}}=[\verb|mean_map[i,j,0]|,\verb|mean_map[i,j,1]|]^{\text{T}}$ and variance $\boldsymbol{\Sigma^{V}}=\text{diag}\left([\verb|var_map[i,j,0]|,\verb|var_map[i,j,1]|]\right)$, as in
+
+$$
+    \mathbf{V}\sim\mathcal{N}\left(\boldsymbol{\mu^V},\boldsymbol{\Sigma^{V}}\right)
+$$

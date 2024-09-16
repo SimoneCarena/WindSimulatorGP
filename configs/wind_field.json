@@ -1,77 +1,20 @@
 {
-    "height": 4,
-    "width": 4,
-    "grid_resolution": 30,
+    "height": 4.6,
+    "width": 4.6,
+    "grid_resolution": 40,
     "duration": 30000,
     "dt": 0.001,
     "air_density": 1.2,
     "control_frequency": 100,
-    "fans": [
-        {
-            "x0": 0,
-            "y0": 2,
-            "alpha": 0,
-            "noise_var": 0.1,
-            "length": 4,
-            "generator": {
-                "function": "constant",
-                "parameters": {
-                    "v0": 20
-                }
-            }
-        },
-        {
-            "x0": 2,
-            "y0": 4,
-            "alpha": -90,
-            "noise_var": 0.1,
-            "length": 4,
-            "generator": {
-                "function": "constant",
-                "parameters": {
-                    "v0": 20
-                }
-            }
-        },
-        {
-            "x0": 4,
-            "y0": 4,
-            "alpha": 225,
-            "noise_var": 0.1,
-            "length": 2,
-            "generator": {
-                "function": "constant",
-                "parameters": {
-                    "v0": 12
-                }
-            }
-        },
-        {
-            "x0": 4,
-            "y0": 0,
-            "alpha": 135,
-            "noise_var": 0.1,
-            "length": 2,
-            "generator": {
-                "function": "constant",
-                "parameters": {
-                    "v0": 12
-                }
-            }
-        },
-        {
-            "x0": 2,
-            "y0": 0,
-            "alpha": 90,
-            "noise_var": 0.1,
-            "length": 2,
-            "generator": {
-                "function": "constant",
-                "parameters": {
-                    "v0": 22
-                }
-            }
+    "fans": {
+        "type": "real",
+        "src": {
+            "mean": "./maps/scenario2/wind_field_mean.npy",
+            "var": "./maps/scenario2/wind_field_var.npy"
         }
-    ],
-    "obstacles": []
+
+    },
+    "obstacles": [
+        
+    ]
 }
