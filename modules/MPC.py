@@ -88,8 +88,8 @@ class MPC:
                 _third_mat = _first_mat.T
                 cov = _first_mat@ _second_mat@ _third_mat
                 # Compute the semi-axis of the ellipse
-                lx = 2*cov[0,0]*ca.sqrt(self.chi2_val)
-                ly = 2*cov[1,1]*ca.sqrt(self.chi2_val)
+                lx = ca.sqrt(cov[0,0]*self.chi2_val)
+                ly = ca.sqrt(cov[1,1]*self.chi2_val)
                 # Approximate the ellipse with a circle of radius equal to
                 # the maximum of the 2 semi-axis
                 l = ca.fmax(lx,ly)

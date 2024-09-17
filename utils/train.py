@@ -134,7 +134,7 @@ def train_ExactGP(gp_data, x_labels, y_labels, options, device, training_iter=10
             __train_ExactGP(train_data,[train_x_labels,train_y_labels],[model_x,model_y],[likelihood_x,likelihood_y],name,training_iter)
 
 def train_MultiOutputExactGP(gp_data, x_labels, y_labels, options, device, training_iter=10000):
-    idxs = torch.IntTensor(random.sample(range(len(gp_data)),1000))
+    idxs = torch.IntTensor(random.sample(range(len(gp_data)),400))
     file = open(".metadata/mo_exact_gp_dict","rb")
     mo_exact_gp_dict = pickle.load(file)
     

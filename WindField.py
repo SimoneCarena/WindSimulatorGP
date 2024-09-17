@@ -418,7 +418,7 @@ class WindField:
 
         predictor = GPModel(
             kernel,
-            predictor.likelihood.noise.item()/8,
+            predictor.likelihood.noise.item(),
             2,
             3,
             window_size,
@@ -558,9 +558,7 @@ class WindField:
         control_limit_low = self.__mpc.lower
         control_limit_upper = self.__mpc.upper
 
-        ## Get Position Uncertainty
-
-
+        ## Plot 3D Trajectory
         fig = plt.figure()
         ax = plt.axes(projection='3d')
         fig.set_size_inches(16,9)
@@ -577,9 +575,10 @@ class WindField:
                 4
             )
             ax.plot_surface(Xc, Yc, Zc, color='k')
-        ax.axis('equal')
+        ax.set_aspect('equal','box')
         plt.legend()
 
+        ## Plot 2D xy Projection of the Trajectory
         fig, ax = plt.subplots()
         fig.set_size_inches(16,9)
         fig.tight_layout(pad=2)
@@ -592,12 +591,13 @@ class WindField:
             'ro',
             label='Start of GP Prediction'
         )
-        ax.axis('equal')
+        ax.set_aspect('equal','box')
         for obstacle in self.__obstacles:
             o = Ellipse((obstacle.x,obstacle.y),2*obstacle.r,2*obstacle.r,edgecolor='k',fc='k')
             ax.add_patch(o)
         ax.legend()
 
+        ## Plot Control Inputs
         fig, ax = plt.subplots(4,1)
         fig.set_size_inches(16,9)
         fig.tight_layout(pad=4)
@@ -627,7 +627,99 @@ class WindField:
         ax[3].legend()
         ax[3].set_xlim([0,self.__duration*self.__dt])
 
-        plt.show()
+        ## Plot Tracking Error (x-Position)
+        fig, ax = plt.subplots(2,1)
+        fig.set_size_inches(16,9)
+        fig.tight_layout(pad=3)
+        fig.suptitle('x Position')
+        ax[0].plot(T,self.__xs,label='System x Position')
+        ax[0].plot(T,target_p[0,:],'--',color='orange',label='Reference x Position')
+        ax[1].plot(T,self.__ex,label='Position Error')
+        ax[0].set_xlabel(r'$t$ $[s]$')
+        ax[0].set_ylabel(r'$x$ $[m]$')
+        ax[1].set_xlabel(r'$t$ $[s]$')
+        ax[1].set_ylabel(r'$e_x$ $[m]$')
+        ax[0].legend()
+        ax[1].legend()
+        
+        ## Plot Tracking Error (y-Position)
+        fig, ax = plt.subplots(2,1)
+        fig.set_size_inches(16,9)
+        fig.tight_layout(pad=3)
+        fig.suptitle('y Position')
+        ax[0].plot(T,self.__ys,color='tab:blue',label='System y Position')
+        ax[0].plot(T,target_p[1,:],'--',color='orange',label='Reference y Position')
+        ax[1].plot(T,self.__ey,label='Position Error')
+        ax[0].set_xlabel(r'$t$ $[s]$')
+        ax[0].set_ylabel(r'$y$ $[m]$')
+        ax[1].set_xlabel(r'$t$ $[s]$')
+        ax[1].set_ylabel(r'$e_y$ $[m]$')
+        ax[0].legend()
+        ax[1].legend()
+
+        ## Plot Tracking Error (z-Position)
+        fig, ax = plt.subplots(2,1)
+        fig.set_size_inches(16,9)
+        fig.tight_layout(pad=3)
+        fig.suptitle('z Position')
+        ax[0].plot(T,self.__zs,color='tab:blue',label='System z Position')
+        ax[0].plot(T,target_p[2,:],'--',color='orange',label='Reference z Position')
+        ax[1].plot(T,self.__ez,label='Position Error')
+        ax[0].set_xlabel(r'$t$ $[s]$')
+        ax[0].set_ylabel(r'$z$ $[m]$')
+        ax[1].set_xlabel(r'$t$ $[s]$')
+        ax[1].set_ylabel(r'$e_z$ $[m]$')
+        ax[0].legend()
+        ax[1].legend()
+
+        ## Plot Tracking Error (x-Velocity)
+        fig, ax = plt.subplots(2,1)
+        fig.set_size_inches(16,9)
+        fig.tight_layout(pad=3)
+        fig.suptitle('x Velocity')
+        ax[0].plot(T,self.__vxs,color='tab:blue',label='System x Velocity')
+        ax[0].plot(T,target_v[0,:],'--',color='orange',label='Reference x Velocity')
+        ax[1].plot(T,self.__evx,label='Position Error')
+        ax[0].set_xlabel(r'$t$ $[s]$')
+        ax[0].set_ylabel(r'$V_x$ $[m/s]$')
+        ax[1].set_xlabel(r'$t$ $[s]$')
+        ax[1].set_ylabel(r'$e_{V_x}$ $[m/s]$')
+        ax[0].legend()
+        ax[1].legend()
+
+        ## Plot Tracking Error (y-Velocity)
+        fig, ax = plt.subplots(2,1)
+        fig.set_size_inches(16,9)
+        fig.tight_layout(pad=3)
+        fig.suptitle('y Velocity')
+        ax[0].plot(T,self.__vys,color='tab:blue',label='System y Velocity')
+        ax[0].plot(T,target_v[1,:],'--',color='orange',label='Reference y Velocity')
+        ax[1].plot(T,self.__evy,label='Position Error')
+        ax[0].set_xlabel(r'$t$ $[s]$')
+        ax[0].set_ylabel(r'$V_y$ $[m/s]$')
+        ax[1].set_xlabel(r'$t$ $[s]$')
+        ax[1].set_ylabel(r'$e_{V_y}$ $[m/s]$')
+        ax[0].legend()
+        ax[1].legend()
+
+        ## Plot Tracking Error (z-Velocity)
+        fig, ax = plt.subplots(2,1)
+        fig.set_size_inches(16,9)
+        fig.tight_layout(pad=3)
+        fig.suptitle('z Velocity')
+        ax[0].plot(T,self.__vzs,color='tab:blue',label='System z Velocity')
+        ax[0].plot(T,target_v[2,:],'--',color='orange',label='Reference z Velocity')
+        ax[1].plot(T,self.__evz,label='Position Error')
+        ax[0].set_xlabel(r'$t$ $[s]$')
+        ax[0].set_ylabel(r'$V_z$ $[m/s]$')
+        ax[1].set_xlabel(r'$t$ $[s]$')
+        ax[1].set_ylabel(r'$e_{V_z}$ $[m/s]$')
+        ax[0].legend()
+        ax[1].legend()
+
+        if show:
+            plt.show()
+        plt.close('all')
 
         # Animation
         ## Add Obstacles
@@ -642,24 +734,36 @@ class WindField:
         scale = self.__control_frequency
 
         UncEllipses = []
+        DroneEllipses = []
         chi2_val = np.sqrt(chi2.ppf(1-self.__mpc.delta, 2))
         for i in range(len(Covs)):
             unc = []
+            drones = []
             cov = Covs[i]
             pos = PredictedPos[i]
             for j in range(self.__mpc.N):
-                # print(cov[j,0],cov[j+1,1],file=sys.stderr)
                 unc.append(
                     Ellipse(
                         (pos[0,j],pos[1,j]),
-                        2*(cov[j,0]*chi2_val+self.__quadrotor.r),
-                        2*(cov[j+1,1]*chi2_val+self.__quadrotor.r),
+                        2*(np.sqrt(cov[j,0])*chi2_val+self.__quadrotor.r),
+                        2*(np.sqrt(cov[j+1,1])*chi2_val+self.__quadrotor.r),
                         fc='cyan',
                         edgecolor='cyan',
                         alpha=0.5
                     )
                 )
+                drones.append(
+                    Ellipse(
+                        (pos[0,j],pos[1,j]),
+                        2*self.__quadrotor.r,
+                        2*self.__quadrotor.r,
+                        fc='firebrick',
+                        edgecolor='firebrick',
+                        alpha=0.4
+                    )
+                )
             UncEllipses.append(unc)
+            DroneEllipses.append(drones)
 
         def animation_function(t):
             # Clear figures and setup plots
@@ -677,17 +781,21 @@ class WindField:
                 ax.add_patch(o)
             ax.plot(np.NaN, np.NaN, '-', color='none', label='t={0:.2f} s'.format(t*self.__dt))
             ax.plot(np.NaN, np.NaN, 'o', color='k', markersize=10, label='Obstacles')
-            ax.plot(np.NaN, np.NaN, '-', color='cyan', alpha=0.5, linewidth=10, label='Uncertainty')
+            ax.plot(np.NaN, np.NaN, '-', color='cyan', alpha=0.5, linewidth=8, label='Uncertainty')
+            ax.plot(np.NaN, np.NaN, '-', color='firebrick', alpha=0.4, linewidth=8, label='Drone Radius')
             ax.plot(target_p[0,:t],target_p[1,:t],'--',color='orange',label="Reference Trajectory")
             ax.plot(target_p[0,t],target_p[1,t],'o',color='orange')
-            ax.plot(self.__xs[t],self.__ys[t],'bo',label='System Position')
+            ax.plot(self.__xs[t],self.__ys[t],'o',color='tab:blue',label='System Position')
             ax.plot(self.__xs[start:t:scale],self.__ys[start:t:scale],'o-',color=(0.878, 0.867, 0.137,0.5),markerfacecolor=(0.878, 0.867, 0.137,1.0),markeredgecolor=(0.878, 0.867, 0.137,1.0),linewidth=8,markersize=2,label='Active Window')
-            ax.plot(self.__xs[:t],self.__ys[:t],'b--',label="System Trajectory")
+            ax.plot(self.__xs[:t],self.__ys[:t],'--',color="tab:blue",label="System Trajectory")
             if k>0:
                 unc = UncEllipses[k]
+                drones = DroneEllipses[k]
                 ax.plot([self.__xs[t],*PredictedPos[k][0,:]],[self.__ys[t],*PredictedPos[k][1,:]],'-o',color='g',markersize=2,linewidth=1,label="Predicted Position")
                 for i in range(self.__mpc.N):
                     ax.add_patch(unc[i])
+                for i in range(self.__mpc.N):
+                    ax.add_patch(drones[i])
 
             ax.legend()
             

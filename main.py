@@ -82,7 +82,7 @@ if not test:
 
     # Train the models
     train_ExactGP(gp_data,x_labels,y_labels,exact_gp_options,device,2000)
-    train_MultiOutputExactGP(gp_data,x_labels,y_labels,mo_exact_gp_options,device,2000)
+    train_MultiOutputExactGP(gp_data,x_labels,y_labels,mo_exact_gp_options,device,20000)
     train_SVGP(gp_data,x_labels,y_labels,svgp_options,device,2000)
 # Test Models
 else:

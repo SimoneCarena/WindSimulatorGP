@@ -9,8 +9,8 @@
     "fans": {
         "type": "real",
         "src": {
-            "mean": "./maps/scenario1/wind_field_mean.npy",
-            "var": "./maps/scenario1/wind_field_var.npy"
+            "mean": "./maps/scenario3/wind_field_mean.npy",
+            "var": "./maps/scenario3/wind_field_var.npy"
         }
 
     },
