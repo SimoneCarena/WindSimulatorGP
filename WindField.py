@@ -508,7 +508,7 @@ class WindField:
                         R=0.1*np.eye(4),
                         input_dim=2,
                         output_dim=3,
-                        window_size=50,
+                        window_size=window_size,
                         predictor=predictor,
                         obstacles=self.__obstacles
                     )
@@ -883,7 +883,7 @@ class WindField:
                         R=0.1*np.eye(4),
                         input_dim=2,
                         output_dim=3,
-                        window_size=50,
+                        window_size=window_size,
                         predictor=predictor,
                         obstacles=self.__obstacles
                     )
