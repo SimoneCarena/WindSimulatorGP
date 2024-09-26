@@ -1,6 +1,8 @@
 import casadi as ca
 import numpy as np
 
+from acados_template import AcadosModel
+
 class Quadrotor:
     def __init__(self, dt, x0):
         tau = np.array([0.18,0.18,0.56,0.05])
@@ -47,8 +49,48 @@ class Quadrotor:
     def get_diff_dynamics(self):
         return self.diff_dynamics_function
     
+    def get_acados_model(self):
+        # Define the state variables
+        p = ca.SX.sym('p', 3)       # Position [x, y, z]
+        v = ca.SX.sym('v', 3)       # Velocity [vx, vy, vz]
+        att = ca.SX.sym('att', 4)   # Attitude [phi, theta, psi, thrust]
+        state = ca.vertcat(p, v, att)
+
+        # Control Inputs
+        u = ca.SX.sym('u', 4) # Control input [phi_c, theta_c, psi_c, thrust_c]
+        # Wind Force
+        # wind = ca.SX.sym('wind',3)
+
+        # Define the dynamics
+        p_dot = v
+
+        phi = att[0]
+        theta = att[1]
+        psi = att[2]
+        thrust = att[3]
+
+        v_dot = ca.vertcat(
+            ca.sin(phi)*ca.sin(psi) + ca.cos(phi)*ca.sin(theta)*ca.cos(psi),
+            -ca.sin(phi)*ca.cos(psi) + ca.cos(phi)*ca.sin(theta)*ca.sin(psi),
+            ca.cos(phi)*ca.cos(psi)
+        ) * thrust - self.g # + wind
+
+        att_dot = self.Tau @ att + self.K * u
+
+        # Concatenate the state derivatives
+        state_dot = ca.vertcat(p_dot, v_dot, att_dot)
+
+        model = AcadosModel()
+        model.x = state
+        model.u = u
+        f_expl_expr = ca.Function('f_expl_expr', [state, u], [state_dot])
+        model.f_expl_expr = f_expl_expr(state,u)
+        model.name = 'quadrotor_model'
+
+        return model
+    
     def __setup_dynamics(self):
-         # Define the state variables
+        # Define the state variables
         p = ca.SX.sym('p', 3)       # Position [x, y, z]
         v = ca.SX.sym('v', 3)       # Velocity [vx, vy, vz]
         att = ca.SX.sym('att', 4)   # Attitude [phi, theta, psi, thrust]

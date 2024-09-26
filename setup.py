@@ -35,8 +35,13 @@ def __setup_json():
     pickle.dump(_mo_exact_gp,file)
     file.close()
 
+def __setup_acados_folder():
+    if not os.path.isdir("acados"):
+        os.mkdir("acados")
+
 def __setup():
     __setup_json()
+    __setup_acados_folder()
 
 if __name__ == "__main__":
     __setup()

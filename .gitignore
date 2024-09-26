@@ -12,3 +12,5 @@ imgs/gp_updates/*.png
 imgs/wind_field/*.png
 imgs/gp_updates/*.svg
 imgs/wind_field/*.svg
+acados/
+c_generated_code/

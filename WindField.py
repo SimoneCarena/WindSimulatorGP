@@ -95,8 +95,8 @@ class WindField:
             self.__quadrotor,
             self.__control_horizon,
             self.__dt*self.__control_frequency,
-            Q=100*np.eye(6), 
-            R=0.1*np.eye(4),
+            Q=1000*np.eye(6), 
+            R=1*np.eye(4),
             input_dim=2,
             output_dim=3,
             window_size=50,
@@ -313,7 +313,6 @@ class WindField:
         self.__trajectory = Trajectory(trajectory_file,laps,[2,0])
         self.__duration*=laps
         self.__trajectory_name = trajectory_name
-        self.__tr_p, self.__tr_v = self.__trajectory.trajectory()
 
     def simulate_wind_field(self): 
         '''
@@ -350,9 +349,9 @@ class WindField:
             )
             total_speed = np.array([0,0],dtype=float)
             state = self.__quadrotor.get_state()
-            for fan in self.fans:
-                speed = fan.generate_wind(state[0],state[1],t*self.__dt)
-                total_speed+=speed
+            # for fan in self.fans:
+            #     speed = fan.generate_wind(state[0],state[1],t*self.__dt)
+            #     total_speed+=speed
 
             # Generate wind force
             wind_force = 0.1*total_speed*np.sign(total_speed)
