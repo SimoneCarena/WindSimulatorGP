@@ -23,8 +23,8 @@ class RealFan:
         # Draw the speed from a multivariate normal with certain speed and covariance
         speed = np.random.multivariate_normal(
             mean = np.array([
-                self.__mean_map[0,self.__resolution-1-idx_y,idx_x], # x mean component
-                self.__mean_map[1,self.__resolution-1-idx_y,idx_x]  # y mean component
+                3*self.__mean_map[0,self.__resolution-1-idx_y,idx_x], # x mean component
+                3*self.__mean_map[1,self.__resolution-1-idx_y,idx_x]  # y mean component
             ]),
             cov = np.diag([
                 self.__var_map[0,self.__resolution-1-idx_y,idx_x], # x var component

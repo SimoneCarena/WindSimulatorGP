@@ -349,12 +349,12 @@ class WindField:
             )
             total_speed = np.array([0,0],dtype=float)
             state = self.__quadrotor.get_state()
-            # for fan in self.fans:
-            #     speed = fan.generate_wind(state[0],state[1],t*self.__dt)
-            #     total_speed+=speed
+            for fan in self.fans:
+                speed = fan.generate_wind(state[0],state[1],t*self.__dt)
+                total_speed+=speed
 
             # Generate wind force
-            wind_force = 0.1*total_speed*np.sign(total_speed)
+            wind_force = 0.5*0.47*1.225*np.pi*self.__quadrotor.r**2*total_speed**2*np.sign(total_speed)
             ep = target_p[:,t] - state[:3]
             ev = target_v[:,t] - state[3:6]
             if t%self.__control_frequency == 0:

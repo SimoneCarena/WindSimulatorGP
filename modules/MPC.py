@@ -19,6 +19,8 @@ class MPC:
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.window_size = window_size
+        self.obstacles = obstacles
+        self.quadrotor_r = 0.1
 
         self.lower = np.array([-np.pi/6, -np.pi/6, -np.pi/6, 5])
         self.upper = np.array([np.pi/6, np.pi/6, np.pi/6, 15])
@@ -74,6 +76,32 @@ class MPC:
         ocp.constraints.idxbu = np.arange(self.nu)
         ocp.constraints.x0 = np.zeros(self.nx)
 
+        # Add Obstacles avoidance constraints
+        ## The constraints on the obstacles must be added only if there are obstacles 
+        ## otherwise casadi complains if we add an empy array
+        if self.obstacles:
+            num_obstacles = len(self.obstacles)
+            h = []
+            for obstacle in self.obstacles:
+                p0 = obstacle.p
+                r = obstacle.r
+                h = vertcat(
+                    h,
+                    (ocp.model.x[:2]-p0).T@(ocp.model.x[:2]-p0)-(r+self.quadrotor_r)**2
+                )
+            ## The formulation for the constraints has to be expressed as
+            ## lh_i <= h_i(x,u) <= uh_i
+            ## for each obstacle i
+            ## Some value must be set as an upper bound for the optimization, even though
+            ## only the formulation h(x,u) <= 0 is needed, thus an upper bound of 
+            ## 1000 is used (which is reasonably large)
+            ocp.model.con_h_expr_0 = h
+            ocp.model.con_h_expr = h
+            ocp.constraints.lh_0 = np.zeros(num_obstacles)
+            ocp.constraints.uh_0 = np.array([1000]*num_obstacles)
+            ocp.constraints.lh = np.zeros(num_obstacles)
+            ocp.constraints.uh = np.array([1000]*num_obstacles)
+
         # Create the solver
         self.solver = AcadosOcpSolver(ocp, json_file='acados/acados_ocp.json')
 
@@ -119,7 +147,6 @@ class MPC:
 
         # Solve the optimization problem
         status = self.solver.solve()
-        # print(self.solver.get_cost())
 
         # Check the solver status
         if status != 0:
