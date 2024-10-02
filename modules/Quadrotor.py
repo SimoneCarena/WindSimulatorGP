@@ -80,14 +80,7 @@ class Quadrotor:
         # Concatenate the state derivatives
         state_dot = ca.vertcat(p_dot, v_dot, att_dot)
 
-        model = AcadosModel()
-        model.x = state
-        model.u = u
-        f_expl_expr = ca.Function('f_expl_expr', [state, u], [state_dot])
-        model.f_expl_expr = f_expl_expr(state,u)
-        model.name = 'quadrotor_model'
-
-        return model
+        return state, u, state_dot
     
     def __setup_dynamics(self):
         # Define the state variables

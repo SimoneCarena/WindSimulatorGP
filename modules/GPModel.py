@@ -53,7 +53,6 @@ class GPModel:
             self.__inputs.pop(0)
             self.__labels.append(label.copy())
             self.__labels.pop(0)
-            self.__K_inv = np.linalg.inv(self.__K + self.__noise_var**2*np.eye(self.__window_size))
         else:
             # Compute the updated Kernel matrix
             for k in range(self.__size):
@@ -74,7 +73,9 @@ class GPModel:
         inputs = np.array(self.__inputs)
         labels = np.array(self.__labels)
 
-        return self.__K_inv, inputs.T, labels
+        K_inv = np.linalg.inv(self.__K + self.__noise_var**2*np.eye(self.__window_size))
+
+        return K_inv, inputs.T, labels
 
     def get_dims(self):
         return self.__window_size, self.__input_dim, self.__output_dim

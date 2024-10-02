@@ -2,18 +2,15 @@ import numpy as np
 import casadi as ca
 import os
 
-from acados_template import AcadosOcp, AcadosOcpSolver
+from acados_template import AcadosOcp, AcadosOcpSolver, AcadosModel
 from casadi import vertcat
 from scipy.stats import chi2
 from scipy.special import erfinv
 
-from acados_template import AcadosOcp, AcadosOcpSolver
-import numpy as np
-import casadi as ca
-
 class MPC:
     def __init__(self, model, control_horizon, dt, Q, R, input_dim, output_dim, window_size,obstacles=[],predictor=None):
-        self.model = model.get_acados_model()
+        self.model = model
+        self.predictor = predictor
         self.N = control_horizon
         self.dt = dt
         self.input_dim = input_dim
@@ -32,13 +29,22 @@ class MPC:
         self.nx = 10 # Dimensions of the state
         self.nu = 4  # Dimension of the inputs
 
-        self.__setup_solver()
+        if self.predictor is not None:
+            self.__setup_solver_gp()
+        else:
+            self.__setup_solver()
 
     def __setup_solver(self):
         ocp = AcadosOcp()
 
         # Use the previously created acados model
-        ocp.model = self.model
+        model = AcadosModel()
+        state, u, state_dot = self.model.get_acados_model()
+        model.x = state
+        model.u = u
+        model.f_expl_expr = state_dot
+        model.name = 'quadrotor_mpc'
+        ocp.model = model
 
         # Time horizon and discretization
         ocp.solver_options.N_horizon = self.N
@@ -103,6 +109,108 @@ class MPC:
             ocp.constraints.uh = np.array([1000]*num_obstacles)
 
         # Create the solver
+        ocp.code_export_directory = 'acados/solver_no_gp'
+        self.solver = AcadosOcpSolver(ocp, json_file='acados/acados_ocp.json')
+
+    def __setup_solver_gp(self):
+        ocp = AcadosOcp()
+
+        # Use the previously created acados model
+        model = AcadosModel()
+        K_inv = ca.SX.sym('K_inv',self.window_size,self.window_size)
+        X = ca.SX.sym('X',self.input_dim,self.window_size)
+        y = ca.SX.sym('y',self.window_size,self.output_dim)
+        state, u, state_dot = self.model.get_acados_model()
+        model.x = state
+        model.u = u
+        K_xx = []
+        for k in range(self.window_size):
+            K_xx.append(
+                self.predictor.kernel(
+                    state[:2],X[:,k]
+                )
+            )
+        K_xx = ca.vertcat(*K_xx)
+        mean = K_xx.T@K_inv@y
+        state_dot[3:6]+=mean.T
+        model.f_expl_expr = state_dot
+        model.p = ca.vertcat(
+            K_inv.reshape((-1,1)),
+            X.reshape((-1,1)),
+            y.reshape((-1,1))
+        )
+        model.name = 'quadrotor_gp_mpc'
+
+        ocp.model = model
+        ocp.parameter_values = np.zeros((
+            self.window_size*(self.window_size+self.input_dim+self.output_dim),
+            1
+        ))
+
+        # Time horizon and discretization
+        ocp.solver_options.N_horizon = self.N
+        ocp.solver_options.tf = self.N * self.dt
+
+        # Cost function
+        ocp.cost.cost_type = 'LINEAR_LS'
+        ocp.cost.cost_type_e = 'LINEAR_LS'
+        ## Weight matrix for intermediate steps
+        ocp.cost.W = ca.diagcat(self.Q,self.R).full()
+        ## Weight matrix for final step
+        ocp.cost.W_e = self.Q
+        ## Mapping matrices:
+        ### - x -> state
+        ### - u -> inputs
+        ### _e -> final state/input, otherwise, intermediate
+        ocp.cost.Vx = np.diag([1,1,1,1,1,1,0,0,0,0])
+        ocp.cost.Vx_e = np.block([
+            np.eye(self.ny), np.zeros((self.ny,self.nx-self.ny))
+        ])
+        ocp.cost.Vu = np.block([
+            [np.zeros((self.ny,self.nu))],
+            [np.eye(self.nu)]
+        ])
+        ## The reference is shaped (ny+nu), and is the concatenations of the
+        ## state reference (ny as the nyumber of controlled state != the number of total states)
+        ## and the input reference (nu)
+        ocp.cost.yref = np.array([0,0,0,0,0,0,0,0,0,0])
+        ## The terminal cost only referencec the state
+        ocp.cost.yref_e = np.array([0,0,0,0,0,0])
+
+        # Constraints
+        ocp.constraints.lbu = self.lower
+        ocp.constraints.ubu = self.upper
+        ocp.constraints.idxbu = np.arange(self.nu)
+        ocp.constraints.x0 = np.zeros(self.nx)
+
+        # Add Obstacles avoidance constraints
+        ## The constraints on the obstacles must be added only if there are obstacles 
+        ## otherwise casadi complains if we add an empy array
+        if self.obstacles:
+            num_obstacles = len(self.obstacles)
+            h = []
+            for obstacle in self.obstacles:
+                p0 = obstacle.p
+                r = obstacle.r
+                h = vertcat(
+                    h,
+                    (ocp.model.x[:2]-p0).T@(ocp.model.x[:2]-p0)-(r+self.quadrotor_r)**2
+                )
+            ## The formulation for the constraints has to be expressed as
+            ## lh_i <= h_i(x,u) <= uh_i
+            ## for each obstacle i
+            ## Some value must be set as an upper bound for the optimization, even though
+            ## only the formulation h(x,u) <= 0 is needed, thus an upper bound of 
+            ## 1000 is used (which is reasonably large)
+            ocp.model.con_h_expr_0 = h
+            ocp.model.con_h_expr = h
+            ocp.constraints.lh_0 = np.zeros(num_obstacles)
+            ocp.constraints.uh_0 = np.array([1000]*num_obstacles)
+            ocp.constraints.lh = np.zeros(num_obstacles)
+            ocp.constraints.uh = np.array([1000]*num_obstacles)
+
+        # Create the solver
+        ocp.code_export_directory = 'acados/solver_gp'
         self.solver = AcadosOcpSolver(ocp, json_file='acados/acados_ocp.json')
 
     def __call__(self, x, ref):
@@ -144,6 +252,20 @@ class MPC:
             "yref",
             ref[:,-1]
         )
+
+        if self.predictor is not None:
+            K_inv, X, y = self.predictor()
+            params = np.concatenate([
+                K_inv.reshape((-1,1)),
+                X.reshape((-1,1)),
+                y.reshape((-1,1))
+            ])
+            for k in range(self.N):
+                self.solver.set(
+                    k,
+                    "p",
+                    params
+                )
 
         # Solve the optimization problem
         status = self.solver.solve()
