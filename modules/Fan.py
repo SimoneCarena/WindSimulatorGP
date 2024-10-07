@@ -27,8 +27,9 @@ class RealFan:
                 3*self.__mean_map[1,self.__resolution-1-idx_y,idx_x]  # y mean component
             ]),
             cov = np.diag([
-                self.__var_map[0,self.__resolution-1-idx_y,idx_x], # x var component
-                self.__var_map[1,self.__resolution-1-idx_y,idx_x]  # y var component
+                # self.__var_map[0,self.__resolution-1-idx_y,idx_x], # x var component
+                # self.__var_map[1,self.__resolution-1-idx_y,idx_x]  # y var component
+                0,0
             ])
         )
         

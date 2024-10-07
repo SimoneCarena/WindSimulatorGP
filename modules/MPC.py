@@ -1,6 +1,6 @@
 import numpy as np
 import casadi as ca
-import os
+import sys
 
 from acados_template import AcadosOcp, AcadosOcpSolver, AcadosModel
 from casadi import vertcat
@@ -18,6 +18,7 @@ class MPC:
         self.window_size = window_size
         self.obstacles = obstacles
         self.quadrotor_r = 0.1
+        self.delta = 0.05
 
         self.lower = np.array([-np.pi/6, -np.pi/6, -np.pi/6, 5])
         self.upper = np.array([np.pi/6, np.pi/6, np.pi/6, 15])
@@ -117,33 +118,18 @@ class MPC:
 
         # Use the previously created acados model
         model = AcadosModel()
-        K_inv = ca.SX.sym('K_inv',self.window_size,self.window_size)
-        X = ca.SX.sym('X',self.input_dim,self.window_size)
-        y = ca.SX.sym('y',self.window_size,self.output_dim)
+        mean = ca.SX.sym('mean',3)
         state, u, state_dot = self.model.get_acados_model()
         model.x = state
         model.u = u
-        K_xx = []
-        for k in range(self.window_size):
-            K_xx.append(
-                self.predictor.kernel(
-                    state[:2],X[:,k]
-                )
-            )
-        K_xx = ca.vertcat(*K_xx)
-        mean = K_xx.T@K_inv@y
-        state_dot[3:6]+=mean.T
+        state_dot[3:6]+=mean
         model.f_expl_expr = state_dot
-        model.p = ca.vertcat(
-            K_inv.reshape((-1,1)),
-            X.reshape((-1,1)),
-            y.reshape((-1,1))
-        )
+        model.p = mean
         model.name = 'quadrotor_gp_mpc'
 
         ocp.model = model
         ocp.parameter_values = np.zeros((
-            self.window_size*(self.window_size+self.input_dim+self.output_dim),
+            3,
             1
         ))
 
@@ -213,7 +199,7 @@ class MPC:
         ocp.code_export_directory = 'acados/solver_gp'
         self.solver = AcadosOcpSolver(ocp, json_file='acados/acados_ocp.json')
 
-    def __call__(self, x, ref):
+    def __call__(self, x, ref, prev_x_opt):
         """
         Solve the MPC optimization problem.
 
@@ -238,8 +224,6 @@ class MPC:
         # Set the reference trajectory for each time step
         # Each reference in `ref[:, k]` corresponds to time step k
         for k in range(self.N):
-            # The reference for the cost function at each step should match the state dimensions (nx)
-            # Set the reference for the states; control part of `yref` is set to zero for now.
             self.solver.set(
                 k, 
                 "yref",
@@ -255,24 +239,33 @@ class MPC:
 
         if self.predictor is not None:
             K_inv, X, y = self.predictor()
-            params = np.concatenate([
-                K_inv.reshape((-1,1)),
-                X.reshape((-1,1)),
-                y.reshape((-1,1))
-            ])
             for k in range(self.N):
+                K_xx = []
+                for t in range(self.window_size):
+                    K_xx.append(
+                        self.predictor.kernel(
+                            prev_x_opt[:2,k],
+                            X[:,t]
+                        )
+                    )
+                K_xx = np.array(ca.vertcat(*K_xx))
+                mean = K_xx.T@K_inv@y
                 self.solver.set(
                     k,
                     "p",
-                    params
+                    mean.T
                 )
+            # print('')
 
         # Solve the optimization problem
         status = self.solver.solve()
 
         # Check the solver status
         if status != 0:
-            raise Exception(f"Solver failed to find a solution, status {status}")
+            print(
+                '\033[93m'+f"Solver Returned Exit Status {4}"+'\033[93m',
+                file = sys.stderr
+            )
 
         # Extract the solution: control inputs and predicted states
         u_opt = np.zeros((self.N, self.nu))
@@ -284,10 +277,16 @@ class MPC:
         x_opt[self.N, :] = self.solver.get(self.N, "x")  # Last state in prediction horizon
 
         # Return the first control input and the predicted state trajectory
-        return u_opt[0, :], x_opt, None
+        if self.predictor is None:
+            return u_opt[0, :], x_opt.T, None
+        else:
+            return u_opt[0, :], x_opt.T, np.zeros((2*self.window_size,2))
     
     def update_predictor(self, input, label):
-        pass
+        self.predictor.update(
+            input,
+            label
+        )
   
 
 # class MPC:

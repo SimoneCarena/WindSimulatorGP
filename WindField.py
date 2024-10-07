@@ -427,6 +427,7 @@ class WindField:
         self.__idx_control = []
         Covs = []
         PredictedPos = []
+        x_opt = np.zeros((6,self.__control_horizon))
 
         # Set the mass initial conditions
         target_p, target_v = self.__trajectory.trajectory()
@@ -489,10 +490,12 @@ class WindField:
                         np.repeat(ref[:,-1,np.newaxis],self.__control_horizon-(idx-t)//self.__control_frequency,axis=1)
                     ],axis=1)
                 # Generate control force
-                control_force, predicted_pos, pos_cov = self.__mpc(state,ref)
+                control_force, predicted_state, pos_cov = self.__mpc(state,ref,x_opt)
+                x_opt = predicted_state[:6,1:]
+
                 if pos_cov is not None:
                     Covs.append(pos_cov.copy())
-                    PredictedPos.append(predicted_pos.copy())
+                    PredictedPos.append(predicted_state[:2,1:].copy())
 
                 # Collect labels for GP
                 self.__gp_label_x.append(wind_force[0])
@@ -799,177 +802,6 @@ class WindField:
             ax.legend()
             
         anim = animation.FuncAnimation(fig,animation_function,frames=int(self.__duration/scale),interval=100,repeat=False)
-        plt.show()
-
-        print('')
-
-    def simulate_goal_position(self, window_size, predictor, p0, xf, show=False, save=None, kernel_name=''):
-        
-        kernel = RBFKernel(
-            predictor.covar_module.data_covar_module.base_kernel.lengthscale.item(),
-            predictor.covar_module.data_covar_module.outputscale.item(),
-        )
-        predictor = GPModel(
-            kernel,
-            predictor.likelihood.noise.item(),
-            2,
-            3,
-            window_size,
-        )
-
-        self.__idx_control = []
-
-        x0 = p0[0]
-        y0 = p0[1]
-        z0 = p0[2]
-
-        self.__quadrotor.set_state(
-            np.array([
-                x0,y0,z0,0,0,0,
-                0,0,0,0
-            ])
-        )
-
-        # Simulate the field 
-        k = 0
-        control_force = np.zeros((4,1))
-        for t in range(self.__duration):
-            print(
-                '|{}{}| {:.2f}% ({:.2f}/{:.2f} s)'.format(
-                    '█'*int(20*(t+1)/self.__duration),
-                    ' '*(20-int(20*(t+1)/self.__duration)),
-                    (t+1)/self.__duration*100,
-                    (t+1)*self.__dt,
-                    self.__duration*self.__dt
-                ),
-                end='\r'
-            )
-            total_speed = np.array([0,0],dtype=float)
-            state = self.__quadrotor.get_state()
-            for fan in self.fans:
-                speed = fan.generate_wind(state[0],state[1],t*self.__dt)
-                total_speed+=speed
-
-            # Generate wind force
-            wind_force = 0.1*total_speed*np.sign(total_speed)
-            ep = xf[:3] - state[:3]
-            ev = xf[3:] - state[3:6]
-            if t%self.__control_frequency == 0:
-                self.__idx_control.append(t)
-                # Collect inputs for GP
-                state = self.__quadrotor.get_state()
-                self.__gp_data.append([state[0],state[1]])
-                # Generate MPC Reference
-                ref = np.repeat(xf[:,np.newaxis],self.__control_horizon,1)
-                # Generate control force
-                control_force, _ = self.__mpc(state,ref)
-                
-                self.__ctl_phi.append(control_force[0])
-                self.__ctl_theta.append(control_force[1])
-                self.__ctl_psi.append(control_force[2])
-                self.__ctl_a.append(control_force[3])
-
-                # Collect labels for GP
-                self.__gp_label_x.append(wind_force[0])
-                self.__gp_label_y.append(wind_force[1])
-                p = np.array(state[:2])
-                if k == window_size:
-                    self.__mpc = MPC(
-                        self.__quadrotor,
-                        self.__control_horizon,
-                        self.__dt*self.__control_frequency,
-                        Q=100*np.eye(6), 
-                        R=0.1*np.eye(4),
-                        input_dim=2,
-                        output_dim=3,
-                        window_size=window_size,
-                        predictor=predictor,
-                        obstacles=self.__obstacles
-                    )
-                    # Update GP Model
-                    self.__mpc.update_predictor(
-                        p,
-                        np.hstack([wind_force,0.0])
-                    )
-                elif k>window_size:
-                    # Update GP Model
-                    self.__mpc.update_predictor(
-                        p,
-                        np.hstack([wind_force,0.0])
-                    )
-                else:
-                    # Update GP Model
-                    predictor.update(
-                        p,
-                        np.hstack([wind_force,0.0])
-                    )
-                k+=1
-
-            self.__xs.append(state[0])
-            self.__ys.append(state[1])
-            self.__zs.append(state[2])
-            self.__vxs.append(state[3])
-            self.__vys.append(state[4])
-            self.__vzs.append(state[5])
-            self.__ex.append(ep[0])
-            self.__ey.append(ep[1])
-            self.__ez.append(ep[2])
-            self.__evx.append(ev[0])
-            self.__evy.append(ev[1])
-            self.__evz.append(ev[2])
-            self.__wind_force_x.append(wind_force[0])
-            self.__wind_force_y.append(wind_force[1])
-
-            # Simulate Dynamics
-            self.__quadrotor.step(control_force,np.hstack([wind_force,0.0]))
-
-        fig = plt.figure()
-        ax = plt.axes(projection='3d')
-        fig.set_size_inches(16,9)
-        fig.tight_layout(pad=5)
-        fig.suptitle('System Trajectory')
-        ax.plot(*p0,'o',color='b',label='Starting Position')
-        ax.plot(*xf[:3],'o',color='g',label='Target Position')
-        ax.plot(self.__xs,self.__ys,self.__zs,color='orange',label="System Trajectory")
-        for obstacle in self.__obstacles:
-            Xc,Yc,Zc = self.__data_for_cylinder_along_z(
-                obstacle.x,
-                obstacle.y,
-                obstacle.r,
-                4
-            )
-            ax.plot_surface(Xc, Yc, Zc, color='k')
-        plt.legend()
-
-        fig, ax = plt.subplots()
-        fig.set_size_inches(16,9)
-        fig.tight_layout(pad=2)
-        ax.plot(self.__xs,self.__ys,label='System Trajectory',color='orange')
-        ax.plot(*p0[:2],'bo',label='Starting Position')
-        ax.plot(*xf[:2],'go',label='Target Position')
-        ax.plot(
-            self.__xs[self.__control_frequency*window_size],
-            self.__ys[self.__control_frequency*window_size],
-            'ro',
-            label='Start of GP Prediction'
-        )
-        ax.axis('equal')
-        for obstacle in self.__obstacles:
-            o = Ellipse((obstacle.x,obstacle.y),obstacle.r,obstacle.r,edgecolor='k',fc='k')
-            ax.add_patch(o)
-        ax.legend()
-
-        fig, ax = plt.subplots(3,1)
-        fig.tight_layout(pad=2)
-        fig.set_size_inches(16,9)
-        T = np.linspace(0,self.__duration*self.__dt,self.__duration)
-        ax[0].plot(T,self.__xs,color='orange')
-        ax[0].axhline(y=xf[0])
-        ax[1].plot(T,self.__ys,color='orange')
-        ax[1].axhline(y=xf[1])
-        ax[2].plot(T,self.__zs,color='orange')
-        ax[2].axhline(y=xf[2])
-
         plt.show()
 
         print('')
