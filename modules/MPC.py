@@ -12,6 +12,7 @@ class MPC:
         self.model = model
         self.predictor = predictor
         self.gp_on = False
+        self.diff_dynamics = model.get_diff_dynamics()
         self.N = control_horizon
         self.dt = dt
         self.input_dim = input_dim
@@ -20,6 +21,7 @@ class MPC:
         self.obstacles = obstacles
         self.quadrotor_r = 0.1
         self.delta = 0.05
+        self.chi2_val = np.sqrt(chi2.ppf(1-self.delta, 2))
 
         self.lower = np.array([-np.pi/6, -np.pi/6, -np.pi/6, 5])
         self.upper = np.array([np.pi/6, np.pi/6, np.pi/6, 15])
@@ -120,18 +122,24 @@ class MPC:
 
         # Use the previously created acados model
         model = AcadosModel()
+        # Mean of gp wind prediction
         mean = ca.SX.sym('mean',3)
+        # Covariance in the gp position
+        cov = ca.SX.sym('cov',2,2)
         state, u, state_dot = self.model.get_acados_model()
         model.x = state
         model.u = u
         state_dot[3:6]+=mean
         model.f_expl_expr = state_dot
-        model.p = mean
+        model.p = ca.vertcat(
+            mean.reshape((-1,1)),
+            cov.reshape((-1,1))
+        )
         model.name = 'quadrotor_gp_mpc'
 
         ocp.model = model
         ocp.parameter_values = np.zeros((
-            3,
+            3 + 2*2,
             1
         ))
 
@@ -176,26 +184,37 @@ class MPC:
         ## otherwise casadi complains if we add an empy array
         if self.obstacles:
             num_obstacles = len(self.obstacles)
+            # Inequality constraints are expressed in the form
+            # lh <= h(x,u) <= uh, the initial constraint is expressed separately
+            # but with the same formulation lh_0 <= h(x,u) <= uh_0
             h = []
+            lh_0 = []
+            uh_0 = []
+            lh = []
+            uh = []
+            # Length of the uncertainty ellipsoid
+            lx = ca.sqrt(cov[0,0])*self.chi2_val
+            ly = ca.sqrt(cov[1,1])*self.chi2_val
+            l = ca.fmax(lx,ly)
             for obstacle in self.obstacles:
-                p0 = obstacle.p
+                # Constraints are of the form
+                # 0 <= dist(quadrotor,obstacle) - (q_r+r+l)^2 <= inf
                 r = obstacle.r
-                h = vertcat(
-                    h,
-                    (ocp.model.x[:2]-p0).T@(ocp.model.x[:2]-p0)-(r+self.quadrotor_r)**2
+                p0 = obstacle.p
+                d2 = (r+self.quadrotor_r+l)**2
+                h.append(
+                    (state[:2]-p0).T@(state[:2,:]-p0)-d2
                 )
-            ## The formulation for the constraints has to be expressed as
-            ## lh_i <= h_i(x,u) <= uh_i
-            ## for each obstacle i
-            ## Some value must be set as an upper bound for the optimization, even though
-            ## only the formulation h(x,u) <= 0 is needed, thus an upper bound of 
-            ## 1000 is used (which is reasonably large)
-            ocp.model.con_h_expr_0 = h
-            ocp.model.con_h_expr = h
-            ocp.constraints.lh_0 = np.zeros(num_obstacles)
-            ocp.constraints.uh_0 = np.array([1000]*num_obstacles)
-            ocp.constraints.lh = np.zeros(num_obstacles)
-            ocp.constraints.uh = np.array([1000]*num_obstacles)
+                lh_0.append(0)
+                lh.append(0)
+                uh_0.append(1000)
+                uh.append(1000)
+            ocp.model.con_h_expr_0 = ca.vertcat(*h)
+            ocp.model.con_h_expr = ca.vertcat(*h)
+            ocp.constraints.lh_0 = np.array(lh_0)
+            ocp.constraints.uh_0 =  np.array(uh_0)
+            ocp.constraints.lh =  np.array(lh)
+            ocp.constraints.uh =  np.array(uh)
 
         # Create the solver
         ocp.code_export_directory = 'acados/solver_gp'
@@ -241,6 +260,8 @@ class MPC:
 
         if self.gp_on:
             K_inv, X, y = self.predictor()
+            cov_x = np.zeros((2,2))
+            Covs = []
             for k in range(self.N):
                 K_xx = []
                 for t in range(self.window_size):
@@ -252,12 +273,36 @@ class MPC:
                     )
                 K_xx = np.array(ca.vertcat(*K_xx))
                 mean = K_xx.T@K_inv@y
+                params = np.concatenate([
+                    mean.reshape((-1,1)),
+                    cov_x.reshape((-1,1))
+                ])
                 self.solver.set(
                     k,
                     "p",
-                    mean.T
+                    params
                 )
-            # print('')
+                # Update covariance on the position for the next state
+                cov_gp = self.predictor.kernel(prev_x_opt[:2,k],prev_x_opt[:2,k])-K_xx.T@K_inv@K_xx
+                cov_gp = cov_gp*np.eye(2)
+                # Propagate Uncertainty
+                A = self.diff_dynamics(prev_x_opt[:,k],mean).full()
+                A = A[:2,:2]
+                K_xx_d = []
+                for j in range(self.window_size):
+                    K_xx_d.append(self.predictor.kernel_derivative(prev_x_opt[:2,k],X[:,j]).T)
+                K_xx_d = np.array(K_xx_d)
+                mean_d = K_xx_d.T@K_inv@y[:,:2]
+                Sigma_xd = mean_d@cov_x
+                _first_mat = np.block([A,np.eye(2)])
+                _second_mat = np.block([
+                    [cov_x, Sigma_xd],
+                    [Sigma_xd.T, cov_gp]
+                ])
+                _third_mat = _first_mat.T
+                cov_x = _first_mat@ _second_mat@ _third_mat
+                Covs.append(cov_x.copy())
+            Covs = np.vstack(Covs)
 
         # Solve the optimization problem
         status = self.solver.solve()
@@ -282,7 +327,7 @@ class MPC:
         if not self.gp_on:
             return u_opt[0, :], x_opt.T, None
         else:
-            return u_opt[0, :], x_opt.T, np.zeros((2*self.window_size,2))
+            return u_opt[0, :], x_opt.T, Covs
     
     def update_predictor(self, input, label):
         self.predictor.update(
@@ -293,7 +338,7 @@ class MPC:
     def set_predictor(self):
         self.gp_on = True
         self.solver = self.solver_gp
-  
+
 
 # class MPC:
 #     def __init__(self, model, control_horizon, dt, Q, R, input_dim ,output_dim, window_size, predictor=None, obstacles = []):

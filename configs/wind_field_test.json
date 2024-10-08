@@ -10,7 +10,8 @@
         "type": "real",
         "src": {
             "mean": "./maps/scenario3/wind_field_mean.npy",
-            "var": "./maps/scenario3/wind_field_var.npy"
+            "var": "./maps/scenario3/wind_field_var.npy",
+            "scale_factor": 3
         }
 
     },

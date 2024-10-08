@@ -117,7 +117,7 @@ class Quadrotor:
         self.dynamics_function = ca.Function('dynamics', [state, u, wind], [state_dot])
         
         jacobian = ca.jacobian(state_dot,state)
-        self.diff_dynamics_function = ca.Function('diff_dynamics', [state, u, wind], [jacobian])
+        self.diff_dynamics_function = ca.Function('diff_dynamics', [state, wind], [jacobian])
 
     
     def step(self, u, wind):

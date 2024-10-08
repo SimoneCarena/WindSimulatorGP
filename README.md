@@ -47,6 +47,7 @@ To generate a wind field using simulated fans, one must specify, inside the `"sr
 To use a precomputed wind map, in the `"src"` field, two fields have to be specified:
 - the location of the wind field mean map, inside the `"mean"` field
 - the location of the wind field variance map, inside the `"var"` field
+- a scale factor `scale_factor` to modulate the wind speed
 
 ## Function Generator
 
@@ -173,4 +174,10 @@ To compute the wind speed at position $(x,y)$ the following operations are perfo
 
 $$
     \mathbf{V}\sim\mathcal{N}\left(\boldsymbol{\mu^V},\boldsymbol{\Sigma^{V}}\right)
+$$
+
+In case a scale factor `scale_factor` is used, the resulting wind speed will be generated as
+
+$$
+    \mathbf{V}\sim\mathcal{N}\left(\verb|scale_factor|\cdot\boldsymbol{\mu^V},\boldsymbol{\Sigma^{V}}\right)
 $$

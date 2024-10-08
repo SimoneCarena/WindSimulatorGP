@@ -78,9 +78,10 @@ class WindField:
         elif data["fans"]["type"] == "real":
             src_mean = data["fans"]["src"]["mean"]
             src_var = data["fans"]["src"]["var"]
+            scale_factor = data["fans"]["src"]["scale_factor"]
             mean_map = np.load(src_mean)
             var_map = np.load(src_var)
-            f = RealFan(mean_map,var_map,self.__width,self.__height,mean_map.shape[1])
+            f = RealFan(mean_map,var_map,self.__width,self.__height,mean_map.shape[1],scale_factor)
             self.fans.append(f)
 
         file.close()
@@ -493,7 +494,7 @@ class WindField:
                     ],axis=1)
                 # Generate control force
                 control_force, predicted_state, pos_cov = self.__mpc(state,ref,x_opt)
-                x_opt = predicted_state[:6,1:]
+                x_opt = predicted_state[:,1:]
 
                 if pos_cov is not None:
                     Covs.append(pos_cov.copy())
