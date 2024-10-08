@@ -14,6 +14,7 @@ class Quadrotor:
         self.g = np.array([0.0,0.0,9.81])
         self.nx = 10 # Number of States
         self.nu = 4 # Number of Control Inputs
+        self.ny = 6 # Number of controlled variables
         self.r = 0.1 # Radius
         self.__setup_dynamics()
 
@@ -44,43 +45,24 @@ class Quadrotor:
         return state_dot
 
     def get_dynamics(self):
+       '''
+       Returns a casadi function object describing the dynamics of the drone.
+       The function takes as inputs the state, the control and the wind, and returns the
+       state derivative
+
+       f:[x,u,wind] -> [x_dot]
+       '''
        return self.dynamics_function
     
     def get_diff_dynamics(self):
+        '''
+       Returns a casadi function object containing the jacobian of the dynamics of the drone 
+       with respect to x.
+       The function takes as inputs the state and the wind, and returns the
+       jacobian of the system's dyanimcs
+       f:[x,wind] -> [d/dx x_dot]
+       '''
         return self.diff_dynamics_function
-    
-    def get_acados_model(self):
-        # Define the state variables
-        p = ca.SX.sym('p', 3)       # Position [x, y, z]
-        v = ca.SX.sym('v', 3)       # Velocity [vx, vy, vz]
-        att = ca.SX.sym('att', 4)   # Attitude [phi, theta, psi, thrust]
-        state = ca.vertcat(p, v, att)
-
-        # Control Inputs
-        u = ca.SX.sym('u', 4) # Control input [phi_c, theta_c, psi_c, thrust_c]
-        # Wind Force
-        # wind = ca.SX.sym('wind',3)
-
-        # Define the dynamics
-        p_dot = v
-
-        phi = att[0]
-        theta = att[1]
-        psi = att[2]
-        thrust = att[3]
-
-        v_dot = ca.vertcat(
-            ca.sin(phi)*ca.sin(psi) + ca.cos(phi)*ca.sin(theta)*ca.cos(psi),
-            -ca.sin(phi)*ca.cos(psi) + ca.cos(phi)*ca.sin(theta)*ca.sin(psi),
-            ca.cos(phi)*ca.cos(psi)
-        ) * thrust - self.g # + wind
-
-        att_dot = self.Tau @ att + self.K * u
-
-        # Concatenate the state derivatives
-        state_dot = ca.vertcat(p_dot, v_dot, att_dot)
-
-        return state, u, state_dot
     
     def __setup_dynamics(self):
         # Define the state variables
@@ -118,8 +100,7 @@ class Quadrotor:
         
         jacobian = ca.jacobian(state_dot,state)
         self.diff_dynamics_function = ca.Function('diff_dynamics', [state, wind], [jacobian])
-
-    
+  
     def step(self, u, wind):
         """
         Perform a single RK4 integration step.
@@ -140,10 +121,22 @@ class Quadrotor:
         self.state = x_next
 
     def set_state(self, new_state):
+        '''
+        Set a new state
+        '''
         self.state = new_state
 
     def get_state(self) -> np.array:
+        '''
+        Returns the current state of the model
+        '''
         return self.state
 
-    def get_dimensions(self) -> tuple[int,int]:
-        return self.nx, self.nu
+    def get_dimensions(self) -> tuple[int,int,int]:
+        '''
+        Returns:
+            - the number of state variables
+            - the number of control inputs
+            - the number of controlled variables
+        '''
+        return self.nx, self.nu, self.ny

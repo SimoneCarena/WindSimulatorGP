@@ -5,49 +5,56 @@ import sys
 from acados_template import AcadosOcp, AcadosOcpSolver, AcadosModel
 from casadi import vertcat
 from scipy.stats import chi2
-from scipy.special import erfinv
 
 class MPC:
-    def __init__(self, model, control_horizon, dt, Q, R, input_dim, output_dim, window_size,predictor=None,obstacles=[]):
+    def __init__(self, model, control_horizon, dt, Q, R ,predictor=None, obstacles=[]):
+        # Quadrotor data
         self.model = model
-        self.predictor = predictor
-        self.gp_on = False
+        self.dynamics = model.get_dynamics()
         self.diff_dynamics = model.get_diff_dynamics()
+        self.quadrotor_r = model.r
+        self.nx, self.nu, self.ny = model.get_dimensions()
+
+        # GP prediction data
+        if predictor is not None:
+            self.predictor = predictor
+            self.gp_on = False
+            self.window_size, self.input_dim, self.output_dim = predictor.get_dims()
+
+        # Control data
+        self.Q = Q
+        self.R = R
         self.N = control_horizon
         self.dt = dt
-        self.input_dim = input_dim
-        self.output_dim = output_dim
-        self.window_size = window_size
         self.obstacles = obstacles
-        self.quadrotor_r = 0.1
+        self.lower = np.array([-np.pi/6, -np.pi/6, -np.pi/6, 5])
+        self.upper = np.array([np.pi/6, np.pi/6, np.pi/6, 15])
+        
+        # Uncertainty data
         self.delta = 0.05
         self.chi2_val = np.sqrt(chi2.ppf(1-self.delta, 2))
 
-        self.lower = np.array([-np.pi/6, -np.pi/6, -np.pi/6, 5])
-        self.upper = np.array([np.pi/6, np.pi/6, np.pi/6, 15])
-
-        self.Q = Q
-        self.R = R
-
-        self.ny = 6  # Dimension of the controlled state
-        self.nx = 10 # Dimensions of the state
-        self.nu = 4  # Dimension of the inputs
-
+        # Setupd the solver(s)
         self.__setup_solver()
         if predictor is not None:
             self.__setup_solver_gp() 
-
+            self.__setup_gp_prediction()
+        # Set the default solver to be the one without gp
         self.solver = self.solver_no_gp
 
     def __setup_solver(self):
+        # Declare control variables
+        x = ca.SX.sym('x',self.nx)
+        u = ca.SX.sym('u',self.nu)
+
+        # Create acados ocp probelm
         ocp = AcadosOcp()
 
         # Use the previously created acados model
         model = AcadosModel()
-        state, u, state_dot = self.model.get_acados_model()
-        model.x = state
+        model.x = x
         model.u = u
-        model.f_expl_expr = state_dot
+        model.f_expl_expr = self.dynamics(x,u,ca.SX.zeros(3))
         model.name = 'quadrotor_mpc'
         ocp.model = model
 
@@ -77,9 +84,9 @@ class MPC:
         ## The reference is shaped (ny+nu), and is the concatenations of the
         ## state reference (ny as the nyumber of controlled state != the number of total states)
         ## and the input reference (nu)
-        ocp.cost.yref = np.array([2,2,2,0,0,0,0,0,0,0])
+        ocp.cost.yref = np.zeros(self.ny+self.nu)
         ## The terminal cost only referencec the state
-        ocp.cost.yref_e = np.array([2,2,2,0,0,0])
+        ocp.cost.yref_e = np.zeros(self.ny)
 
         # Constraints
         ocp.constraints.lbu = self.lower
@@ -98,7 +105,7 @@ class MPC:
                 r = obstacle.r
                 h = vertcat(
                     h,
-                    (ocp.model.x[:2]-p0).T@(ocp.model.x[:2]-p0)-(r+self.quadrotor_r)**2
+                    (x[:2]-p0).T@(x[:2]-p0)-(r+self.quadrotor_r)**2
                 )
             ## The formulation for the constraints has to be expressed as
             ## lh_i <= h_i(x,u) <= uh_i
@@ -118,19 +125,22 @@ class MPC:
         self.solver_no_gp = AcadosOcpSolver(ocp, json_file='acados/acados_ocp.json')
 
     def __setup_solver_gp(self):
-        ocp = AcadosOcp()
-
-        # Use the previously created acados model
-        model = AcadosModel()
+        # Declare control variables
+        x = ca.SX.sym('x',self.nx)
+        u = ca.SX.sym('u',self.nu)
         # Mean of gp wind prediction
         mean = ca.SX.sym('mean',3)
         # Covariance in the gp position
         cov = ca.SX.sym('cov',2,2)
-        state, u, state_dot = self.model.get_acados_model()
-        model.x = state
+
+        # Create the ocp problem
+        ocp = AcadosOcp()
+
+        # Use the previously created acados model
+        model = AcadosModel()
+        model.x = x
         model.u = u
-        state_dot[3:6]+=mean
-        model.f_expl_expr = state_dot
+        model.f_expl_expr = self.dynamics(x,u,mean)
         model.p = ca.vertcat(
             mean.reshape((-1,1)),
             cov.reshape((-1,1))
@@ -169,9 +179,9 @@ class MPC:
         ## The reference is shaped (ny+nu), and is the concatenations of the
         ## state reference (ny as the nyumber of controlled state != the number of total states)
         ## and the input reference (nu)
-        ocp.cost.yref = np.array([0,0,0,0,0,0,0,0,0,0])
+        ocp.cost.yref = np.zeros(self.ny+self.nu)
         ## The terminal cost only referencec the state
-        ocp.cost.yref_e = np.array([0,0,0,0,0,0])
+        ocp.cost.yref_e = np.zeros(self.ny)
 
         # Constraints
         ocp.constraints.lbu = self.lower
@@ -203,7 +213,7 @@ class MPC:
                 p0 = obstacle.p
                 d2 = (r+self.quadrotor_r+l)**2
                 h.append(
-                    (state[:2]-p0).T@(state[:2,:]-p0)-d2
+                    (x[:2]-p0).T@(x[:2,:]-p0)-d2
                 )
                 lh_0.append(0)
                 lh.append(0)
@@ -220,12 +230,65 @@ class MPC:
         ocp.code_export_directory = 'acados/solver_gp'
         self.solver_gp = AcadosOcpSolver(ocp, json_file='acados/acados_ocp.json')
 
+    def __setup_gp_prediction(self):
+        # Define GP variables
+        K_inv = ca.SX.sym("K_inv",self.window_size,self.window_size)    # Inverse of the kernel matrix
+        X = ca.SX.sym("X",self.input_dim,self.window_size)              # Inputs for the model
+        y = ca.SX.sym("y",self.window_size,self.output_dim)             # Ouptus for the model  
+        cov_x_0 = ca.SX.sym("cov_x_0",2,2)                              # Covariance matrix on the position
+        x = ca.SX.sym("x",self.nx)                                      # State vector
+
+        # Compute predictive mean and variance
+        K_xx = []
+        for t in range(self.window_size):
+            K_xx.append(
+                self.predictor.kernel(
+                    x[:self.input_dim],
+                    X[:,t]
+                )
+            )
+        K_xx = ca.vertcat(*K_xx)
+        mean = K_xx.T@K_inv@y
+        cov_gp = self.predictor.kernel(x[:self.input_dim],x[:self.input_dim])-K_xx.T@K_inv@K_xx
+        cov_gp = cov_gp*np.eye(self.input_dim)
+
+        # Propagate the uncertainty for the position on the next state
+        A = self.diff_dynamics(x,mean)
+        A = A[:2,:2]
+        K_xx_d = []
+        for j in range(self.window_size):
+            K_xx_d.append(self.predictor.kernel_derivative(x[:self.input_dim],X[:,j]).T)
+        K_xx_d = ca.vertcat(*K_xx_d)
+        mean_d = K_xx_d.T@K_inv@y[:,:2]
+        Sigma_xd = mean_d@cov_x_0
+        _first_mat = ca.horzcat(A,np.eye(2))
+        _second_mat = ca.vertcat(
+            ca.horzcat(cov_x_0, Sigma_xd),
+            ca.horzcat(Sigma_xd.T, cov_gp)
+        )
+        _third_mat = _first_mat.T
+        cov_x = _first_mat@ _second_mat@ _third_mat
+
+        # Create the function objects to compute the predictive mean 
+        # and the uncertainty on the next state
+        self.predictive_mean = ca.Function(
+            "mu",
+            [x,K_inv,X,y],
+            [mean]
+        )
+        self.propagate_uncertainty = ca.Function(
+            "cov_x",
+            [x,K_inv,X,y,cov_x_0],
+            [cov_x]
+        )
+
     def __call__(self, x, ref, prev_x_opt):
         """
         Solve the MPC optimization problem.
 
         :param x: The current state (initial condition), shape (nx,).
         :param ref: The reference trajectory, shape (nx, N+1).
+        :param prev_x_opt: The previously optimized states over the horizon N
         :return: Optimal control input at the first step, predicted state trajectory.
         """
         # Set the initial guess for state and control
@@ -258,49 +321,25 @@ class MPC:
             ref[:,-1]
         )
 
+        # If the GP prediction is set, use the model to make the wind predictions
         if self.gp_on:
             K_inv, X, y = self.predictor()
             cov_x = np.zeros((2,2))
             Covs = []
             for k in range(self.N):
-                K_xx = []
-                for t in range(self.window_size):
-                    K_xx.append(
-                        self.predictor.kernel(
-                            prev_x_opt[:2,k],
-                            X[:,t]
-                        )
-                    )
-                K_xx = np.array(ca.vertcat(*K_xx))
-                mean = K_xx.T@K_inv@y
+                # Compute wind prediction
+                mean = self.predictive_mean(prev_x_opt[:,k],K_inv,X,y).full()
                 params = np.concatenate([
                     mean.reshape((-1,1)),
                     cov_x.reshape((-1,1))
                 ])
                 self.solver.set(
-                    k,
+                    self.N,
                     "p",
                     params
                 )
-                # Update covariance on the position for the next state
-                cov_gp = self.predictor.kernel(prev_x_opt[:2,k],prev_x_opt[:2,k])-K_xx.T@K_inv@K_xx
-                cov_gp = cov_gp*np.eye(2)
-                # Propagate Uncertainty
-                A = self.diff_dynamics(prev_x_opt[:,k],mean).full()
-                A = A[:2,:2]
-                K_xx_d = []
-                for j in range(self.window_size):
-                    K_xx_d.append(self.predictor.kernel_derivative(prev_x_opt[:2,k],X[:,j]).T)
-                K_xx_d = np.array(K_xx_d)
-                mean_d = K_xx_d.T@K_inv@y[:,:2]
-                Sigma_xd = mean_d@cov_x
-                _first_mat = np.block([A,np.eye(2)])
-                _second_mat = np.block([
-                    [cov_x, Sigma_xd],
-                    [Sigma_xd.T, cov_gp]
-                ])
-                _third_mat = _first_mat.T
-                cov_x = _first_mat@ _second_mat@ _third_mat
+                # Propagate the uncertainty on the position
+                cov_x = self.propagate_uncertainty(prev_x_opt[:,k],K_inv,X,y,cov_x).full()
                 Covs.append(cov_x.copy())
             Covs = np.vstack(Covs)
 
@@ -311,6 +350,17 @@ class MPC:
         if status != 0:
             print(
                 '\033[93m'+f"Solver Returned Exit Status {4}"+'\033[93m',
+                file = sys.stderr
+            )
+        # Check the execution time and verify it is under the control time
+        solver_time = self.solver.get_stats('time_tot')
+        if solver_time > 0.1:
+            print(
+                """\033[93m
+                Solver exceeded maximum computation time\n
+                Solver time: {:.2f} s\n
+                Maximum control time: 0.1 s\n
+                \033[93m""".format(solver_time),
                 file = sys.stderr
             )
 
@@ -330,12 +380,19 @@ class MPC:
             return u_opt[0, :], x_opt.T, Covs
     
     def update_predictor(self, input, label):
+        '''
+        Updates the predictor used by the mpc to estimate the wind
+        '''
         self.predictor.update(
             input,
             label
         )
 
     def set_predictor(self):
+        '''
+        Enables the prediction of the wind using the gp model, and the 
+        chance-constrained obstacle avoidance using the variance of the gp model
+        '''
         self.gp_on = True
         self.solver = self.solver_gp
 

@@ -312,6 +312,15 @@ class WindField:
         '''
         if self.__trajectory is None:
             raise MissingTrajectoryException()
+        
+        self.__mpc = MPC(
+            self.__quadrotor,
+            self.__control_horizon,
+            self.__dt*self.__control_frequency,
+            Q=100*np.eye(6), 
+            R=np.eye(4),
+            obstacles=self.__obstacles
+        )  
 
         # Set the mass initial conditions
         target_p,target_v = self.__trajectory.trajectory()
@@ -407,7 +416,8 @@ class WindField:
 
         predictor = GPModel(
             kernel,
-            predictor.likelihood.noise.item(),
+            # predictor.likelihood.noise.item(),
+            0.01,
             2,
             3,
             window_size,
@@ -419,9 +429,6 @@ class WindField:
             self.__dt*self.__control_frequency,
             Q=100*np.eye(6), 
             R=np.eye(4),
-            input_dim=2,
-            output_dim=3,
-            window_size=window_size,
             obstacles=self.__obstacles,
             predictor=predictor
         )     

@@ -35,7 +35,7 @@ class GPModel:
     def update(self, input, label):
         '''
         Update the model by adding a new point for the prediction. In case the number of points is
-        greate then the window size, the least recent point id discarded
+        greater then the window size, the least recent point id discarded
         '''
         if self.__size >= self.__window_size:
             # Compute the updated Kernel matrix
@@ -78,7 +78,16 @@ class GPModel:
         return K_inv, inputs.T, labels
 
     def get_dims(self):
+        '''
+        Returns the dimensions used by the gp model:
+            - window size
+            - input dimension 
+            - output dimension
+        '''
         return self.__window_size, self.__input_dim, self.__output_dim
     
     def __len__(self):
+        '''
+        Returns the current number of datapoints used
+        '''
         return self.__size
