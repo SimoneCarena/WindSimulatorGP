@@ -112,7 +112,7 @@ else:
         wind_field,
         'test_trajectories',
         mo_exact_gp_options,
-        window_size = 10,
+        window_size = 20,
         laps = 1,
         p0=np.array([4,2,0.0]),
         horizon = 1,

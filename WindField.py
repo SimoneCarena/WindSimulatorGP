@@ -90,18 +90,7 @@ class WindField:
             self.__dt,
             np.zeros(10)
         )
-        self.__control_horizon = 10
-        self.__mpc = MPC(
-            self.__quadrotor,
-            self.__control_horizon,
-            self.__dt*self.__control_frequency,
-            Q=1000*np.eye(6), 
-            R=1*np.eye(4),
-            input_dim=2,
-            output_dim=3,
-            window_size=50,
-            obstacles=self.__obstacles
-        )       
+        self.__control_horizon = 10      
         
     def __setup_gp(self):
         # Create arrays to train the GP model
@@ -422,6 +411,19 @@ class WindField:
             3,
             window_size,
         )
+
+        self.__mpc = MPC(
+            self.__quadrotor,
+            self.__control_horizon,
+            self.__dt*self.__control_frequency,
+            Q=100*np.eye(6), 
+            R=np.eye(4),
+            input_dim=2,
+            output_dim=3,
+            window_size=window_size,
+            obstacles=self.__obstacles,
+            predictor=predictor
+        )     
         
         # Setup Plots 
         self.__idx_control = []
@@ -502,35 +504,12 @@ class WindField:
                 self.__gp_label_y.append(wind_force[1])
                 p = np.array(state[:2])
                 if k == window_size:
-                    self.__mpc = MPC(
-                        self.__quadrotor,
-                        self.__control_horizon,
-                        self.__dt*self.__control_frequency,
-                        Q=100*np.eye(6), 
-                        R=0.1*np.eye(4),
-                        input_dim=2,
-                        output_dim=3,
-                        window_size=window_size,
-                        predictor=predictor,
-                        obstacles=self.__obstacles
-                    )
-                    # Update GP Model
-                    self.__mpc.update_predictor(
-                        p,
-                        np.hstack([wind_force,0.0])
-                    )
-                elif k>window_size:
-                    # Update GP Model
-                    self.__mpc.update_predictor(
-                        p,
-                        np.hstack([wind_force,0.0])
-                    )
-                else:
-                    # Update GP Model
-                    predictor.update(
-                        p,
-                        np.hstack([wind_force,0.0])
-                    )
+                    self.__mpc.set_predictor()
+                # Update GP Model
+                predictor.update(
+                    p,
+                    np.hstack([wind_force,0.0])
+                )
                 k+=1
 
             self.__xs.append(state[0])

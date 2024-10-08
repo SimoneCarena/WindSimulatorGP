@@ -8,9 +8,10 @@ from scipy.stats import chi2
 from scipy.special import erfinv
 
 class MPC:
-    def __init__(self, model, control_horizon, dt, Q, R, input_dim, output_dim, window_size,obstacles=[],predictor=None):
+    def __init__(self, model, control_horizon, dt, Q, R, input_dim, output_dim, window_size,predictor=None,obstacles=[]):
         self.model = model
         self.predictor = predictor
+        self.gp_on = False
         self.N = control_horizon
         self.dt = dt
         self.input_dim = input_dim
@@ -30,10 +31,11 @@ class MPC:
         self.nx = 10 # Dimensions of the state
         self.nu = 4  # Dimension of the inputs
 
-        if self.predictor is not None:
-            self.__setup_solver_gp()
-        else:
-            self.__setup_solver()
+        self.__setup_solver()
+        if predictor is not None:
+            self.__setup_solver_gp() 
+
+        self.solver = self.solver_no_gp
 
     def __setup_solver(self):
         ocp = AcadosOcp()
@@ -111,7 +113,7 @@ class MPC:
 
         # Create the solver
         ocp.code_export_directory = 'acados/solver_no_gp'
-        self.solver = AcadosOcpSolver(ocp, json_file='acados/acados_ocp.json')
+        self.solver_no_gp = AcadosOcpSolver(ocp, json_file='acados/acados_ocp.json')
 
     def __setup_solver_gp(self):
         ocp = AcadosOcp()
@@ -197,7 +199,7 @@ class MPC:
 
         # Create the solver
         ocp.code_export_directory = 'acados/solver_gp'
-        self.solver = AcadosOcpSolver(ocp, json_file='acados/acados_ocp.json')
+        self.solver_gp = AcadosOcpSolver(ocp, json_file='acados/acados_ocp.json')
 
     def __call__(self, x, ref, prev_x_opt):
         """
@@ -237,7 +239,7 @@ class MPC:
             ref[:,-1]
         )
 
-        if self.predictor is not None:
+        if self.gp_on:
             K_inv, X, y = self.predictor()
             for k in range(self.N):
                 K_xx = []
@@ -277,7 +279,7 @@ class MPC:
         x_opt[self.N, :] = self.solver.get(self.N, "x")  # Last state in prediction horizon
 
         # Return the first control input and the predicted state trajectory
-        if self.predictor is None:
+        if not self.gp_on:
             return u_opt[0, :], x_opt.T, None
         else:
             return u_opt[0, :], x_opt.T, np.zeros((2*self.window_size,2))
@@ -287,6 +289,10 @@ class MPC:
             input,
             label
         )
+
+    def set_predictor(self):
+        self.gp_on = True
+        self.solver = self.solver_gp
   
 
 # class MPC:
