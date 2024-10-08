@@ -7,7 +7,7 @@ from casadi import vertcat
 from scipy.stats import chi2
 
 class MPC:
-    def __init__(self, model, control_horizon, dt, Q, R ,predictor=None, obstacles=[]):
+    def __init__(self, model, control_horizon, dt, Q, R, maximum_solver_time ,predictor=None, obstacles=[]):
         # Quadrotor data
         self.model = model
         self.dynamics = model.get_dynamics()
@@ -41,6 +41,9 @@ class MPC:
             self.__setup_gp_prediction()
         # Set the default solver to be the one without gp
         self.solver = self.solver_no_gp
+
+        # Maximum time allowed for the solver to solve the optimization problem
+        self.max_time = maximum_solver_time
 
     def __setup_solver(self):
         # Declare control variables
@@ -354,7 +357,7 @@ class MPC:
             )
         # Check the execution time and verify it is under the control time
         solver_time = self.solver.get_stats('time_tot')
-        if solver_time > 0.1:
+        if solver_time > self.max_time:
             print(
                 """\033[93m
                 Solver exceeded maximum computation time\n

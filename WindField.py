@@ -319,6 +319,7 @@ class WindField:
             self.__dt*self.__control_frequency,
             Q=100*np.eye(6), 
             R=np.eye(4),
+            maximum_solver_time=self.__dt*self.__control_frequency,
             obstacles=self.__obstacles
         )  
 
@@ -429,6 +430,7 @@ class WindField:
             self.__dt*self.__control_frequency,
             Q=100*np.eye(6), 
             R=np.eye(4),
+            maximum_solver_time=self.__dt*self.__control_frequency,
             obstacles=self.__obstacles,
             predictor=predictor
         )     
@@ -503,14 +505,13 @@ class WindField:
                 control_force, predicted_state, pos_cov = self.__mpc(state,ref,x_opt)
                 x_opt = predicted_state[:,1:]
 
+                # If the gp prediction is already on, add the covariance on the position for the plots
                 if pos_cov is not None:
                     Covs.append(pos_cov.copy())
                     PredictedPos.append(predicted_state[:2,1:].copy())
 
-                # Collect labels for GP
-                self.__gp_label_x.append(wind_force[0])
-                self.__gp_label_y.append(wind_force[1])
                 p = np.array(state[:2])
+                # If the gp model is full, update set the solver to predict the wind
                 if k == window_size:
                     self.__mpc.set_predictor()
                 # Update GP Model

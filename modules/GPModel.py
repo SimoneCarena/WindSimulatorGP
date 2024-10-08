@@ -87,7 +87,4 @@ class GPModel:
         return self.__window_size, self.__input_dim, self.__output_dim
     
     def __len__(self):
-        '''
-        Returns the current number of datapoints used
-        '''
         return self.__size
