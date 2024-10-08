@@ -359,11 +359,9 @@ class MPC:
         solver_time = self.solver.get_stats('time_tot')
         if solver_time > self.max_time:
             print(
-                """\033[93m
-                Solver exceeded maximum computation time\n
+                """Solver exceeded maximum computation time\n
                 Solver time: {:.2f} s\n
-                Maximum control time: 0.1 s\n
-                \033[93m""".format(solver_time),
+                Maximum control time: 0.1 s\n""".format(solver_time),
                 file = sys.stderr
             )
 
