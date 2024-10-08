@@ -515,7 +515,7 @@ class WindField:
                 if k == window_size:
                     self.__mpc.set_predictor()
                 # Update GP Model
-                predictor.update(
+                self.__mpc.update_predictor(
                     p,
                     np.hstack([wind_force,0.0])
                 )

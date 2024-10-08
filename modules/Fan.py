@@ -21,20 +21,17 @@ class RealFan:
         idx_x = int(x*self.__resolution//self.__width)
         idx_y = int(y*self.__resolution//self.__height)
 
-        if idx_x < self.__width and idx_y < self.__height and idx_x >= 0 and idx_y >= 0:
-            # Draw the speed from a multivariate normal with certain speed and covariance
-            speed = np.random.multivariate_normal(
-                mean = np.array([
-                    self.__scale*self.__mean_map[0,self.__resolution-1-idx_y,idx_x], # x mean component
-                    self.__scale*self.__mean_map[1,self.__resolution-1-idx_y,idx_x]  # y mean component
-                ]),
-                cov = np.diag([
-                    self.__var_map[0,self.__resolution-1-idx_y,idx_x], # x var component
-                    self.__var_map[1,self.__resolution-1-idx_y,idx_x]  # y var component
-                ])
-            )
-        else:
-            speed = np.zeros(2)
+        # Draw the speed from a multivariate normal with certain speed and covariance
+        speed = np.random.multivariate_normal(
+            mean = np.array([
+                self.__scale*self.__mean_map[0,self.__resolution-1-idx_y,idx_x], # x mean component
+                self.__scale*self.__mean_map[1,self.__resolution-1-idx_y,idx_x]  # y mean component
+            ]),
+            cov = np.diag([
+                self.__var_map[0,self.__resolution-1-idx_y,idx_x], # x var component
+                self.__var_map[1,self.__resolution-1-idx_y,idx_x]  # y var component
+            ])
+        )
         
         return speed
 

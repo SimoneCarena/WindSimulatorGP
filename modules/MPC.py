@@ -337,7 +337,7 @@ class MPC:
                     cov_x.reshape((-1,1))
                 ])
                 self.solver.set(
-                    self.N,
+                    k,
                     "p",
                     params
                 )
