@@ -57,7 +57,7 @@ class MPC:
         model = AcadosModel()
         model.x = x
         model.u = u
-        model.f_expl_expr = self.dynamics(x,u,ca.SX.zeros(3))
+        model.f_expl_expr = self.dynamics(x,u,np.zeros(3))
         model.name = 'quadrotor_mpc'
         ocp.model = model
 
@@ -125,6 +125,10 @@ class MPC:
 
         # Create the solver
         ocp.code_export_directory = 'acados/solver_no_gp'
+        ocp.solver_options.nlp_solver_type = "SQP"
+        ocp.solver_options.qp_solver = "FULL_CONDENSING_HPIPM"
+        # ocp.solver_options.hessian_approx = "GAUSS_NEWTON"
+        ocp.solver_options.integrator_type = "ERK"
         self.solver_no_gp = AcadosOcpSolver(ocp, json_file='acados/acados_ocp.json')
 
     def __setup_solver_gp(self):
@@ -231,7 +235,11 @@ class MPC:
 
         # Create the solver
         ocp.code_export_directory = 'acados/solver_gp'
-        self.solver_gp = AcadosOcpSolver(ocp, json_file='acados/acados_ocp.json')
+        ocp.solver_options.nlp_solver_type = "SQP"
+        ocp.solver_options.qp_solver = "FULL_CONDENSING_HPIPM"
+        # ocp.solver_options.hessian_approx = "GAUSS_NEWTON"
+        ocp.solver_options.integrator_type = "ERK"
+        self.solver_gp = AcadosOcpSolver(ocp, json_file='acados/acados_ocp_gp.json')
 
     def __setup_gp_prediction(self):
         # Define GP variables
@@ -314,7 +322,7 @@ class MPC:
             self.solver.set(
                 k, 
                 "yref",
-                np.concatenate((ref[:,k], np.array([0,0,0,0])))
+                np.concatenate((ref[:,k], np.array([0,0,0,10])))
             )
 
         # Set final refrence
@@ -352,16 +360,17 @@ class MPC:
         # Check the solver status
         if status != 0:
             print(
-                '\033[93m'+f"Solver Returned Exit Status {4}"+'\033[93m',
+                f"Solver Returned Exit Status {status}",
                 file = sys.stderr
             )
         # Check the execution time and verify it is under the control time
         solver_time = self.solver.get_stats('time_tot')
+
         if solver_time > self.max_time:
             print(
-                """Solver exceeded maximum computation time\n
-                Solver time: {:.2f} s\n
-                Maximum control time: 0.1 s\n""".format(solver_time),
+                """Solver exceeded maximum computation time
+                Solver time: {:.3f} s
+                Maximum control time: {:.3f} s\n""".format(solver_time,self.max_time),
                 file = sys.stderr
             )
 

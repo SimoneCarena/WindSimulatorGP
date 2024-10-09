@@ -428,8 +428,8 @@ class WindField:
             self.__quadrotor,
             self.__control_horizon,
             self.__dt*self.__control_frequency,
-            Q=100*np.eye(6), 
-            R=np.eye(4),
+            Q=np.diag([100,100,100,100,100,100]), 
+            R=np.diag([1,1,1,1]),
             maximum_solver_time=self.__dt*self.__control_frequency,
             obstacles=self.__obstacles,
             predictor=predictor
@@ -446,7 +446,7 @@ class WindField:
         if p0 is None:
             x0 = target_p[0,0]
             y0 = target_p[1,0]
-            z0 = 0.0
+            z0 = target_p[2,0]
         else:
             x0 = p0[0]
             y0 = p0[1]
@@ -808,7 +808,9 @@ class WindField:
             
         anim = animation.FuncAnimation(fig,animation_function,frames=int(self.__duration/scale),interval=100,repeat=False)
         FFwriter = animation.FFMpegWriter(fps=30)
-        anim.save(f'imgs/animations/{self.__trajectory_name}.mp4', writer = FFwriter)
+        # anim.save(f'imgs/animations/{self.__trajectory_name}.mp4', writer = FFwriter)
+
+        plt.close('all')
 
         print('')
 
