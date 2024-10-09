@@ -441,7 +441,7 @@ class WindField:
         PredictedPos = []
         x_opt = np.zeros((6,self.__control_horizon))
 
-        # Set the mass initial conditions
+        # Set the initial conditions
         target_p, target_v = self.__trajectory.trajectory()
         if p0 is None:
             x0 = target_p[0,0]
@@ -451,6 +451,14 @@ class WindField:
             x0 = p0[0]
             y0 = p0[1]
             z0 = p0[2]
+        # Fix initial orientation
+        # p0 = target_p[:,0]
+        # p1 = target_p[:,1]
+        # d = (p1-p0)/np.linalg.norm(p1-p0)
+        # phi = 0
+        # theta = 0 #np.arctan2(-d[2],np.sqrt(d[0]**2+d[1]**2))
+        # psi = 0 #np.arctan2(d[1],d[0])
+        
         self.__quadrotor.set_state(
             np.array([
                 x0,y0,z0,0,0,0,
@@ -485,21 +493,19 @@ class WindField:
             ev = target_v[:,t] - state[3:6]
             if t%self.__control_frequency == 0:
                 self.__idx_control.append(t)
-                # Collect inputs for GP
                 state = self.__quadrotor.get_state()
-                self.__gp_data.append([state[0],state[1]])
                 # Generate MPC Reference
-                idx = min(t+self.__control_horizon*self.__control_frequency,len(self.__trajectory))
+                idx = min(t+(self.__control_horizon+1)*self.__control_frequency,len(self.__trajectory))
                 ref = np.concatenate([
                         target_p[:,t:idx:self.__control_frequency],
                         target_v[:,t:idx:self.__control_frequency]
                 ],axis=0)
                 # If the remaining trajectory is < than the control horizon
                 # expand it using the last refence
-                if (idx-t)//self.__control_frequency < self.__control_horizon:
+                if (idx-t)//self.__control_frequency < (self.__control_horizon+1):
                     ref = np.concatenate([
                         ref,
-                        np.repeat(ref[:,-1,np.newaxis],self.__control_horizon-(idx-t)//self.__control_frequency,axis=1)
+                        np.repeat(ref[:,-1,np.newaxis],(self.__control_horizon+1)-(idx-t)//self.__control_frequency,axis=1)
                     ],axis=1)
                 # Generate control force
                 control_force, predicted_state, pos_cov = self.__mpc(state,ref,x_opt)
@@ -755,17 +761,20 @@ class WindField:
             UncEllipses.append(unc)
             DroneEllipses.append(drones)
 
-        _, _, _, _, v = self.__draw_wind_field_grid()
-        v_max = np.max(v)
-        # Create custom colormap
-        colors = [(1, 0.5, 0, alpha) for alpha in np.linspace(0, 1, 256)]
-        orange_transparency_cmap = LinearSegmentedColormap.from_list('orange_transparency', colors, N=256)
-        bar = ax.imshow(np.array([[0,v_max]]), cmap=orange_transparency_cmap)
-        bar.set_visible(False)
-        cb = fig.colorbar(bar,orientation="vertical")
-        cb.set_label(label=r'Wind Speed $[m/s]$',labelpad=10)
-        ax.set_xlim([0.0,self.__width])
-        ax.set_ylim([0.0,self.__height])
+        render_full_animation = False
+
+        if render_full_animation:
+            _, _, _, _, v = self.__draw_wind_field_grid()
+            v_max = np.max(v)
+            # Create custom colormap
+            colors = [(1, 0.5, 0, alpha) for alpha in np.linspace(0, 1, 256)]
+            orange_transparency_cmap = LinearSegmentedColormap.from_list('orange_transparency', colors, N=256)
+            bar = ax.imshow(np.array([[0,v_max]]), cmap=orange_transparency_cmap)
+            bar.set_visible(False)
+            cb = fig.colorbar(bar,orientation="vertical")
+            cb.set_label(label=r'Wind Speed $[m/s]$',labelpad=10)
+            ax.set_xlim([0.0,self.__width])
+            ax.set_ylim([0.0,self.__height])
 
         def animation_function(t):
             # Clear figures and setup plots
@@ -777,11 +786,12 @@ class WindField:
             ax.set_xlim([0.0,self.__width])
             ax.set_ylim([0.0,self.__height])
             ax.set_aspect('equal','box')
-            xs, ys, vx, vy, v = self.__draw_wind_field_grid()
-            v_max = np.max(v)
-            for i in range(len(xs)):
-                for j in range(len(ys)):
-                    ax.arrow(xs[i],ys[j],vx[i,j]/(v_max*10),vy[i,j]/(v_max*10),length_includes_head=False,head_width=0.015,head_length=0.015,width=0.005,color='orange',alpha=v[i,j]/v_max)
+            if render_full_animation:
+                xs, ys, vx, vy, v = self.__draw_wind_field_grid()
+                v_max = np.max(v)
+                for i in range(len(xs)):
+                    for j in range(len(ys)):
+                        ax.arrow(xs[i],ys[j],vx[i,j]/(v_max*10),vy[i,j]/(v_max*10),length_includes_head=False,head_width=0.015,head_length=0.015,width=0.005,color='orange',alpha=v[i,j]/v_max)
 
             # Plot System Evolution
             for o in obstacles:
@@ -808,8 +818,10 @@ class WindField:
             
         anim = animation.FuncAnimation(fig,animation_function,frames=int(self.__duration/scale),interval=100,repeat=False)
         FFwriter = animation.FFMpegWriter(fps=30)
-        # anim.save(f'imgs/animations/{self.__trajectory_name}.mp4', writer = FFwriter)
-
+        if render_full_animation:
+            anim.save(f'imgs/animations/{self.__trajectory_name}.mp4', writer = FFwriter)
+        else:
+            plt.show()
         plt.close('all')
 
         print('')

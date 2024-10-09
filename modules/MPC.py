@@ -16,9 +16,9 @@ class MPC:
         self.nx, self.nu, self.ny = model.get_dimensions()
 
         # GP prediction data
+        self.gp_on = False
         if predictor is not None:
             self.predictor = predictor
-            self.gp_on = False
             self.window_size, self.input_dim, self.output_dim = predictor.get_dims()
 
         # Control data
@@ -329,7 +329,7 @@ class MPC:
         self.solver.set(
             self.N,
             "yref",
-            ref[:,-1]
+            ref[:,self.N]
         )
 
         # If the GP prediction is set, use the model to make the wind predictions
