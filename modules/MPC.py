@@ -304,14 +304,16 @@ class MPC:
         """
         # Set the initial guess for state and control
         u_guess = np.tile((self.lower + self.upper) / 2, (self.N, 1))  # Initial guess for controls
-        x_guess = np.tile(x, (self.N + 1, 1))  # Initial guess for states
-
+        x_guess = np.hstack([
+            prev_x_opt,
+            prev_x_opt[:,-1,np.newaxis]
+        ])
         # Set initial guess in the solver
         for k in range(self.N):
-            self.solver.set(k, "x", x_guess[k, :])  # Guess for states
+            self.solver.set(k, "x", x_guess[:, k])  # Guess for states
             self.solver.set(k, "u", u_guess[k, :])  # Guess for controls
 
-        self.solver.set(self.N, "x", x_guess[self.N, :])  # Guess for last state
+        self.solver.set(self.N, "x", x_guess[:, self.N])  # Guess for last state
         # Set initial condition constraint
         self.solver.set(0, "lbx", x)
         self.solver.set(0, "ubx", x)
@@ -322,7 +324,7 @@ class MPC:
             self.solver.set(
                 k, 
                 "yref",
-                np.concatenate((ref[:,k], np.array([0,0,0,10])))
+                np.concatenate((ref[:,k], np.array([0,0,0,9.81])))
             )
 
         # Set final refrence

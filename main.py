@@ -87,6 +87,8 @@ if not test:
 # Test Models
 else:
     wind_field = WindField('configs/wind_field_test.json')
+    # generate_optimal_trajectories(wind_field,'trajectories',0)
+    # exit()
     # test_svgp(
     #     wind_field,
     #     'test_trajectories',
@@ -110,7 +112,7 @@ else:
     # )
     test_exact_mogp(
         wind_field,
-        'test_trajectories',
+        'trajectories',
         mo_exact_gp_options,
         window_size = 20,
         laps = 1,
