@@ -374,20 +374,20 @@ class WindField:
                 state = self.__quadrotor.get_state()
                 self.__gp_data.append([state[0],state[1]])
                 # Generate MPC Reference
-                idx = min(t+self.__control_horizon*self.__control_frequency,len(self.__trajectory))
+                idx = min(t+(self.__control_horizon+1)*self.__control_frequency,len(self.__trajectory))
                 ref = np.concatenate([
                         target_p[:,t:idx:self.__control_frequency],
                         target_v[:,t:idx:self.__control_frequency]
                 ],axis=0)
                 # If the remaining trajectory is < than the control horizon
                 # expand it using the last refence
-                if (idx-t)//self.__control_frequency < self.__control_horizon:
+                if (idx-t)//self.__control_frequency < (self.__control_horizon+1):
                     ref = np.concatenate([
                         ref,
-                        np.repeat(ref[:,-1,np.newaxis],self.__control_horizon-(idx-t)//self.__control_frequency,axis=1)
+                        np.repeat(ref[:,-1,np.newaxis],(self.__control_horizon+1)-(idx-t)//self.__control_frequency,axis=1)
                     ],axis=1)
                 # Generate control force
-                control_force, x_opt, _ = self.__mpc(state,ref,PermissionError)
+                control_force, x_opt, _ = self.__mpc(state,ref,prev_x_opt)
                 prev_x_opt = x_opt[:,1:]
 
                 # Collect labels for GP
@@ -415,6 +415,85 @@ class WindField:
 
             # Simulate Dynamics
             self.__quadrotor.step(control_force,np.hstack([wind_force,0]))
+
+        # Animation
+        ## Add Obstacles
+        obstacles = []
+        for obstacle in self.__obstacles:
+            o = Ellipse((obstacle.x,obstacle.y),2*obstacle.r,2*obstacle.r,edgecolor='k',fc='k')
+            obstacles.append(o)
+
+        fig, ax = plt.subplots()
+        fig.set_size_inches(16,9)
+        fig.tight_layout(pad=2)
+
+        DroneEllipses = []
+        for i in range(int(self.__duration)):
+            DroneEllipses.append(
+                Ellipse(
+                    (self.__xs[i],self.__ys[i]),
+                    2*self.__quadrotor.r,
+                    2*self.__quadrotor.r,
+                    fc='firebrick',
+                    edgecolor='firebrick',
+                    alpha=0.4
+                )
+            )
+
+        render_full_animation = True
+        scale = 2
+
+        if render_full_animation:
+            _, _, _, _, v = self.__draw_wind_field_grid()
+            v_max = np.max(v)
+            # Create custom colormap
+            colors = [(1, 0.5, 0, alpha) for alpha in np.linspace(0, 1, 256)]
+            orange_transparency_cmap = LinearSegmentedColormap.from_list('orange_transparency', colors, N=256)
+            bar = ax.imshow(np.array([[0,v_max]]), cmap=orange_transparency_cmap)
+            bar.set_visible(False)
+            cb = fig.colorbar(bar,orientation="vertical")
+            cb.set_label(label=r'Wind Speed $[m/s]$',labelpad=10)
+            ax.set_xlim([0.0,self.__width])
+            ax.set_ylim([0.0,self.__height])
+
+        def animation_function(t):
+            # Clear figures and setup plots
+            ax.clear()
+
+            t = int(t*self.__control_frequency*scale)
+            ax.set_xlim([0.0,self.__width])
+            ax.set_ylim([0.0,self.__height])
+            ax.set_aspect('equal','box')
+            if render_full_animation:
+                xs, ys, vx, vy, v = self.__draw_wind_field_grid()
+                v_max = np.max(v)
+                for i in range(len(xs)):
+                    for j in range(len(ys)):
+                        ax.arrow(xs[i],ys[j],vx[i,j]/(v_max*10),vy[i,j]/(v_max*10),length_includes_head=False,head_width=0.015,head_length=0.015,width=0.005,color='orange',alpha=v[i,j]/v_max)
+
+            # Plot System Evolution
+            for o in obstacles:
+                ax.add_patch(o)
+            ax.plot(np.NaN, np.NaN, '-', color='none', label='t={0:.2f} s'.format(t*self.__dt))
+            ax.plot(np.NaN, np.NaN, 'o', color='k', markersize=10, label='Obstacles')
+            ax.plot(np.NaN, np.NaN, '-', color='firebrick', alpha=0.4, linewidth=8, label='Drone Radius')
+            ax.plot(target_p[0,:t],target_p[1,:t],'--',color='orchid',label="Reference Trajectory")
+            ax.plot(target_p[0,t],target_p[1,t],'o',color='orchid')
+            ax.plot(self.__xs[t],self.__ys[t],'o',color='tab:blue',label='System Position')
+            ax.plot(self.__xs[:t],self.__ys[:t],color="tab:blue",label="System Trajectory",alpha=0.8)
+            ax.add_patch(DroneEllipses[t])
+
+            ax.legend()
+            
+        anim = animation.FuncAnimation(fig,animation_function,frames=int(self.__duration/(self.__control_frequency*scale)),interval=10,repeat=False)
+        FFwriter = animation.FFMpegWriter(fps=30)
+        if render_full_animation:
+            print(f"Rendering {self.__trajectory_name} Trajectory animation")
+            anim.save(f'imgs/animations/{self.__trajectory_name}_no_gp_{len(self.__obstacles)}.obs.mp4', writer = FFwriter)
+            print("Done rendering!")
+        else:
+            plt.show()
+        plt.close('all')
         
         print('')
 
@@ -765,7 +844,6 @@ class WindField:
         fig, ax = plt.subplots()
         fig.set_size_inches(16,9)
         fig.tight_layout(pad=2)
-        scale = self.__control_frequency
 
         UncEllipses = []
         DroneEllipses = []
@@ -800,6 +878,7 @@ class WindField:
             DroneEllipses.append(drones)
 
         render_full_animation = False
+        scale = 2
 
         if render_full_animation:
             _, _, _, _, v = self.__draw_wind_field_grid()
@@ -818,9 +897,9 @@ class WindField:
             # Clear figures and setup plots
             ax.clear()
 
-            t = int(t*scale)
-            k = t//scale - window_size - 1
-            start = max(0,k-window_size)*scale
+            t = int(t*self.__control_frequency*scale)
+            k = t//self.__control_frequency - window_size - 1
+            start = max(0,k-window_size)*self.__control_frequency
             ax.set_xlim([0.0,self.__width])
             ax.set_ylim([0.0,self.__height])
             ax.set_aspect('equal','box')
@@ -841,7 +920,7 @@ class WindField:
             ax.plot(target_p[0,:t],target_p[1,:t],'--',color='orchid',label="Reference Trajectory")
             ax.plot(target_p[0,t],target_p[1,t],'o',color='orchid')
             ax.plot(self.__xs[t],self.__ys[t],'o',color='tab:blue',label='System Position')
-            ax.plot(self.__xs[start:t:scale],self.__ys[start:t:scale],'o-',color=(0.878, 0.867, 0.137,0.5),markerfacecolor=(0.878, 0.867, 0.137,1.0),markeredgecolor=(0.878, 0.867, 0.137,1.0),linewidth=8,markersize=2,label='Active Window')
+            ax.plot(self.__xs[start:t:self.__control_frequency],self.__ys[start:t:self.__control_frequency],'o-',color=(0.878, 0.867, 0.137,0.5),markerfacecolor=(0.878, 0.867, 0.137,1.0),markeredgecolor=(0.878, 0.867, 0.137,1.0),linewidth=8,markersize=2,label='Active Window')
             ax.plot(self.__xs[:t],self.__ys[:t],color="tab:blue",label="System Trajectory",alpha=0.8)
             if k>0:
                 unc = UncEllipses[k]
@@ -854,11 +933,11 @@ class WindField:
 
             ax.legend()
             
-        anim = animation.FuncAnimation(fig,animation_function,frames=int(self.__duration/scale),interval=10,repeat=False)
-        FFwriter = animation.FFMpegWriter(fps=60)
+        anim = animation.FuncAnimation(fig,animation_function,frames=int(self.__duration/(self.__control_frequency*scale)),interval=10,repeat=False)
+        FFwriter = animation.FFMpegWriter(fps=30)
         if render_full_animation:
             print(f"Rendering {self.__trajectory_name} Trajectory animation")
-            anim.save(f'imgs/animations/{self.__trajectory_name}.mp4', writer = FFwriter)
+            anim.save(f'imgs/animations/{self.__trajectory_name}_gp_{len(self.__obstacles)}.obs.mp4', writer = FFwriter)
             print("Done rendering!")
         else:
             plt.show()
