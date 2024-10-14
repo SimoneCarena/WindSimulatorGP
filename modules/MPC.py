@@ -369,12 +369,10 @@ class MPC:
         solver_time = self.solver.get_stats('time_tot')
 
         if solver_time > self.max_time:
-            print(
-                """Solver exceeded maximum computation time
-                Solver time: {:.3f} s
-                Maximum control time: {:.3f} s\n""".format(solver_time,self.max_time),
-                file = sys.stderr
-            )
+            print('\n')
+            print("Solver exceeded maximum computation time",file = sys.stderr)
+            print("Solver time: {:.3f} s".format(solver_time),file = sys.stderr)
+            print("Maximum control time: {:.3f} s\n".format(self.max_time),file = sys.stderr)
 
         # Extract the solution: control inputs and predicted states
         u_opt = np.zeros((self.N, self.nu))
