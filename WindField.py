@@ -19,6 +19,16 @@ from utils.function_parser import parse_generator
 from utils.obstacle_parser import parse_obstacles
 from utils.exceptions import MissingTrajectoryException 
 
+def _rmse(x,y,N0):
+    N = len(x)
+
+    rmse = np.sqrt(
+        1/(N-N0)*(np.sum((x[N0:]-y[N0:])**2))
+    )
+
+    return rmse
+
+
 class WindField:
     '''
     Class used to model the wind field and simulate the evolution of the system moving in it.\\
@@ -89,7 +99,8 @@ class WindField:
         )
         self.__control_horizon = 10   
         self.__Q = np.diag([10,10,10,2,2,2])
-        self.__R = np.diag([1,1,1,1])   
+        self.__R = np.diag([1,1,1,1]) 
+        self.__N0 = 3000 # For computing rmse, this removes the initial transient period  
         
     def __setup_gp(self):
         # Create arrays to train the GP model
@@ -430,6 +441,9 @@ class WindField:
         self.__final_time = t+1
 
         # Plots
+        rmse_x = _rmse(self.__xs,target_p[0,:],self.__N0)
+        rmse_y = _rmse(self.__ys,target_p[1,:],self.__N0)
+        rmse_z = _rmse(self.__zs,target_p[2,:],self.__N0)
         T = np.linspace(0,self.__duration*self.__dt,self.__duration)
         T_sim = np.linspace(0,self.__duration*self.__dt,self.__final_time)
         control_limit_low = self.__mpc.lower
@@ -504,6 +518,7 @@ class WindField:
         fig.suptitle('x Position')
         ax[0].plot(T_sim,self.__xs,label='System x Position')
         ax[0].plot(T,target_p[0,:],'--',color='orange',label='Reference x Position')
+        ax[0].plot(np.nan,np.nan,'-',color='none',label="rmse = {:.4f} m".format(rmse_x))
         ax[1].plot(T_sim,self.__ex,label='Position Error')
         ax[0].set_xlabel(r'$t$ $[s]$')
         ax[0].set_ylabel(r'$x$ $[m]$')
@@ -519,6 +534,7 @@ class WindField:
         fig.suptitle('y Position')
         ax[0].plot(T_sim,self.__ys,color='tab:blue',label='System y Position')
         ax[0].plot(T,target_p[1,:],'--',color='orange',label='Reference y Position')
+        ax[0].plot(np.nan,np.nan,'-',color='none',label="rmse = {:.4f} m".format(rmse_y))
         ax[1].plot(T_sim,self.__ey,label='Position Error')
         ax[0].set_xlabel(r'$t$ $[s]$')
         ax[0].set_ylabel(r'$y$ $[m]$')
@@ -534,6 +550,7 @@ class WindField:
         fig.suptitle('z Position')
         ax[0].plot(T_sim,self.__zs,color='tab:blue',label='System z Position')
         ax[0].plot(T,target_p[2,:],'--',color='orange',label='Reference z Position')
+        ax[0].plot(np.nan,np.nan,'-',color='none',label="rmse = {:.4f} m".format(rmse_z))
         ax[1].plot(T_sim,self.__ez,label='Position Error')
         ax[0].set_xlabel(r'$t$ $[s]$')
         ax[0].set_ylabel(r'$z$ $[m]$')
@@ -841,6 +858,9 @@ class WindField:
         print('')
 
         # Plots
+        rmse_x = _rmse(self.__xs,target_p[0,:],self.__N0)
+        rmse_y = _rmse(self.__ys,target_p[1,:],self.__N0)
+        rmse_z = _rmse(self.__zs,target_p[2,:],self.__N0)
         T = np.linspace(0,self.__duration*self.__dt,self.__duration)
         control_limit_low = self.__mpc.lower
         control_limit_upper = self.__mpc.upper
@@ -922,6 +942,7 @@ class WindField:
         fig.suptitle('x Position')
         ax[0].plot(T,self.__xs,label='System x Position')
         ax[0].plot(T,target_p[0,:],'--',color='orange',label='Reference x Position')
+        ax[0].plot(np.nan,np.nan,'-',color='none',label="rmse = {:.4f} m".format(rmse_x))
         ax[1].plot(T,self.__ex,label='Position Error')
         ax[0].set_xlabel(r'$t$ $[s]$')
         ax[0].set_ylabel(r'$x$ $[m]$')
@@ -937,6 +958,7 @@ class WindField:
         fig.suptitle('y Position')
         ax[0].plot(T,self.__ys,color='tab:blue',label='System y Position')
         ax[0].plot(T,target_p[1,:],'--',color='orange',label='Reference y Position')
+        ax[0].plot(np.nan,np.nan,'-',color='none',label="rmse = {:.4f} m".format(rmse_y))
         ax[1].plot(T,self.__ey,label='Position Error')
         ax[0].set_xlabel(r'$t$ $[s]$')
         ax[0].set_ylabel(r'$y$ $[m]$')
@@ -952,6 +974,7 @@ class WindField:
         fig.suptitle('z Position')
         ax[0].plot(T,self.__zs,color='tab:blue',label='System z Position')
         ax[0].plot(T,target_p[2,:],'--',color='orange',label='Reference z Position')
+        ax[0].plot(np.nan,np.nan,'-',color='none',label="rmse = {:.4f} m".format(rmse_z))
         ax[1].plot(T,self.__ez,label='Position Error')
         ax[0].set_xlabel(r'$t$ $[s]$')
         ax[0].set_ylabel(r'$z$ $[m]$')
