@@ -65,18 +65,16 @@ def __test_exact_mogp(wind_field, trajectories_folder, model, name, window_size,
     for file in os.listdir(trajectories_folder):
         file_name = Path(file).stem
         wind_field.set_trajectory(trajectories_folder+'/'+file,file_name,laps)
+        print('==========================================')
+        print('  Simulating Wind Field without baseline  ')
+        print('==========================================')
+        wind_field.simulate_wind_field(False,show)
+        wind_field.reset()
+        wind_field.reset_gp()
         print('=======================================')
         print('  Simulating Wind Field with baseline  ')
         print('=======================================')
-        wind_field.simulate_wind_field(True)
-        wind_field.draw_wind_field(
-            show = show,
-            save = None
-        )
-        wind_field.plot(
-            show = show,
-            save = None
-        )
+        wind_field.simulate_wind_field(True,show)
         wind_field.reset()
         wind_field.reset_gp()
         print('=================================')

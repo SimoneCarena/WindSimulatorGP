@@ -87,7 +87,9 @@ class WindField:
             self.__dt,
             np.zeros(10)
         )
-        self.__control_horizon = 10      
+        self.__control_horizon = 10   
+        self.__Q = np.diag([10,10,10,2,2,2])
+        self.__R = np.diag([1,1,1,1])   
         
     def __setup_gp(self):
         # Create arrays to train the GP model
@@ -303,7 +305,7 @@ class WindField:
         self.__duration*=laps
         self.__trajectory_name = trajectory_name
 
-    def simulate_wind_field(self, with_baseline = False): 
+    def simulate_wind_field(self, with_baseline = False, show = False): 
         '''
         Runs the wind simulation. The wind field should be reset every time a new simulation.
         In case a GP model is being trained, the GP data should not be reset, as it stacks the subsequent
@@ -316,11 +318,11 @@ class WindField:
             self.__quadrotor,
             self.__control_horizon,
             self.__dt*self.__control_frequency,
-            Q=100*np.eye(6), 
-            R=np.eye(4),
+            Q = self.__Q, 
+            R = self.__R,
             maximum_solver_time=self.__dt*self.__control_frequency,
             obstacles=self.__obstacles
-        )  
+        ) 
 
         # Set the mass initial conditions
         target_p,target_v = self.__trajectory.trajectory()
@@ -394,18 +396,22 @@ class WindField:
                 # Update last wind measurement
                 last_wind_measurement = np.hstack([wind_force,0])
 
-            self.__ex.append(ep[0])
-            self.__ey.append(ep[1])
-            self.__ez.append(ep[2])
-            self.__evx.append(ev[0])
-            self.__evy.append(ev[1])
-            self.__evz.append(ev[2])
             self.__xs.append(state[0])
             self.__ys.append(state[1])
             self.__zs.append(state[2])
             self.__vxs.append(state[3])
             self.__vys.append(state[4])
             self.__vzs.append(state[5])
+            self.__phi.append(state[6])
+            self.__theta.append(state[7])
+            self.__psi.append(state[8])
+            self.__a.append(state[9])
+            self.__ex.append(ep[0])
+            self.__ey.append(ep[1])
+            self.__ez.append(ep[2])
+            self.__evx.append(ev[0])
+            self.__evy.append(ev[1])
+            self.__evz.append(ev[2])
             self.__wind_force_x.append(wind_force[0])
             self.__wind_force_y.append(wind_force[1])
             self.__ctl_phi.append(control_force[0])
@@ -422,6 +428,187 @@ class WindField:
         
         # Save the time when the simulation has finished
         self.__final_time = t+1
+
+        # Plots
+        T = np.linspace(0,self.__duration*self.__dt,self.__duration)
+        T_sim = np.linspace(0,self.__duration*self.__dt,self.__final_time)
+        control_limit_low = self.__mpc.lower
+        control_limit_upper = self.__mpc.upper
+
+        ## Plot 3D Trajectory
+        fig = plt.figure()
+        ax = plt.axes(projection='3d')
+        fig.set_size_inches(16,9)
+        fig.tight_layout(pad=5)
+        fig.suptitle('System Trajectory')
+        ax.plot(*target_p,'--',color='g',label='Reference Trajectory')
+        ax.plot(self.__xs,self.__ys,self.__zs,color='orange',label="System Trajectory")
+        for obstacle in self.__obstacles:
+            Xc,Yc,Zc = self.__data_for_cylinder_along_z(
+                obstacle.x,
+                obstacle.y,
+                obstacle.r,
+                4
+            )
+            ax.plot_surface(Xc, Yc, Zc, color='k')
+        ax.set_aspect('equal','box')
+        plt.legend()
+
+        ## Plot 2D xy Projection of the Trajectory
+        fig, ax = plt.subplots()
+        fig.set_size_inches(16,9)
+        fig.tight_layout(pad=2)
+        ax.plot(self.__xs,self.__ys,label='System Trajectory',color='orange')
+        ax.plot(*target_p[:2],'g--',label='Reference Trajectory')
+        ax.set_aspect('equal','box')
+        for obstacle in self.__obstacles:
+            o = Ellipse((obstacle.x,obstacle.y),2*obstacle.r,2*obstacle.r,edgecolor='k',fc='k')
+            ax.add_patch(o)
+        ax.legend()
+
+        ## Plot Control Inputs
+        fig, ax = plt.subplots(4,1)
+        fig.set_size_inches(16,9)
+        fig.tight_layout(pad=4)
+        fig.suptitle('Control Inputs')
+        ax[0].plot(T_sim,self.__ctl_phi)
+        ax[0].axhline(y=control_limit_low[0],color='k',linestyle='dashed',label=r'$\phi^{\lim}$')
+        ax[0].axhline(y=control_limit_upper[0],color='k',linestyle='dashed')
+        ax[0].set_ylabel(r'$\phi^c$ $[rad]$')
+        ax[0].legend()
+        ax[0].set_xlim([0,self.__duration*self.__dt])
+        ax[1].plot(T_sim,self.__ctl_theta)
+        ax[1].axhline(y=control_limit_low[1],color='k',linestyle='dashed',label=r'$\theta^{\lim}$')
+        ax[1].axhline(y=control_limit_upper[1],color='k',linestyle='dashed')
+        ax[1].set_ylabel(r'$\theta^c$ $[rad]$')
+        ax[1].legend()
+        ax[1].set_xlim([0,self.__duration*self.__dt])
+        ax[2].plot(T_sim,self.__ctl_psi)
+        ax[2].axhline(y=control_limit_low[2],color='k',linestyle='dashed',label=r'$\psi^{\lim}$')
+        ax[2].axhline(y=control_limit_upper[2],color='k',linestyle='dashed')
+        ax[2].set_ylabel(r'$\psi^c$ $[rad]$')
+        ax[2].legend()
+        ax[2].set_xlim([0,self.__duration*self.__dt])
+        ax[3].plot(T_sim,self.__ctl_a)
+        ax[3].axhline(y=control_limit_low[3],color='k',linestyle='dashed',label=r'$a^{\lim}$')
+        ax[3].axhline(y=control_limit_upper[3],color='k',linestyle='dashed')
+        ax[3].set_ylabel(r'$a^c$ $[m/s^2]$')
+        ax[3].set_xlabel(r'$t$ $[s]$')
+        ax[3].legend()
+        ax[3].set_xlim([0,self.__duration*self.__dt])
+
+        ## Plot Tracking Error (x-Position)
+        fig, ax = plt.subplots(2,1)
+        fig.set_size_inches(16,9)
+        fig.tight_layout(pad=3)
+        fig.suptitle('x Position')
+        ax[0].plot(T_sim,self.__xs,label='System x Position')
+        ax[0].plot(T,target_p[0,:],'--',color='orange',label='Reference x Position')
+        ax[1].plot(T_sim,self.__ex,label='Position Error')
+        ax[0].set_xlabel(r'$t$ $[s]$')
+        ax[0].set_ylabel(r'$x$ $[m]$')
+        ax[1].set_xlabel(r'$t$ $[s]$')
+        ax[1].set_ylabel(r'$e_x$ $[m]$')
+        ax[0].legend()
+        ax[1].legend()
+        
+        ## Plot Tracking Error (y-Position)
+        fig, ax = plt.subplots(2,1)
+        fig.set_size_inches(16,9)
+        fig.tight_layout(pad=3)
+        fig.suptitle('y Position')
+        ax[0].plot(T_sim,self.__ys,color='tab:blue',label='System y Position')
+        ax[0].plot(T,target_p[1,:],'--',color='orange',label='Reference y Position')
+        ax[1].plot(T_sim,self.__ey,label='Position Error')
+        ax[0].set_xlabel(r'$t$ $[s]$')
+        ax[0].set_ylabel(r'$y$ $[m]$')
+        ax[1].set_xlabel(r'$t$ $[s]$')
+        ax[1].set_ylabel(r'$e_y$ $[m]$')
+        ax[0].legend()
+        ax[1].legend()
+
+        ## Plot Tracking Error (z-Position)
+        fig, ax = plt.subplots(2,1)
+        fig.set_size_inches(16,9)
+        fig.tight_layout(pad=3)
+        fig.suptitle('z Position')
+        ax[0].plot(T_sim,self.__zs,color='tab:blue',label='System z Position')
+        ax[0].plot(T,target_p[2,:],'--',color='orange',label='Reference z Position')
+        ax[1].plot(T_sim,self.__ez,label='Position Error')
+        ax[0].set_xlabel(r'$t$ $[s]$')
+        ax[0].set_ylabel(r'$z$ $[m]$')
+        ax[1].set_xlabel(r'$t$ $[s]$')
+        ax[1].set_ylabel(r'$e_z$ $[m]$')
+        ax[0].legend()
+        ax[1].legend()
+
+        ## Plot Tracking Error (x-Velocity)
+        fig, ax = plt.subplots(2,1)
+        fig.set_size_inches(16,9)
+        fig.tight_layout(pad=3)
+        fig.suptitle('x Velocity')
+        ax[0].plot(T_sim,self.__vxs,color='tab:blue',label='System x Velocity')
+        ax[0].plot(T,target_v[0,:],'--',color='orange',label='Reference x Velocity')
+        ax[1].plot(T_sim,self.__evx,label='Velocity Error')
+        ax[0].set_xlabel(r'$t$ $[s]$')
+        ax[0].set_ylabel(r'$V_x$ $[m/s]$')
+        ax[1].set_xlabel(r'$t$ $[s]$')
+        ax[1].set_ylabel(r'$e_{V_x}$ $[m/s]$')
+        ax[0].legend()
+        ax[1].legend()
+
+        ## Plot Tracking Error (y-Velocity)
+        fig, ax = plt.subplots(2,1)
+        fig.set_size_inches(16,9)
+        fig.tight_layout(pad=3)
+        fig.suptitle('y Velocity')
+        ax[0].plot(T_sim,self.__vys,color='tab:blue',label='System y Velocity')
+        ax[0].plot(T,target_v[1,:],'--',color='orange',label='Reference y Velocity')
+        ax[1].plot(T_sim,self.__evy,label='Velocity Error')
+        ax[0].set_xlabel(r'$t$ $[s]$')
+        ax[0].set_ylabel(r'$V_y$ $[m/s]$')
+        ax[1].set_xlabel(r'$t$ $[s]$')
+        ax[1].set_ylabel(r'$e_{V_y}$ $[m/s]$')
+        ax[0].legend()
+        ax[1].legend()
+
+        ## Plot Tracking Error (z-Velocity)
+        fig, ax = plt.subplots(2,1)
+        fig.set_size_inches(16,9)
+        fig.tight_layout(pad=3)
+        fig.suptitle('z Velocity')
+        ax[0].plot(T_sim,self.__vzs,color='tab:blue',label='System z Velocity')
+        ax[0].plot(T,target_v[2,:],'--',color='orange',label='Reference z Velocity')
+        ax[1].plot(T_sim,self.__evz,label='Velocity Error')
+        ax[0].set_xlabel(r'$t$ $[s]$')
+        ax[0].set_ylabel(r'$V_z$ $[m/s]$')
+        ax[1].set_xlabel(r'$t$ $[s]$')
+        ax[1].set_ylabel(r'$e_{V_z}$ $[m/s]$')
+        ax[0].legend()
+        ax[1].legend()
+
+        ## Plot Attitude State Evolution
+        fig, ax = plt.subplots(4,1)
+        fig.set_size_inches(16,9)
+        fig.tight_layout(pad=4)
+        fig.suptitle('Attitude and mass-normalized acceleration evolution')
+        ax[0].plot(T_sim,self.__phi)
+        ax[0].set_ylabel(r'$\phi$ $[rad]$')
+        ax[0].set_xlim([0,self.__duration*self.__dt])
+        ax[1].plot(T_sim,self.__theta)
+        ax[1].set_ylabel(r'$\theta$ $[rad]$')
+        ax[1].set_xlim([0,self.__duration*self.__dt])
+        ax[2].plot(T_sim,self.__psi)
+        ax[2].set_ylabel(r'$\psi$ $[rad]$')
+        ax[2].set_xlim([0,self.__duration*self.__dt])
+        ax[3].plot(T_sim,self.__a)
+        ax[3].set_ylabel(r'$a$ $[m/s^2]$')
+        ax[3].set_xlabel(r'$t$ $[s]$')
+        ax[3].set_xlim([0,self.__duration*self.__dt])
+
+        if show:
+            plt.show()
+        plt.close('all')
 
         # Animation
         ## Add Obstacles
@@ -526,8 +713,8 @@ class WindField:
             self.__quadrotor,
             self.__control_horizon,
             self.__dt*self.__control_frequency,
-            Q=np.diag([10,10,10,2,2,2]), 
-            R=np.diag([1,1,1,1]),
+            Q = self.__Q, 
+            R = self.__R,
             maximum_solver_time=self.__dt*self.__control_frequency,
             obstacles=self.__obstacles,
             predictor=predictor
