@@ -1,10 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
 import json
-import sys
-import os
-import casadi as ca
 
 from scipy.stats import chi2
 
@@ -12,8 +8,6 @@ from matplotlib import animation
 from matplotlib.colors import LinearSegmentedColormap
 from pathlib import Path
 from matplotlib.patches import Ellipse
-from matplotlib.cm import ScalarMappable
-from matplotlib.colors import Normalize
 
 from modules.Fan import RealFan, SimulatedFan
 from modules.Quadrotor import Quadrotor
@@ -154,20 +148,19 @@ class WindField:
         If the save parameter is set to `True`, the files are stored in the
         `imgs/trajectories_plots` folder
         '''
+        T_sim = [t*self.__dt for t in range(self.__final_time)]
         T = [t*self.__dt for t in range(self.__duration)]
         p,v = self.__trajectory.trajectory()
         file_name = Path(self.__trajectory_name).stem
-        sys_tr = np.stack([self.__xs,self.__ys,self.__zs])
-        rmse = np.sqrt(1/len(self.__xs)*np.linalg.norm(sys_tr-p)**2)
 
         fig, ax = plt.subplots(1,2)
-        ax[0].plot(T,self.__xs,label='Object Position')
+        ax[0].plot(T_sim,self.__xs,label='Object Position')
         ax[0].plot(T,p[0,:],'--',label='Reference Position')
         ax[0].title.set_text(r'Position ($x$)')
         ax[0].legend()
         ax[0].set_xlabel(r'$t$ $[s]$')
         ax[0].set_ylabel(r'$x$ $[m]$')
-        ax[1].plot(T,self.__ex)
+        ax[1].plot(T_sim,self.__ex)
         ax[1].title.set_text(r'Traking error ($e_x$)')
         ax[1].set_xlabel(r'$t$ $[s]$')
         ax[1].set_ylabel(r'$e_x$ $[m]$')
@@ -178,13 +171,13 @@ class WindField:
             plt.savefig(save+f'/{file_name}-trajectory-x-position.svg')
 
         fig, ax = plt.subplots(1,2)
-        ax[0].plot(T,self.__ys,label='Object Position')
+        ax[0].plot(T_sim,self.__ys,label='Object Position')
         ax[0].plot(T,p[1,:],'--',label='Reference Position')
         ax[0].title.set_text(r'Position ($y$)')
         ax[0].legend()
         ax[0].set_xlabel(r'$t$ $[s]$')
         ax[0].set_ylabel(r'$y$ $[m]$')
-        ax[1].plot(T,self.__ey)
+        ax[1].plot(T_sim,self.__ey)
         ax[1].title.set_text(r'Traking error ($e_y$)')
         ax[1].set_xlabel(r'$t$ $[s]$')
         ax[1].set_ylabel(r'$e_y$ $[m]$')
@@ -195,13 +188,13 @@ class WindField:
             plt.savefig(save+f'/{file_name}-trajectory-y-position.svg')
 
         fig, ax = plt.subplots(1,2)
-        ax[0].plot(T,self.__zs,label='Object Position')
+        ax[0].plot(T_sim,self.__zs,label='Object Position')
         ax[0].plot(T,p[2,:],'--',label='Reference Position')
         ax[0].title.set_text(r'Position ($z$)')
         ax[0].legend()
         ax[0].set_xlabel(r'$t$ $[s]$')
         ax[0].set_ylabel(r'$z$ $[m]$')
-        ax[1].plot(T,self.__ez)
+        ax[1].plot(T_sim,self.__ez)
         ax[1].title.set_text(r'Traking error ($e_z$)')
         ax[1].set_xlabel(r'$t$ $[s]$')
         ax[1].set_ylabel(r'$e_y$ $[m]$')
@@ -235,17 +228,17 @@ class WindField:
 
         fig, ax = plt.subplots(3,1)
         fig.tight_layout(pad=2)
-        ax[0].plot(T,self.__vxs,label='Quadrotor Speed')
+        ax[0].plot(T_sim,self.__vxs,label='Quadrotor Speed')
         ax[0].plot(T,v[0,:],'--',label='Reference Speed')
         ax[0].set_xlabel(r'$t$ $[s]$')
         ax[0].set_ylabel(r'$V_x$ $[m/s]$')
         ax[0].title.set_text(r'Velocity ($V_x$)')
-        ax[1].plot(T,self.__vys,label='Quadrotor Speed')
+        ax[1].plot(T_sim,self.__vys,label='Quadrotor Speed')
         ax[1].plot(T,v[1,:],'--',label='Reference Speed')
         ax[1].set_xlabel(r'$t$ $[s]$')
         ax[1].set_ylabel(r'$V_y$ $[m/s]$')
         ax[1].title.set_text(r'Velocity ($V_y$)')
-        ax[2].plot(T,self.__vzs,label='Quadrotor Speed')
+        ax[2].plot(T_sim,self.__vzs,label='Quadrotor Speed')
         ax[2].plot(T,v[2,:],'--',label='Reference Speed')
         ax[2].set_xlabel(r'$t$ $[s]$')
         ax[2].set_ylabel(r'$V_z$ $[m/s]$')
@@ -261,19 +254,19 @@ class WindField:
 
         fig, ax = plt.subplots(4,1)
         fig.tight_layout(pad=2)
-        ax[0].plot(T,self.__ctl_phi)
+        ax[0].plot(T_sim,self.__ctl_phi)
         ax[0].set_xlabel(r'$t$ $[s]$')
         ax[0].set_ylabel(r'$\phi^c$ $[red]$')
         ax[0].title.set_text(r'Control $\phi$ ($\phi^c$)')
-        ax[1].plot(T,self.__ctl_theta)
+        ax[1].plot(T_sim,self.__ctl_theta)
         ax[1].set_xlabel(r'$t$ $[s]$')
         ax[1].set_ylabel(r'$\theta^c$ $[red]$')
         ax[1].title.set_text(r'Control $\theta$ ($\theta^c$)')
-        ax[2].plot(T,self.__ctl_psi)
+        ax[2].plot(T_sim,self.__ctl_psi)
         ax[2].set_xlabel(r'$t$ $[s]$')
         ax[2].set_ylabel(r'$\psi^c$ $[red]$')
         ax[2].title.set_text(r'Control $\psi$ ($\psi^c$)')
-        ax[3].plot(T,self.__ctl_a)
+        ax[3].plot(T_sim,self.__ctl_a)
         ax[3].set_xlabel(r'$t$ $[s]$')
         ax[3].set_ylabel(r'$a_c$ $[m/s^2]$')
         ax[3].title.set_text(r'Control Thrust ($a^c$)')
@@ -285,11 +278,11 @@ class WindField:
 
         fig, ax = plt.subplots(1,2)
         fig.tight_layout(pad=2)
-        ax[0].plot(T,self.__wind_force_x)
+        ax[0].plot(T_sim,self.__wind_force_x)
         ax[0].set_xlabel(r'$t$ $[s]$')
         ax[0].set_ylabel(r'$F_{wx}$ $[N]$')
         ax[0].title.set_text(r'Wind Force ($F_{wx}$)')
-        ax[1].plot(T,self.__wind_force_y)
+        ax[1].plot(T_sim,self.__wind_force_y)
         ax[1].set_xlabel(r'$t$ $[s]$')
         ax[1].set_ylabel(r'$F_{wy}$ $[N]$')
         ax[1].title.set_text(r'Wind Force ($F_{wy}$)')
@@ -310,7 +303,7 @@ class WindField:
         self.__duration*=laps
         self.__trajectory_name = trajectory_name
 
-    def simulate_wind_field(self): 
+    def simulate_wind_field(self, with_baseline = False): 
         '''
         Runs the wind simulation. The wind field should be reset every time a new simulation.
         In case a GP model is being trained, the GP data should not be reset, as it stacks the subsequent
@@ -346,6 +339,7 @@ class WindField:
 
         # Simulate the field 
         control_force = np.zeros((4,1))
+        last_wind_measurement = np.zeros((3))
         print(f'Simulating {self.__trajectory_name} Trajectory...')
         for t in range(len(self.__trajectory)):
             print(
@@ -387,12 +381,18 @@ class WindField:
                         np.repeat(ref[:,-1,np.newaxis],(self.__control_horizon+1)-(idx-t)//self.__control_frequency,axis=1)
                     ],axis=1)
                 # Generate control force
-                control_force, x_opt, _ = self.__mpc(state,ref,prev_x_opt)
+                if with_baseline:
+                    control_force, x_opt, _, status = self.__mpc(state,ref,prev_x_opt,last_wind_measurement)
+                else:
+                    control_force, x_opt, _, status = self.__mpc(state,ref,prev_x_opt)
                 prev_x_opt = x_opt[:,1:]
 
                 # Collect labels for GP
                 self.__gp_label_x.append(wind_force[0])
                 self.__gp_label_y.append(wind_force[1])
+
+                # Update last wind measurement
+                last_wind_measurement = np.hstack([wind_force,0])
 
             self.__ex.append(ep[0])
             self.__ey.append(ep[1])
@@ -416,6 +416,13 @@ class WindField:
             # Simulate Dynamics
             self.__quadrotor.step(control_force,np.hstack([wind_force,0]))
 
+            # If mpc failed, stop execution
+            if status != 0:
+                break
+        
+        # Save the time when the simulation has finished
+        self.__final_time = t+1
+
         # Animation
         ## Add Obstacles
         obstacles = []
@@ -428,7 +435,7 @@ class WindField:
         fig.tight_layout(pad=2)
 
         DroneEllipses = []
-        for i in range(int(self.__duration)):
+        for i in range(t):
             DroneEllipses.append(
                 Ellipse(
                     (self.__xs[i],self.__ys[i]),
@@ -440,7 +447,7 @@ class WindField:
                 )
             )
 
-        render_full_animation = True
+        render_full_animation = False
         scale = 2
 
         if render_full_animation:
@@ -485,7 +492,7 @@ class WindField:
 
             ax.legend()
             
-        anim = animation.FuncAnimation(fig,animation_function,frames=int(self.__duration/(self.__control_frequency*scale)),interval=10,repeat=False)
+        anim = animation.FuncAnimation(fig,animation_function,frames=int(t/(self.__control_frequency*scale)),interval=10,repeat=False)
         FFwriter = animation.FFMpegWriter(fps=30)
         if render_full_animation:
             print(f"Rendering {self.__trajectory_name} Trajectory animation")
@@ -599,7 +606,7 @@ class WindField:
                         np.repeat(ref[:,-1,np.newaxis],(self.__control_horizon+1)-(idx-t)//self.__control_frequency,axis=1)
                     ],axis=1)
                 # Generate control force
-                control_force, predicted_state, pos_cov = self.__mpc(state,ref,prev_x_opt)
+                control_force, predicted_state, pos_cov, status = self.__mpc(state,ref,prev_x_opt)
                 prev_x_opt = predicted_state[:,1:]
 
                 # If the gp prediction is already on, add the covariance on the position for the plots

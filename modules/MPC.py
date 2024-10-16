@@ -49,6 +49,7 @@ class MPC:
         # Declare control variables
         x = ca.SX.sym('x',self.nx)
         u = ca.SX.sym('u',self.nu)
+        wind = ca.SX.sym('wind',3)
 
         # Create acados ocp probelm
         ocp = AcadosOcp()
@@ -57,9 +58,14 @@ class MPC:
         model = AcadosModel()
         model.x = x
         model.u = u
-        model.f_expl_expr = self.dynamics(x,u,np.zeros(3))
+        model.p = wind
+        model.f_expl_expr = self.dynamics(x,u,wind)
         model.name = 'quadrotor_mpc'
         ocp.model = model
+        ocp.parameter_values = np.zeros((
+            3,
+            1
+        ))
 
         # Time horizon and discretization
         ocp.solver_options.N_horizon = self.N
@@ -293,7 +299,7 @@ class MPC:
             [cov_x]
         )
 
-    def __call__(self, x, ref, prev_x_opt):
+    def __call__(self, x, ref, prev_x_opt, baseline = np.zeros(3)):
         """
         Solve the MPC optimization problem.
 
@@ -355,16 +361,23 @@ class MPC:
                 cov_x = self.propagate_uncertainty(prev_x_opt[:,k],K_inv,X,y,cov_x).full()
                 Covs.append(cov_x.copy())
             Covs = np.vstack(Covs)
+        else:
+            for k in range(self.N):
+                self.solver.set(
+                    k,
+                    "p",
+                    baseline
+                )
 
         # Solve the optimization problem
         status = self.solver.solve()
 
         # Check the solver status
-        if status != 0:
-            print(
-                f"Solver Returned Exit Status {status}",
-                file = sys.stderr
-            )
+        # if status != 0:
+        #     print(
+        #         f"Solver Returned Exit Status {status}",
+        #         file = sys.stderr
+        #     )
         # Check the execution time and verify it is under the control time
         solver_time = self.solver.get_stats('time_tot')
 
@@ -385,9 +398,9 @@ class MPC:
 
         # Return the first control input and the predicted state trajectory
         if not self.gp_on:
-            return u_opt[0, :], x_opt.T, None
+            return u_opt[0, :], x_opt.T, None, status
         else:
-            return u_opt[0, :], x_opt.T, Covs
+            return u_opt[0, :], x_opt.T, Covs, status
     
     def update_predictor(self, input, label):
         '''

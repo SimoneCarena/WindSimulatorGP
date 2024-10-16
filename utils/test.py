@@ -54,7 +54,7 @@ def __test_exact_gp(wind_field, trajectories_folder, model_x, model_y, name, win
         print('Done')
 
 @torch.no_grad
-def __test_exact_mogp(wind_field, trajectories_folder, model, name, window_size, p0, laps, horizon, show, save):
+def __test_exact_mogp(wind_field, trajectories_folder, model, name, window_size, p0, laps, show, save):
 
     # Put the models in eval mode
     model.eval()
@@ -62,18 +62,26 @@ def __test_exact_mogp(wind_field, trajectories_folder, model, name, window_size,
     wind_field.reset()
     wind_field.reset_gp()
 
-    # model.covar_module.data_covar_module.base_kernel.lengthscale = 0.7537
-    # model.likelihood.noise = 0.1158
-    # print(model.covar_module.data_covar_module.outputscale)
-    # print(model.mean_module.base_means[0].constant)
-    # print(model.mean_module.base_means[1].constant)
-    # for name, param in model.named_parameters():
-    #     print(name,param)
-    # exit()
-
     for file in os.listdir(trajectories_folder):
         file_name = Path(file).stem
         wind_field.set_trajectory(trajectories_folder+'/'+file,file_name,laps)
+        print('=======================================')
+        print('  Simulating Wind Field with baseline  ')
+        print('=======================================')
+        wind_field.simulate_wind_field(True)
+        wind_field.draw_wind_field(
+            show = show,
+            save = None
+        )
+        wind_field.plot(
+            show = show,
+            save = None
+        )
+        wind_field.reset()
+        wind_field.reset_gp()
+        print('=================================')
+        print('  Simulating Wind Field with gp  ')
+        print('=================================')
         wind_field.simulate_mogp(window_size,model,p0,show=show,save=save,kernel_name=name) 
         wind_field.reset()
         wind_field.reset_gp()
@@ -136,7 +144,7 @@ def test_exact_gp(wind_field, trajecotries_folder, options, window_size=100, p0=
             model_y.load_state_dict(model_y_dict)
             __test_exact_gp(wind_field,trajecotries_folder,model_x,model_y,name,window_size,p0,laps,horizon,show,save)
 
-def test_exact_mogp(wind_field, trajecotries_folder, options, window_size=100, p0=None, laps=1, horizon = 1, show=False, save=None):
+def test_exact_mogp(wind_field, trajecotries_folder, options, window_size=100, p0=None, laps=1, show=False, save=None):
     file = open(".metadata/mo_exact_gp_dict","rb")
     mo_exact_gp_dict = pickle.load(file)
 
@@ -162,7 +170,6 @@ def test_exact_mogp(wind_field, trajecotries_folder, options, window_size=100, p
                 window_size,
                 p0,
                 laps,
-                horizon,
                 show,
                 save
             )

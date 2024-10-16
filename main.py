@@ -93,7 +93,6 @@ else:
         mo_exact_gp_options,
         window_size = 20,
         laps = 1,
-        horizon = 1,
         show = True if (show_plots == 'test' or show_plots == 'all') else False,
         save = 'imgs/gp_updates/MultiOutputExactGP/' if (save_plots == 'test' or save_plots == 'all') else None
     )
