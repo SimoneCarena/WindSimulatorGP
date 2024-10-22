@@ -349,6 +349,7 @@ class WindField:
             9.81*np.ones((1,self.__control_horizon))
         ])
         self.__idx_control = []
+        PredictedPos = []
 
         # Simulate the field 
         control_force = np.zeros((4,1))
@@ -399,6 +400,7 @@ class WindField:
                 else:
                     control_force, x_opt, _, status = self.__mpc(state,ref,prev_x_opt)
                 prev_x_opt = x_opt[:,1:]
+                PredictedPos.append(x_opt[:2,1:].copy())
 
                 # Collect labels for GP
                 self.__gp_label_x.append(wind_force[0])
@@ -639,10 +641,11 @@ class WindField:
         fig.tight_layout(pad=2)
 
         DroneEllipses = []
-        for i in range(t):
-            DroneEllipses.append(
+        for i in range(len(PredictedPos)):
+            drone = []
+            drone.append(
                 Ellipse(
-                    (self.__xs[i],self.__ys[i]),
+                    (self.__xs[i*self.__control_frequency],self.__ys[i*self.__control_frequency]),
                     2*self.__quadrotor.r,
                     2*self.__quadrotor.r,
                     fc='firebrick',
@@ -650,9 +653,21 @@ class WindField:
                     alpha=0.4
                 )
             )
+            for j in range(self.__control_horizon):
+                drone.append(
+                    Ellipse(
+                        (PredictedPos[i][0,j],PredictedPos[i][1,j]),
+                        2*self.__quadrotor.r,
+                        2*self.__quadrotor.r,
+                        fc='firebrick',
+                        edgecolor='firebrick',
+                        alpha=0.4
+                    )
+                )
+            DroneEllipses.append(drone)
 
         render_full_animation = False
-        scale = 2
+        scale = 1
 
         if render_full_animation:
             _, _, _, _, v = self.__draw_wind_field_grid()
@@ -672,6 +687,7 @@ class WindField:
             ax.clear()
 
             t = int(t*self.__control_frequency*scale)
+            k = int(t//(self.__control_frequency*scale))-1
             ax.set_xlim([0.0,self.__width])
             ax.set_ylim([0.0,self.__height])
             ax.set_aspect('equal','box')
@@ -692,7 +708,10 @@ class WindField:
             ax.plot(target_p[0,t],target_p[1,t],'o',color='orchid')
             ax.plot(self.__xs[t],self.__ys[t],'o',color='tab:blue',label='System Position')
             ax.plot(self.__xs[:t],self.__ys[:t],color="tab:blue",label="System Trajectory",alpha=0.8)
-            ax.add_patch(DroneEllipses[t])
+            for pos in DroneEllipses[k]:
+                ax.add_patch(pos)
+                ax.plot([self.__xs[t],*PredictedPos[k][0,:]],[self.__ys[t],*PredictedPos[k][1,:]],'-o',color='g',markersize=2,linewidth=1)
+            ax.plot(np.nan,np.nan,'-o',color='g',label="Predicted Position")
 
             ax.legend()
             
@@ -720,7 +739,7 @@ class WindField:
         predictor = GPModel(
             kernel,
             # predictor.likelihood.noise.item(),
-            0.01,
+            0.001,
             2,
             3,
             window_size,
@@ -1095,7 +1114,7 @@ class WindField:
             DroneEllipses.append(drones)
 
         render_full_animation = False
-        scale = 2
+        scale = 1
 
         if render_full_animation:
             _, _, _, _, v = self.__draw_wind_field_grid()
