@@ -4,7 +4,6 @@
     "grid_resolution": 30,
     "duration": 15000,
     "dt": 0.001,
-    "air_density": 1.2,
     "control_frequency": 50,
     "fans": {
         "type": "real",

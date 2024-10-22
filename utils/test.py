@@ -2,13 +2,15 @@ import gpytorch
 import torch
 import os
 import pickle
-import numpy as np
 
 from pathlib import Path
 
 from GPModels.ExactGPModel import *
 from GPModels.SVGPModel import *
 from GPModels.MultiOutputExactGPModel import *
+
+from modules.GPModel import GPModel
+from modules.Kernels import RBFKernel
 
 @torch.no_grad
 def __test_svgp(wind_field, trajectories_folder, model_x, model_y, name, window_size, p0, laps, show, save):
@@ -17,51 +19,22 @@ def __test_svgp(wind_field, trajectories_folder, model_x, model_y, name, window_
     model_x.eval()
     model_y.eval()
     # Start By resetting the wind field
-    wind_field.reset(gp_predictor_x=model_x, gp_predictor_y=model_y)
-    wind_field.reset_gp()
-
-    for file in os.listdir(trajectories_folder):
-        file_name = Path(file).stem
-        wind_field.set_trajectory(trajectories_folder+'/'+file,file_name,laps)
-        wind_field.draw_wind_field(True)
-        wind_field.simulate_gp(window_size,[model_x,model_y],p0,show=show,save=save,kernel_name=name)
-        wind_field.reset()
-        wind_field.reset_gp()
-
-@torch.no_grad
-def __test_exact_gp(wind_field, trajectories_folder, model_x, model_y, name, window_size, p0, laps, horizon, show, save):
-
-    # Put the models in eval mode
-    model_x.eval()
-    model_y.eval()
-    model_x.covar_module.base_kernel.lengthscale = 0.7537
-    model_y.covar_module.base_kernel.lengthscale = 0.7537
-    model_x.likelihood.noise_covar.noise = 0.1158
-    model_y.likelihood.noise_covar.noise = 0.1158
-    # Start By resetting the wind field
-    wind_field.reset(gp_predictor_x=model_x, gp_predictor_y=model_y)
-    wind_field.reset_gp()
-
-    for file in os.listdir(trajectories_folder):
-        file_name = Path(file).stem
-        wind_field.set_trajectory(trajectories_folder+'/'+file,file_name,laps)
-        if horizon == 1:
-            wind_field.simulate_gp(window_size,[model_x,model_y],p0,show=show,save=True,kernel_name=name) 
-        else:
-            wind_field.simulate_gp_horizon(window_size,[model_x,model_y],horizon,p0,show=show,save=True,kernel_name=name) 
-        wind_field.reset()
-        wind_field.reset_gp()
-        print('Done')
-
-@torch.no_grad
-def __test_exact_mogp(wind_field, trajectories_folder, model, name, window_size, p0, laps, show, save):
-
-    # Put the models in eval mode
-    model.eval()
-    # Start By resetting the wind field
     wind_field.reset()
     wind_field.reset_gp()
     wind_field.draw_wind_field(True)
+
+    # Setup Predictor for the simulation
+    kernel = RBFKernel(
+            model_x.covar_module.base_kernel.lengthscale.item(),
+            model_x.covar_module.data_covar_module.outputscale.item(),
+        )
+    predictor = GPModel(
+        kernel,
+        0.001,
+        2,
+        3,
+        window_size,
+    )
 
     for file in os.listdir(trajectories_folder):
         file_name = Path(file).stem
@@ -81,7 +54,101 @@ def __test_exact_mogp(wind_field, trajectories_folder, model, name, window_size,
         print('=================================')
         print('  Simulating Wind Field with gp  ')
         print('=================================')
-        wind_field.simulate_mogp(window_size,model,p0,show=show,save=save,kernel_name=name) 
+        wind_field.simulate_mogp(window_size,predictor,p0,show=show,save=save,kernel_name=name) 
+        wind_field.reset()
+        wind_field.reset_gp()
+        print('Done')
+
+@torch.no_grad
+def __test_exact_gp(wind_field, trajectories_folder, model_x, model_y, name, window_size, p0, laps, show, save):
+
+    # Put the models in eval mode
+    model_x.eval()
+    model_y.eval()
+    # Start By resetting the wind field
+    wind_field.reset()
+    wind_field.reset_gp()
+    wind_field.draw_wind_field(True)
+
+    # Setup Predictor for the simulation
+    kernel = RBFKernel(
+            model_x.covar_module.base_kernel.lengthscale.item(),
+            model_x.covar_module.data_covar_module.outputscale.item(),
+        )
+    predictor = GPModel(
+        kernel,
+        0.001,
+        2,
+        3,
+        window_size,
+    )
+
+    for file in os.listdir(trajectories_folder):
+        file_name = Path(file).stem
+        wind_field.set_trajectory(trajectories_folder+'/'+file,file_name,laps)
+        print('==========================================')
+        print('  Simulating Wind Field without baseline  ')
+        print('==========================================')
+        wind_field.simulate_wind_field(False,show)
+        wind_field.reset()
+        wind_field.reset_gp()
+        print('=======================================')
+        print('  Simulating Wind Field with baseline  ')
+        print('=======================================')
+        wind_field.simulate_wind_field(True,show)
+        wind_field.reset()
+        wind_field.reset_gp()
+        print('=================================')
+        print('  Simulating Wind Field with gp  ')
+        print('=================================')
+        wind_field.simulate_mogp(window_size,predictor,p0,show=show,save=save,kernel_name=name) 
+        wind_field.reset()
+        wind_field.reset_gp()
+        print('Done')
+
+@torch.no_grad
+def __test_exact_mogp(wind_field, trajectories_folder, model, name, window_size, p0, laps, show, save):
+
+    # Put the models in eval mode
+    model.eval()
+    # Start By resetting the wind field
+    wind_field.reset()
+    wind_field.reset_gp()
+    wind_field.draw_wind_field(show,save)
+
+    # Setup Predictor for the simulation
+    kernel = RBFKernel(
+            model.covar_module.data_covar_module.base_kernel.lengthscale.item(),
+            model.covar_module.data_covar_module.outputscale.item(),
+        )
+    predictor = GPModel(
+        kernel,
+        # predictor.likelihood.noise.item(),
+        0.001,
+        2,
+        3,
+        window_size,
+    )
+
+    for file in os.listdir(trajectories_folder):
+        file_name = Path(file).stem
+        wind_field.set_trajectory(trajectories_folder+'/'+file,file_name,laps)
+        print('==========================================')
+        print('  Simulating Wind Field without baseline  ')
+        print('==========================================')
+        wind_field.simulate_wind_field(False,show,save)
+        wind_field.reset()
+        wind_field.reset_gp()
+        print('=======================================')
+        print('  Simulating Wind Field with baseline  ')
+        print('=======================================')
+        wind_field.simulate_wind_field(True,show,save)
+        wind_field.reset()
+        wind_field.reset_gp()
+        print('=================================')
+        print('  Simulating Wind Field with gp  ')
+        print('=================================')
+        wind_field.simulate_mogp(window_size,predictor,p0,show=show,save=save,kernel_name=name) 
         wind_field.reset()
         wind_field.reset_gp()
         print('Done')
@@ -123,7 +190,7 @@ def test_svgp(wind_field, trajecotries_folder, options, window_size=100, p0=None
 
             __test_svgp(wind_field,trajecotries_folder,model_x,model_y,name,window_size,laps,show,save)
 
-def test_exact_gp(wind_field, trajecotries_folder, options, window_size=100, p0=None, laps=1, horizon = 1, show=False, save=None):
+def test_exact_gp(wind_field, trajecotries_folder, options, window_size=100, p0=None, laps=1, show=False, save=None):
     file = open(".metadata/exact_gp_dict","rb")
     exact_gp_dict = pickle.load(file)
 
@@ -141,7 +208,7 @@ def test_exact_gp(wind_field, trajecotries_folder, options, window_size=100, p0=
             model_y_dict = torch.load(f'models/ExactGP/model-y-{name}.pth')
             model_x.load_state_dict(model_x_dict)
             model_y.load_state_dict(model_y_dict)
-            __test_exact_gp(wind_field,trajecotries_folder,model_x,model_y,name,window_size,p0,laps,horizon,show,save)
+            __test_exact_gp(wind_field,trajecotries_folder,model_x,model_y,name,window_size,p0,laps,show,save)
 
 def test_exact_mogp(wind_field, trajecotries_folder, options, window_size=100, p0=None, laps=1, show=False, save=None):
     file = open(".metadata/mo_exact_gp_dict","rb")

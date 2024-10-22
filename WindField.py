@@ -13,8 +13,6 @@ from modules.Fan import RealFan, SimulatedFan
 from modules.Quadrotor import Quadrotor
 from modules.Trajectory import Trajectory
 from modules.MPC import MPC
-from modules.Kernels import RBFKernel
-from modules.GPModel import GPModel
 from utils.function_parser import parse_generator
 from utils.obstacle_parser import parse_obstacles
 from utils.exceptions import MissingTrajectoryException 
@@ -55,7 +53,6 @@ class WindField:
         self.__height = data["height"]
         self.__duration = data["duration"] # Number of steps taken
         self.__dt = data["dt"] # Sampling time
-        self.__air_density = data["air_density"] 
         self.__grid_resolution = data["grid_resolution"]
         self.__control_frequency = data["control_frequency"]
         obstacles_data = data["obstacles"]
@@ -316,7 +313,7 @@ class WindField:
         self.__duration*=laps
         self.__trajectory_name = trajectory_name
 
-    def simulate_wind_field(self, with_baseline = False, show = False): 
+    def simulate_wind_field(self, with_baseline = False, show = False, save = None): 
         '''
         Runs the wind simulation. The wind field should be reset every time a new simulation.
         In case a GP model is being trained, the GP data should not be reset, as it stacks the subsequent
@@ -469,6 +466,13 @@ class WindField:
             ax.plot_surface(Xc, Yc, Zc, color='k')
         ax.set_aspect('equal','box')
         plt.legend()
+        if save is not None:
+            if with_baseline:
+                fig.savefig(save+'baseline/'+'3d_simulation'+f'{self.__trajectory_name}'+'.png',dpi=300)
+                fig.savefig(save+'baseline/'+'3d_simulation'+f'{self.__trajectory_name}'+'.svg',dpi=300)
+            else:
+                fig.savefig(save+'nothing/'+'3d_simulation'+f'{self.__trajectory_name}'+'.png',dpi=300)
+                fig.savefig(save+'nothing/'+'3d_simulation'+f'{self.__trajectory_name}'+'.svg',dpi=300)
 
         ## Plot 2D xy Projection of the Trajectory
         fig, ax = plt.subplots()
@@ -481,6 +485,13 @@ class WindField:
             o = Ellipse((obstacle.x,obstacle.y),2*obstacle.r,2*obstacle.r,edgecolor='k',fc='k')
             ax.add_patch(o)
         ax.legend()
+        if save is not None:
+            if with_baseline:
+                fig.savefig(save+'baseline/'+'2d_simulation'+f'{self.__trajectory_name}'+'.png',dpi=300)
+                fig.savefig(save+'baseline/'+'2d_simulation'+f'{self.__trajectory_name}'+'.svg',dpi=300)
+            else:
+                fig.savefig(save+'nothing/'+'2d_simulation'+f'{self.__trajectory_name}'+'.png',dpi=300)
+                fig.savefig(save+'nothing/'+'2d_simulation'+f'{self.__trajectory_name}'+'.svg',dpi=300)
 
         ## Plot Control Inputs
         fig, ax = plt.subplots(4,1)
@@ -512,6 +523,13 @@ class WindField:
         ax[3].set_xlabel(r'$t$ $[s]$')
         ax[3].legend()
         ax[3].set_xlim([0,self.__final_time*self.__dt])
+        if save is not None:
+            if with_baseline:
+                fig.savefig(save+'baseline/'+'control'+f'{self.__trajectory_name}'+'.png',dpi=300)
+                fig.savefig(save+'baseline/'+'control'+f'{self.__trajectory_name}'+'.svg',dpi=300)
+            else:
+                fig.savefig(save+'nothing/'+'control'+f'{self.__trajectory_name}'+'.png',dpi=300)
+                fig.savefig(save+'nothing/'+'control'+f'{self.__trajectory_name}'+'.svg',dpi=300)
 
         ## Plot Tracking Error (x-Position)
         fig, ax = plt.subplots(2,1)
@@ -528,6 +546,13 @@ class WindField:
         ax[1].set_ylabel(r'$e_x$ $[m]$')
         ax[0].legend()
         ax[1].legend()
+        if save is not None:
+            if with_baseline:
+                fig.savefig(save+'baseline/'+'x_evolution'+f'{self.__trajectory_name}'+'.png',dpi=300)
+                fig.savefig(save+'baseline/'+'x_evolution'+f'{self.__trajectory_name}'+'.svg',dpi=300)
+            else:
+                fig.savefig(save+'nothing/'+'x_evolution'+f'{self.__trajectory_name}'+'.png',dpi=300)
+                fig.savefig(save+'nothing/'+'x_evolution'+f'{self.__trajectory_name}'+'.svg',dpi=300)
         
         ## Plot Tracking Error (y-Position)
         fig, ax = plt.subplots(2,1)
@@ -544,6 +569,13 @@ class WindField:
         ax[1].set_ylabel(r'$e_y$ $[m]$')
         ax[0].legend()
         ax[1].legend()
+        if save is not None:
+            if with_baseline:
+                fig.savefig(save+'baseline/'+'y_evolution'+f'{self.__trajectory_name}'+'.png',dpi=300)
+                fig.savefig(save+'baseline/'+'y_evolution'+f'{self.__trajectory_name}'+'.svg',dpi=300)
+            else:
+                fig.savefig(save+'nothing/'+'y_evolution'+f'{self.__trajectory_name}'+'.png',dpi=300)
+                fig.savefig(save+'nothing/'+'y_evolution'+f'{self.__trajectory_name}'+'.svg',dpi=300)
 
         ## Plot Tracking Error (z-Position)
         fig, ax = plt.subplots(2,1)
@@ -560,6 +592,13 @@ class WindField:
         ax[1].set_ylabel(r'$e_z$ $[m]$')
         ax[0].legend()
         ax[1].legend()
+        if save is not None:
+            if with_baseline:
+                fig.savefig(save+'baseline/'+'z_evolution'+f'{self.__trajectory_name}'+'.png',dpi=300)
+                fig.savefig(save+'baseline/'+'z_evolution'+f'{self.__trajectory_name}'+'.svg',dpi=300)
+            else:
+                fig.savefig(save+'nothing/'+'z_evolution'+f'{self.__trajectory_name}'+'.png',dpi=300)
+                fig.savefig(save+'nothing/'+'z_evolution'+f'{self.__trajectory_name}'+'.svg',dpi=300)
 
         ## Plot Tracking Error (x-Velocity)
         fig, ax = plt.subplots(2,1)
@@ -575,6 +614,13 @@ class WindField:
         ax[1].set_ylabel(r'$e_{V_x}$ $[m/s]$')
         ax[0].legend()
         ax[1].legend()
+        if save is not None:
+            if with_baseline:
+                fig.savefig(save+'baseline/'+'vx_evolution'+f'{self.__trajectory_name}'+'.png',dpi=300)
+                fig.savefig(save+'baseline/'+'vx_evolution'+f'{self.__trajectory_name}'+'.svg',dpi=300)
+            else:
+                fig.savefig(save+'nothing/'+'vx_evolution'+f'{self.__trajectory_name}'+'.png',dpi=300)
+                fig.savefig(save+'nothing/'+'vx_evolution'+f'{self.__trajectory_name}'+'.svg',dpi=300)
 
         ## Plot Tracking Error (y-Velocity)
         fig, ax = plt.subplots(2,1)
@@ -590,6 +636,13 @@ class WindField:
         ax[1].set_ylabel(r'$e_{V_y}$ $[m/s]$')
         ax[0].legend()
         ax[1].legend()
+        if save is not None:
+            if with_baseline:
+                fig.savefig(save+'baseline/'+'vy_evolution'+f'{self.__trajectory_name}'+'.png',dpi=300)
+                fig.savefig(save+'baseline/'+'vy_evolution'+f'{self.__trajectory_name}'+'.svg',dpi=300)
+            else:
+                fig.savefig(save+'nothing/'+'vy_evolution'+f'{self.__trajectory_name}'+'.png',dpi=300)
+                fig.savefig(save+'nothing/'+'vy_evolution'+f'{self.__trajectory_name}'+'.svg',dpi=300)
 
         ## Plot Tracking Error (z-Velocity)
         fig, ax = plt.subplots(2,1)
@@ -605,6 +658,13 @@ class WindField:
         ax[1].set_ylabel(r'$e_{V_z}$ $[m/s]$')
         ax[0].legend()
         ax[1].legend()
+        if save is not None:
+            if with_baseline:
+                fig.savefig(save+'baseline/'+'vz_evolution'+f'{self.__trajectory_name}'+'.png',dpi=300)
+                fig.savefig(save+'baseline/'+'vz_evolution'+f'{self.__trajectory_name}'+'.svg',dpi=300)
+            else:
+                fig.savefig(save+'nothing/'+'vz_evolution'+f'{self.__trajectory_name}'+'.png',dpi=300)
+                fig.savefig(save+'nothing/'+'vz_evolution'+f'{self.__trajectory_name}'+'.svg',dpi=300)
 
         ## Plot Attitude State Evolution
         fig, ax = plt.subplots(4,1)
@@ -624,6 +684,13 @@ class WindField:
         ax[3].set_ylabel(r'$a$ $[m/s^2]$')
         ax[3].set_xlabel(r'$t$ $[s]$')
         ax[3].set_xlim([0,self.__final_time*self.__dt])
+        if save is not None:
+            if with_baseline:
+                fig.savefig(save+'baseline/'+'attitude_evolution'+f'{self.__trajectory_name}'+'.png',dpi=300)
+                fig.savefig(save+'baseline/'+'attitude_evolution'+f'{self.__trajectory_name}'+'.svg',dpi=300)
+            else:
+                fig.savefig(save+'nothing/'+'attitude_evolution'+f'{self.__trajectory_name}'+'.png',dpi=300)
+                fig.savefig(save+'nothing/'+'attitude_evolution'+f'{self.__trajectory_name}'+'.svg',dpi=300)
 
         if show:
             plt.show()
@@ -666,7 +733,7 @@ class WindField:
                 )
             DroneEllipses.append(drone)
 
-        render_full_animation = False
+        render_full_animation = True
         scale = 1
 
         if render_full_animation:
@@ -718,10 +785,13 @@ class WindField:
         anim = animation.FuncAnimation(fig,animation_function,frames=int(t/(self.__control_frequency*scale)),interval=10,repeat=False)
         FFwriter = animation.FFMpegWriter(fps=30)
         if render_full_animation:
-            print(f"Rendering {self.__trajectory_name} Trajectory animation")
-            anim.save(f'imgs/animations/{self.__trajectory_name}_no_gp_{len(self.__obstacles)}.obs.mp4', writer = FFwriter)
-            print("Done rendering!")
-        else:
+            print(f"\nRendering {self.__trajectory_name} Trajectory animation")
+            if with_baseline:
+                anim.save(f'imgs/animations/{self.__trajectory_name}_baseline_{len(self.__obstacles)}.obs.mp4', writer = FFwriter)
+            else:
+                anim.save(f'imgs/animations/{self.__trajectory_name}_nothing_{len(self.__obstacles)}.obs.mp4', writer = FFwriter)
+            print("Done rendering!\n")
+        if show:    
             plt.show()
         plt.close('all')
         
@@ -730,20 +800,6 @@ class WindField:
     def simulate_mogp(self, window_size, predictor, p0=None, show=False, save=None, kernel_name=''):
         if self.__trajectory is None:
             raise MissingTrajectoryException()
-        
-        kernel = RBFKernel(
-            predictor.covar_module.data_covar_module.base_kernel.lengthscale.item(),
-            predictor.covar_module.data_covar_module.outputscale.item(),
-        )
-
-        predictor = GPModel(
-            kernel,
-            # predictor.likelihood.noise.item(),
-            0.001,
-            2,
-            3,
-            window_size,
-        )
 
         self.__mpc = MPC(
             self.__quadrotor,
@@ -903,6 +959,9 @@ class WindField:
             ax.plot_surface(Xc, Yc, Zc, color='k')
         ax.set_aspect('equal','box')
         plt.legend()
+        if save is not None:
+            fig.savefig(save+'gp/'+'3d_simulation'+f'{self.__trajectory_name}'+'.png',dpi=300)
+            fig.savefig(save+'gp/'+'3d_simulation'+f'{self.__trajectory_name}'+'.svg',dpi=300)
 
         ## Plot 2D xy Projection of the Trajectory
         fig, ax = plt.subplots()
@@ -922,6 +981,9 @@ class WindField:
             o = Ellipse((obstacle.x,obstacle.y),2*obstacle.r,2*obstacle.r,edgecolor='k',fc='k')
             ax.add_patch(o)
         ax.legend()
+        if save is not None:
+            fig.savefig(save+'gp/'+'2d_simulation'+f'{self.__trajectory_name}'+'.png',dpi=300)
+            fig.savefig(save+'gp/'+'2d_simulation'+f'{self.__trajectory_name}'+'.svg',dpi=300)
 
         ## Plot Control Inputs
         fig, ax = plt.subplots(4,1)
@@ -953,6 +1015,9 @@ class WindField:
         ax[3].set_xlabel(r'$t$ $[s]$')
         ax[3].legend()
         ax[3].set_xlim([0,self.__duration*self.__dt])
+        if save is not None:
+            fig.savefig(save+'gp/'+'control'+f'{self.__trajectory_name}'+'.png',dpi=300)
+            fig.savefig(save+'gp/'+'control'+f'{self.__trajectory_name}'+'.svg',dpi=300)
 
         ## Plot Tracking Error (x-Position)
         fig, ax = plt.subplots(2,1)
@@ -969,6 +1034,9 @@ class WindField:
         ax[1].set_ylabel(r'$e_x$ $[m]$')
         ax[0].legend()
         ax[1].legend()
+        if save is not None:
+            fig.savefig(save+'gp/'+'x_evolution'+f'{self.__trajectory_name}'+'.png',dpi=300)
+            fig.savefig(save+'gp/'+'x_evolution'+f'{self.__trajectory_name}'+'.svg',dpi=300)
         
         ## Plot Tracking Error (y-Position)
         fig, ax = plt.subplots(2,1)
@@ -985,6 +1053,9 @@ class WindField:
         ax[1].set_ylabel(r'$e_y$ $[m]$')
         ax[0].legend()
         ax[1].legend()
+        if save is not None:
+            fig.savefig(save+'gp/'+'y_evolution'+f'{self.__trajectory_name}'+'.png',dpi=300)
+            fig.savefig(save+'gp/'+'y_evolution'+f'{self.__trajectory_name}'+'.svg',dpi=300)
 
         ## Plot Tracking Error (z-Position)
         fig, ax = plt.subplots(2,1)
@@ -1001,6 +1072,9 @@ class WindField:
         ax[1].set_ylabel(r'$e_z$ $[m]$')
         ax[0].legend()
         ax[1].legend()
+        if save is not None:
+            fig.savefig(save+'gp/'+'z_evolution'+f'{self.__trajectory_name}'+'.png',dpi=300)
+            fig.savefig(save+'gp/'+'z_evolution'+f'{self.__trajectory_name}'+'.svg',dpi=300)
 
         ## Plot Tracking Error (x-Velocity)
         fig, ax = plt.subplots(2,1)
@@ -1016,6 +1090,9 @@ class WindField:
         ax[1].set_ylabel(r'$e_{V_x}$ $[m/s]$')
         ax[0].legend()
         ax[1].legend()
+        if save is not None:
+            fig.savefig(save+'gp/'+'vx_evolution'+f'{self.__trajectory_name}'+'.png',dpi=300)
+            fig.savefig(save+'gp/'+'vx_evolution'+f'{self.__trajectory_name}'+'.svg',dpi=300)
 
         ## Plot Tracking Error (y-Velocity)
         fig, ax = plt.subplots(2,1)
@@ -1031,6 +1108,9 @@ class WindField:
         ax[1].set_ylabel(r'$e_{V_y}$ $[m/s]$')
         ax[0].legend()
         ax[1].legend()
+        if save is not None:
+            fig.savefig(save+'gp/'+'vy_evolution'+f'{self.__trajectory_name}'+'.png',dpi=300)
+            fig.savefig(save+'gp/'+'vy_evolution'+f'{self.__trajectory_name}'+'.svg',dpi=300)
 
         ## Plot Tracking Error (z-Velocity)
         fig, ax = plt.subplots(2,1)
@@ -1046,6 +1126,9 @@ class WindField:
         ax[1].set_ylabel(r'$e_{V_z}$ $[m/s]$')
         ax[0].legend()
         ax[1].legend()
+        if save is not None:
+            fig.savefig(save+'gp/'+'vz_evolution'+f'{self.__trajectory_name}'+'.png',dpi=300)
+            fig.savefig(save+'gp/'+'vz_evolution'+f'{self.__trajectory_name}'+'.svg',dpi=300)
 
         ## Plot Attitude State Evolution
         fig, ax = plt.subplots(4,1)
@@ -1065,6 +1148,9 @@ class WindField:
         ax[3].set_ylabel(r'$a$ $[m/s^2]$')
         ax[3].set_xlabel(r'$t$ $[s]$')
         ax[3].set_xlim([0,self.__duration*self.__dt])
+        if save is not None:
+            fig.savefig(save+'gp/'+'attitude_evolution'+f'{self.__trajectory_name}'+'.png',dpi=300)
+            fig.savefig(save+'gp/'+'attitude_evolution'+f'{self.__trajectory_name}'+'.svg',dpi=300)
 
         if show:
             plt.show()
@@ -1113,7 +1199,7 @@ class WindField:
             UncEllipses.append(unc)
             DroneEllipses.append(drones)
 
-        render_full_animation = False
+        render_full_animation = True
         scale = 1
 
         if render_full_animation:
@@ -1172,10 +1258,10 @@ class WindField:
         anim = animation.FuncAnimation(fig,animation_function,frames=int(self.__duration/(self.__control_frequency*scale)),interval=10,repeat=False)
         FFwriter = animation.FFMpegWriter(fps=30)
         if render_full_animation:
-            print(f"Rendering {self.__trajectory_name} Trajectory animation")
-            anim.save(f'imgs/animations/{self.__trajectory_name}_gp_{len(self.__obstacles)}.obs.mp4', writer = FFwriter)
-            print("Done rendering!")
-        else:
+            print(f"\nRendering {self.__trajectory_name} Trajectory animation")
+            anim.save(f'imgs/animations/{self.__trajectory_name}_gp_{len(self.__obstacles)}_obs.mp4', writer = FFwriter)
+            print("Done rendering!\n")
+        if show:    
             plt.show()
         plt.close('all')
 
@@ -1260,8 +1346,8 @@ class WindField:
         ax.plot(np.nan,np.nan,'o',markersize=8,color='k',label='Obstacles')
         fig.legend()
         if save is not None:
-            plt.savefig(save+f'/wind-field.png',dpi=300)
-            plt.savefig(save+f'/wind-field.svg')
+            plt.savefig(save+'wind_fields/'+f'wind-field.png',dpi=300)
+            plt.savefig(save+'wind_fields/'+f'wind-field.svg')
 
         if show:    
             plt.show()

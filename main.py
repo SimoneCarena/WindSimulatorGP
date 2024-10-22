@@ -67,14 +67,6 @@ if not test:
     for file in os.listdir('trajectories'):
         wind_field.set_trajectory('trajectories/'+file,file)
         wind_field.simulate_wind_field()
-        wind_field.draw_wind_field(
-            show=True if (show_plots == 'train' or show_plots == 'all') else False,
-            save='imgs/wind_field' if (save_plots == 'train' or save_plots == 'all') else None
-        )
-        wind_field.plot(
-            show=True if (show_plots == 'train' or show_plots == 'all') else False,
-            save='imgs/wind_field' if (save_plots == 'train' or save_plots == 'all') else None
-        )
         wind_field.reset()
 
     # Get GP data
@@ -94,5 +86,5 @@ else:
         window_size = 20,
         laps = 1,
         show = True if (show_plots == 'test' or show_plots == 'all') else False,
-        save = 'imgs/gp_updates/MultiOutputExactGP/' if (save_plots == 'test' or save_plots == 'all') else None
+        save = 'imgs/' if (save_plots == 'test' or save_plots == 'all') else None
     )
