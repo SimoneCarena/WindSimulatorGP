@@ -61,6 +61,7 @@ def __test_exact_mogp(wind_field, trajectories_folder, model, name, window_size,
     # Start By resetting the wind field
     wind_field.reset()
     wind_field.reset_gp()
+    wind_field.draw_wind_field(True)
 
     for file in os.listdir(trajectories_folder):
         file_name = Path(file).stem

@@ -441,9 +441,9 @@ class WindField:
         self.__final_time = t+1
 
         # Plots
-        rmse_x = _rmse(self.__xs,target_p[0,:],self.__N0)
-        rmse_y = _rmse(self.__ys,target_p[1,:],self.__N0)
-        rmse_z = _rmse(self.__zs,target_p[2,:],self.__N0)
+        rmse_x = _rmse(self.__xs,target_p[0,:self.__final_time],self.__N0)
+        rmse_y = _rmse(self.__ys,target_p[1,:self.__final_time],self.__N0)
+        rmse_z = _rmse(self.__zs,target_p[2,:self.__final_time],self.__N0)
         T = np.linspace(0,self.__duration*self.__dt,self.__duration)
         T_sim = np.linspace(0,self.__duration*self.__dt,self.__final_time)
         control_limit_low = self.__mpc.lower
