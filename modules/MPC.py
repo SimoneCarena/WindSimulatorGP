@@ -34,6 +34,9 @@ class MPC:
         self.delta = 0.05
         self.chi2_val = np.sqrt(chi2.ppf(1-self.delta, 2))
 
+        # Set solver tolerance
+        self.__tol = 1e-6
+
         # Setupd the solver(s)
         self.__setup_solver()
         if predictor is not None:
@@ -103,6 +106,12 @@ class MPC:
         ocp.constraints.idxbu = np.arange(self.nu)
         ocp.constraints.x0 = np.zeros(self.nx)
 
+        # Solver tolerance
+        ocp.solver_options.nlp_solver_tol_stat = self.__tol  # Tolerance for stationarity
+        ocp.solver_options.nlp_solver_tol_eq   = self.__tol  # Tolerance for equality constraints
+        ocp.solver_options.nlp_solver_tol_ineq = self.__tol  # Tolerance for inequality constraints
+        ocp.solver_options.nlp_solver_tol_comp = self.__tol  # Tolerance for complementarity
+
         # Add Obstacles avoidance constraints
         ## The constraints on the obstacles must be added only if there are obstacles 
         ## otherwise casadi complains if we add an empy array
@@ -124,9 +133,9 @@ class MPC:
             ## 1000 is used (which is reasonably large)
             ocp.model.con_h_expr_0 = h
             ocp.model.con_h_expr = h
-            ocp.constraints.lh_0 = np.zeros(num_obstacles)
+            ocp.constraints.lh_0 = self.__tol*np.ones(num_obstacles)
             ocp.constraints.uh_0 = np.array([1000]*num_obstacles)
-            ocp.constraints.lh = np.zeros(num_obstacles)
+            ocp.constraints.lh = self.__tol*np.ones(num_obstacles)
             ocp.constraints.uh = np.array([1000]*num_obstacles)
 
         # Create the solver
@@ -202,6 +211,12 @@ class MPC:
         ocp.constraints.idxbu = np.arange(self.nu)
         ocp.constraints.x0 = np.zeros(self.nx)
 
+        # Solver tolerance
+        ocp.solver_options.nlp_solver_tol_stat = self.__tol  # Tolerance for stationarity
+        ocp.solver_options.nlp_solver_tol_eq   = self.__tol  # Tolerance for equality constraints
+        ocp.solver_options.nlp_solver_tol_ineq = self.__tol  # Tolerance for inequality constraints
+        ocp.solver_options.nlp_solver_tol_comp = self.__tol  # Tolerance for complementarity
+
         # Add Obstacles avoidance constraints
         ## The constraints on the obstacles must be added only if there are obstacles 
         ## otherwise casadi complains if we add an empy array
@@ -228,8 +243,8 @@ class MPC:
                 h.append(
                     (x[:2]-p0).T@(x[:2,:]-p0)-d2
                 )
-                lh_0.append(0)
-                lh.append(0)
+                lh_0.append(self.__tol)
+                lh.append(self.__tol)
                 uh_0.append(1000)
                 uh.append(1000)
             ocp.model.con_h_expr_0 = ca.vertcat(*h)

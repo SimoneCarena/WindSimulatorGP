@@ -733,7 +733,7 @@ class WindField:
                 )
             DroneEllipses.append(drone)
 
-        render_full_animation = True
+        render_full_animation = False
         scale = 1
 
         if render_full_animation:
@@ -929,6 +929,10 @@ class WindField:
 
             # Simulate Dynamics
             self.__quadrotor.step(control_force,np.hstack([wind_force,0.0]))
+            
+            # If mpc failed, stop execution
+            if status != 0:
+                print('Solver Failed!')
 
         print('')
 
@@ -1199,7 +1203,7 @@ class WindField:
             UncEllipses.append(unc)
             DroneEllipses.append(drones)
 
-        render_full_animation = True
+        render_full_animation = False
         scale = 1
 
         if render_full_animation:

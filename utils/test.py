@@ -123,8 +123,7 @@ def __test_exact_mogp(wind_field, trajectories_folder, model, name, window_size,
         )
     predictor = GPModel(
         kernel,
-        # predictor.likelihood.noise.item(),
-        0.001,
+        model.likelihood.noise.item(),
         2,
         3,
         window_size,

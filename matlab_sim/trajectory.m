@@ -653,3 +653,28 @@ plot(tvec,Y,'--')
 xlabel('t [s]')
 ylabel('y [m]')
 legend('System y Position','Reference y Position')
+
+%% Line Trajectory
+
+theta_0 = 0;
+theta_f = 1;
+T = 15;
+duration = 15000;
+p0 = [0.5;2.3];
+pf = [4.1;2.3];
+
+[q,qd,qdd,tvec,pp] = trapveltraj([theta_0,theta_f],duration,EndTime=T);
+
+syms theta(t)
+x = p0(1)*(1-theta(t)) + theta(t)*pf(1);
+y = p0(2)*(1-theta(t)) + theta(t)*pf(2);
+xd = diff(x,t);
+yd = diff(y,t);
+
+X = double(subs(x,theta(t),q));
+Y = double(subs(y,theta(t),q));
+XD = double(subs(xd,{diff(theta(t),t) theta(t)},{qd q}));
+YD = double(subs(yd,{diff(theta(t),t) theta(t)},{qd q}));
+
+data = [X;Y;XD;YD];
+save('../trajectories/line.mat','data','-v4')
