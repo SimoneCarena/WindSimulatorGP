@@ -133,9 +133,9 @@ class MPC:
             ## 1000 is used (which is reasonably large)
             ocp.model.con_h_expr_0 = h
             ocp.model.con_h_expr = h
-            ocp.constraints.lh_0 = self.__tol*np.ones(num_obstacles)
+            ocp.constraints.lh_0 = -self.__tol*np.ones(num_obstacles)
             ocp.constraints.uh_0 = np.array([1000]*num_obstacles)
-            ocp.constraints.lh = self.__tol*np.ones(num_obstacles)
+            ocp.constraints.lh = -self.__tol*np.ones(num_obstacles)
             ocp.constraints.uh = np.array([1000]*num_obstacles)
 
         # Create the solver
@@ -243,8 +243,8 @@ class MPC:
                 h.append(
                     (x[:2]-p0).T@(x[:2,:]-p0)-d2
                 )
-                lh_0.append(self.__tol)
-                lh.append(self.__tol)
+                lh_0.append(-self.__tol)
+                lh.append(-self.__tol)
                 uh_0.append(1000)
                 uh.append(1000)
             ocp.model.con_h_expr_0 = ca.vertcat(*h)
