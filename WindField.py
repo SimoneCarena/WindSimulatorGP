@@ -12,7 +12,7 @@ from matplotlib.patches import Ellipse
 from modules.Fan import RealFan, SimulatedFan
 from modules.Quadrotor import Quadrotor
 from modules.Trajectory import Trajectory
-from modules.MPC import MPC
+from modules.MPC import MPCAcados, MPCIpopt
 from utils.function_parser import parse_generator
 from utils.obstacle_parser import parse_obstacles
 from utils.exceptions import MissingTrajectoryException 
@@ -322,7 +322,7 @@ class WindField:
         if self.__trajectory is None:
             raise MissingTrajectoryException()
         
-        self.__mpc = MPC(
+        self.__mpc = MPCAcados(
             self.__quadrotor,
             self.__control_horizon,
             self.__dt*self.__control_frequency,
@@ -801,7 +801,7 @@ class WindField:
         if self.__trajectory is None:
             raise MissingTrajectoryException()
 
-        self.__mpc = MPC(
+        self.__mpc = MPCAcados(
             self.__quadrotor,
             self.__control_horizon,
             self.__dt*self.__control_frequency,
