@@ -12,7 +12,7 @@ from matplotlib.patches import Ellipse
 from modules.Fan import RealFan, SimulatedFan
 from modules.Quadrotor import Quadrotor
 from modules.Trajectory import Trajectory
-from modules.MPC import MPCAcados, MPCIpopt
+from modules.MPC import *
 from utils.function_parser import parse_generator
 from utils.obstacle_parser import parse_obstacles
 from utils.exceptions import MissingTrajectoryException 
