@@ -8,9 +8,7 @@ readme_plots.py
 *.pth
 *.svg
 *.gif
-imgs/gp_updates/*.png
-imgs/wind_field/*.png
-imgs/gp_updates/*.svg
-imgs/wind_field/*.svg
+imgs/
+models/
 acados/
 c_generated_code/
