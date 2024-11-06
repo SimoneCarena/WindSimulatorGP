@@ -6,4 +6,7 @@ slprj
 readme_plots.py
 imgs/
 acados/
+data/ExactGP/*
+data/SVGP/*
+data/MultiOutputExactGP/*
 c_generated_code/
