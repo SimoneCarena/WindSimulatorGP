@@ -4,11 +4,6 @@ slprj
 .DS_Store
 .metadata
 readme_plots.py
-*.pt
-*.pth
-*.svg
-*.gif
 imgs/
-models/
 acados/
 c_generated_code/
