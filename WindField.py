@@ -322,7 +322,7 @@ class WindField:
         if self.__trajectory is None:
             raise MissingTrajectoryException()
         
-        self.__mpc = MPCAcados(
+        self.__mpc = MPCIpopt(
             self.__quadrotor,
             self.__control_horizon,
             self.__dt*self.__control_frequency,
@@ -801,7 +801,7 @@ class WindField:
         if self.__trajectory is None:
             raise MissingTrajectoryException()
 
-        self.__mpc = MPCAcados(
+        self.__mpc = MPCIpopt(
             self.__quadrotor,
             self.__control_horizon,
             self.__dt*self.__control_frequency,
@@ -933,6 +933,7 @@ class WindField:
             # If mpc failed, stop execution
             if status != 0:
                 print('Solver Failed!')
+                break
 
         print('')
 
