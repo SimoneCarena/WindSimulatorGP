@@ -10,3 +10,4 @@ data/ExactGP/*
 data/SVGP/*
 data/MultiOutputExactGP/*
 c_generated_code/
+matlab_sim/
