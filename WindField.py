@@ -313,7 +313,7 @@ class WindField:
         self.__duration*=laps
         self.__trajectory_name = trajectory_name
 
-    def simulate_wind_field(self, with_baseline = False, show = False, save = None): 
+    def simulate_wind_field(self, with_baseline = False, show = False, save = None, log_file = None): 
         '''
         Runs the wind simulation. The wind field should be reset every time a new simulation.
         In case a GP model is being trained, the GP data should not be reset, as it stacks the subsequent
@@ -322,7 +322,7 @@ class WindField:
         if self.__trajectory is None:
             raise MissingTrajectoryException()
         
-        self.__mpc = MPCIpopt(
+        self.__mpc = MPCAcados(
             self.__quadrotor,
             self.__control_horizon,
             self.__dt*self.__control_frequency,
@@ -439,10 +439,15 @@ class WindField:
         # Save the time when the simulation has finished
         self.__final_time = t+1
 
-        # Plots
+        # Plots and Logs
         rmse_x = _rmse(self.__xs,target_p[0,:self.__final_time],self.__N0)
         rmse_y = _rmse(self.__ys,target_p[1,:self.__final_time],self.__N0)
         rmse_z = _rmse(self.__zs,target_p[2,:self.__final_time],self.__N0)
+        if log_file is not None:
+            if self.__final_time != self.__duration:
+                log_file.write("(X,X)")
+            else:
+                log_file.write("({:.3f},{:.3f})".format(rmse_x,rmse_y))
         T = np.linspace(0,self.__duration*self.__dt,self.__duration)
         T_sim = np.linspace(0,self.__final_time*self.__dt,self.__final_time)
         control_limit_low = self.__mpc.lower
@@ -797,11 +802,11 @@ class WindField:
         
         print('')
 
-    def simulate_mogp(self, window_size, predictor, p0=None, show=False, save=None, kernel_name=''):
+    def simulate_mogp(self, window_size, predictor, p0=None, show=False, save=None, log_file = None):
         if self.__trajectory is None:
             raise MissingTrajectoryException()
 
-        self.__mpc = MPCIpopt(
+        self.__mpc = MPCAcados(
             self.__quadrotor,
             self.__control_horizon,
             self.__dt*self.__control_frequency,
@@ -937,10 +942,12 @@ class WindField:
 
         print('')
 
-        # Plots
+        # Plots and Logs
         rmse_x = _rmse(self.__xs,target_p[0,:],self.__N0)
         rmse_y = _rmse(self.__ys,target_p[1,:],self.__N0)
         rmse_z = _rmse(self.__zs,target_p[2,:],self.__N0)
+        if log_file is not None:
+            log_file.write("({:.3f},{:.3f})".format(rmse_x,rmse_y))
         T = np.linspace(0,self.__duration*self.__dt,self.__duration)
         control_limit_low = self.__mpc.lower
         control_limit_upper = self.__mpc.upper
@@ -1318,7 +1325,8 @@ class WindField:
     def draw_wind_field(self,show=False,save=None):
 
         fig, ax = plt.subplots()
-        fig.set_size_inches(16,9)
+        fig.set_size_inches(12,9)
+        fig.tight_layout(pad=3)
 
         if self.__trajectory is not None:
             tr, _ = self.__trajectory.trajectory()

@@ -4,12 +4,15 @@ import torch
 import warnings
 import os
 import numpy as np
+import matplotlib.pyplot as plt
 
 from WindField import WindField
 from utils.train import *
 from utils.test import *
 
 from utils.exceptions import InvalidCommandLineArgumentException
+
+from modules.Trajectory import Trajectory
 
 # Argument Parser
 parser = argparse.ArgumentParser()
@@ -58,6 +61,20 @@ device = (
     # else "mps" if torch.backends.mps.is_available() # Unfortunately it is not supported :(
     else "cpu" # Use the cpu otherwise
 )
+
+if show_plots == 'all':
+    fig, ax = plt.subplots(2,3)
+    fig.set_size_inches(16,9)
+    fig.tight_layout(pad=3)
+    i = j = 0
+    for file in sorted(os.listdir('trajectories')):
+        trajectory = Trajectory('trajectories/'+file,1)
+        trajectory.plot(Path(file).stem,ax[i//3,j%3])
+        i+=1
+        j+=1
+    plt.show()
+    fig.savefig('imgs/wind_fields/trajectories.png',dpi=300)
+    plt.close('all')
 
 # Train Models
 if not test:

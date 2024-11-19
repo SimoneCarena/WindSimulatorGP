@@ -15,7 +15,7 @@ class Quadrotor:
         self.nx = 10 # Number of States
         self.nu = 4 # Number of Control Inputs
         self.ny = 6 # Number of controlled variables
-        self.r = 0.1 # Radius
+        self.r = 0.15 # Radius
         self.__setup_dynamics()
 
     def __dynamics(self,x,u,wind):

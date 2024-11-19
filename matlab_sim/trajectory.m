@@ -660,8 +660,8 @@ theta_0 = 0;
 theta_f = 1;
 T = 15;
 duration = 15000;
-p0 = [0.5;2.3];
-pf = [4.1;2.3];
+p0 = [0.5;0.5];
+pf = [4.1;4.1];
 
 [q,qd,qdd,tvec,pp] = trapveltraj([theta_0,theta_f],duration,EndTime=T);
 

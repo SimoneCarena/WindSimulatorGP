@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 from scipy.io import loadmat
 
@@ -43,3 +44,11 @@ class Trajectory:
         Returns the whole trajectory
         '''
         return self.p.copy(), self.v.copy()
+    
+    def plot(self, name, ax):
+        p, _ = self.trajectory()
+        ax.title.set_text(f'{name} trajectory')
+        ax.plot(p[0,:],p[1,:])
+        ax.set_xlim([0,4.6])
+        ax.set_ylim([0,4.6])
+        ax.set_aspect('equal')

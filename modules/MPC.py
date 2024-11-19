@@ -31,7 +31,7 @@ class MPCAcados:
         self.upper = np.array([np.pi/6, np.pi/6, np.pi/6, 15])
         
         # Uncertainty data
-        self.delta = 0.05
+        self.delta = 0.0027 # 3 sigma
         self.chi2_val = np.sqrt(chi2.ppf(1-self.delta, 2))
 
         # Set solver tolerance
