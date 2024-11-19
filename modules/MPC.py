@@ -1,6 +1,7 @@
 import numpy as np
 import casadi as ca
 import sys
+import time
 
 from acados_template import AcadosOcp, AcadosOcpSolver, AcadosModel
 from casadi import vertcat
@@ -314,7 +315,7 @@ class MPCAcados:
             [cov_x]
         )
 
-    def __call__(self, x, ref, prev_x_opt, baseline = np.zeros(3)):
+    def __call__(self, x, ref, prev_x_opt, baseline = np.zeros(3), time_list = None):
         """
         Solve the MPC optimization problem.
 
@@ -356,7 +357,9 @@ class MPCAcados:
         )
 
         # If the GP prediction is set, use the model to make the wind predictions
+        elapsed_time = 0
         if self.gp_on:
+            start = time.process_time()
             K_inv, X, y = self.predictor()
             cov_x = np.zeros((2,2))
             Covs = []
@@ -375,6 +378,7 @@ class MPCAcados:
                 # Propagate the uncertainty on the position
                 cov_x = self.propagate_uncertainty(prev_x_opt[:,k],K_inv,X,y,cov_x).full()
                 Covs.append(cov_x.copy())
+            elapsed_time = time.process_time() - start
             Covs = np.vstack(Covs)
         else:
             for k in range(self.N):
@@ -394,13 +398,16 @@ class MPCAcados:
         #         file = sys.stderr
         #     )
         # Check the execution time and verify it is under the control time
-        solver_time = self.solver.get_stats('time_tot')
+        solver_time = self.solver.get_stats('time_tot') + elapsed_time
 
         if solver_time > self.max_time:
             print('\n')
             print("Solver exceeded maximum computation time",file = sys.stderr)
             print("Solver time: {:.3f} s".format(solver_time),file = sys.stderr)
             print("Maximum control time: {:.3f} s\n".format(self.max_time),file = sys.stderr)
+
+        if time_list is not None:
+            time_list.append(solver_time)
 
         # Extract the solution: control inputs and predicted states
         u_opt = np.zeros((self.N, self.nu))

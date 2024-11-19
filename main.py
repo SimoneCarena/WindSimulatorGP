@@ -3,15 +3,12 @@ import json
 import torch
 import warnings
 import os
-import numpy as np
 import matplotlib.pyplot as plt
 
 from WindField import WindField
 from utils.train import *
 from utils.test import *
-
 from utils.exceptions import InvalidCommandLineArgumentException
-
 from modules.Trajectory import Trajectory
 
 # Argument Parser

@@ -133,9 +133,16 @@ def __test_exact_mogp(wind_field, trajectories_folder, model, name, window_size,
     # print(model.covar_module.data_covar_module.outputscale.item())
     # print(model.likelihood.noise.item()*10**4)
     # exit()
+    
+    # Create Log Files
+    log_files = []
+    rmse_log = open("rmse.csv","w")
+    time_log = open("solver_time.csv","w")
+    log_files.append(rmse_log)
+    log_files.append(time_log)
 
-    log_file = open("rmse.csv","w")
-    log_file.write("No-Wind, Baseline, GP, Trajectory\n")
+    rmse_log.write("No-Wind, Baseline, GP, Trajectory\n")
+    time_log.write("No-Wind, Baseline, GP\n")
 
     for file in sorted(os.listdir(trajectories_folder)):
         file_name = Path(file).stem
@@ -143,25 +150,31 @@ def __test_exact_mogp(wind_field, trajectories_folder, model, name, window_size,
         print('==========================================')
         print('  Simulating Wind Field without baseline  ')
         print('==========================================')
-        wind_field.simulate_wind_field(False,show,save,log_file)
+        wind_field.simulate_wind_field(False,show,save,log_files)
         wind_field.reset()
         wind_field.reset_gp()
-        log_file.write(", ")
+        rmse_log.write(", ")
+        time_log.write(", ")
         print('=======================================')
         print('  Simulating Wind Field with baseline  ')
         print('=======================================')
-        wind_field.simulate_wind_field(True,show,save,log_file)
+        wind_field.simulate_wind_field(True,show,save,log_files)
         wind_field.reset()
         wind_field.reset_gp()
-        log_file.write(", ")
+        rmse_log.write(", ")
+        time_log.write(", ")
         print('=================================')
         print('  Simulating Wind Field with gp  ')
         print('=================================')
-        wind_field.simulate_mogp(window_size,predictor,p0,show=show,save=save,log_file = log_file) 
+        wind_field.simulate_mogp(window_size,predictor,p0,show=show,save=save, log_files = log_files) 
         wind_field.reset()
         wind_field.reset_gp()
-        log_file.write(f", {file_name}\n")
+        rmse_log.write(f", {file_name}\n")
+        time_log.write("\n")
         print('Done')
+
+    rmse_log.close()
+    time_log.close()
 
 def test_svgp(wind_field, trajecotries_folder, options, window_size=100, p0=None, laps=1, show=False, save=None):
     file = open(".metadata/svgp_dict","rb")

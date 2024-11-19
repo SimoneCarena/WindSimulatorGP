@@ -313,7 +313,7 @@ class WindField:
         self.__duration*=laps
         self.__trajectory_name = trajectory_name
 
-    def simulate_wind_field(self, with_baseline = False, show = False, save = None, log_file = None): 
+    def simulate_wind_field(self, with_baseline = False, show = False, save = None, log_files = None): 
         '''
         Runs the wind simulation. The wind field should be reset every time a new simulation.
         In case a GP model is being trained, the GP data should not be reset, as it stacks the subsequent
@@ -347,6 +347,7 @@ class WindField:
         ])
         self.__idx_control = []
         PredictedPos = []
+        solver_times = []
 
         # Simulate the field 
         control_force = np.zeros((4,1))
@@ -393,9 +394,9 @@ class WindField:
                     ],axis=1)
                 # Generate control force
                 if with_baseline:
-                    control_force, x_opt, _, status = self.__mpc(state,ref,prev_x_opt,last_wind_measurement)
+                    control_force, x_opt, _, status = self.__mpc(state,ref,prev_x_opt,last_wind_measurement,solver_times)
                 else:
-                    control_force, x_opt, _, status = self.__mpc(state,ref,prev_x_opt)
+                    control_force, x_opt, _, status = self.__mpc(state,ref,prev_x_opt,time_list=solver_times)
                 prev_x_opt = x_opt[:,1:]
                 PredictedPos.append(x_opt[:2,1:].copy())
 
@@ -443,11 +444,16 @@ class WindField:
         rmse_x = _rmse(self.__xs,target_p[0,:self.__final_time],self.__N0)
         rmse_y = _rmse(self.__ys,target_p[1,:self.__final_time],self.__N0)
         rmse_z = _rmse(self.__zs,target_p[2,:self.__final_time],self.__N0)
-        if log_file is not None:
-            if self.__final_time != self.__duration:
-                log_file.write("(X,X)")
-            else:
-                log_file.write("({:.3f},{:.3f})".format(rmse_x,rmse_y))
+        avg_solver_time = np.mean(np.array(solver_times))
+        if log_files is not None:
+            for idx, file in enumerate(log_files):
+                if idx == 0:
+                    if self.__final_time != self.__duration:
+                        file.write("(X,X)")
+                    else:
+                        file.write("({:.3f},{:.3f})".format(rmse_x,rmse_y))
+                elif idx == 1:
+                    file.write("{:.3f}".format(avg_solver_time*1000))
         T = np.linspace(0,self.__duration*self.__dt,self.__duration)
         T_sim = np.linspace(0,self.__final_time*self.__dt,self.__final_time)
         control_limit_low = self.__mpc.lower
@@ -802,7 +808,7 @@ class WindField:
         
         print('')
 
-    def simulate_mogp(self, window_size, predictor, p0=None, show=False, save=None, log_file = None):
+    def simulate_mogp(self, window_size, predictor, p0=None, show=False, save=None, log_files = None):
         if self.__trajectory is None:
             raise MissingTrajectoryException()
 
@@ -821,6 +827,8 @@ class WindField:
         self.__idx_control = []
         Covs = []
         PredictedPos = []
+
+        solver_times = []
 
         # Set the initial conditions
         target_p, target_v = self.__trajectory.trajectory()
@@ -890,7 +898,7 @@ class WindField:
                         np.repeat(ref[:,-1,np.newaxis],(self.__control_horizon+1)-(idx-t)//self.__control_frequency,axis=1)
                     ],axis=1)
                 # Generate control force
-                control_force, predicted_state, pos_cov, status = self.__mpc(state,ref,prev_x_opt)
+                control_force, predicted_state, pos_cov, status = self.__mpc(state,ref,prev_x_opt,time_list=solver_times if k>= window_size else None)
                 prev_x_opt = predicted_state[:,1:]
 
                 # If the gp prediction is already on, add the covariance on the position for the plots
@@ -946,8 +954,16 @@ class WindField:
         rmse_x = _rmse(self.__xs,target_p[0,:],self.__N0)
         rmse_y = _rmse(self.__ys,target_p[1,:],self.__N0)
         rmse_z = _rmse(self.__zs,target_p[2,:],self.__N0)
-        if log_file is not None:
-            log_file.write("({:.3f},{:.3f})".format(rmse_x,rmse_y))
+        avg_solver_time = np.mean(np.array(solver_times))
+        if log_files is not None:
+            for idx, file in enumerate(log_files):
+                if idx == 0:
+                    if self.__final_time != self.__duration:
+                        file.write("(X,X)")
+                    else:
+                        file.write("({:.3f},{:.3f})".format(rmse_x,rmse_y))
+                elif idx == 1:
+                    file.write("{:.3f}".format(avg_solver_time*1000))
         T = np.linspace(0,self.__duration*self.__dt,self.__duration)
         control_limit_low = self.__mpc.lower
         control_limit_upper = self.__mpc.upper
@@ -1176,8 +1192,8 @@ class WindField:
             obstacles.append(o)
 
         fig, ax = plt.subplots()
-        fig.set_size_inches(16,9)
-        fig.tight_layout(pad=2)
+        fig.set_size_inches(12,9)
+        fig.tight_layout(pad=3)
 
         UncEllipses = []
         DroneEllipses = []
@@ -1212,7 +1228,7 @@ class WindField:
             DroneEllipses.append(drones)
 
         render_full_animation = False
-        scale = 1
+        scale = 2
 
         if render_full_animation:
             _, _, _, _, v = self.__draw_wind_field_grid()
@@ -1271,7 +1287,7 @@ class WindField:
         FFwriter = animation.FFMpegWriter(fps=30)
         if render_full_animation:
             print(f"\nRendering {self.__trajectory_name} Trajectory animation")
-            anim.save(f'imgs/animations/{self.__trajectory_name}_gp_{len(self.__obstacles)}_obs.mp4', writer = FFwriter)
+            anim.save(f'imgs/animations/{self.__trajectory_name}_gp_{len(self.__obstacles)}_obs.gif', writer = FFwriter)
             print("Done rendering!\n")
         if show:    
             plt.show()
