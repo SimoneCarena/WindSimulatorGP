@@ -12,6 +12,8 @@ from GPModels.MultiOutputExactGPModel import *
 from modules.GPModel import GPModel
 from modules.Kernels import RBFKernel
 
+from modules.MPC import *
+
 @torch.no_grad
 def __test_svgp(wind_field, trajectories_folder, model_x, model_y, name, window_size, p0, laps, show, save):
 
@@ -141,8 +143,8 @@ def __test_exact_mogp(wind_field, trajectories_folder, model, name, window_size,
     log_files.append(rmse_log)
     log_files.append(time_log)
 
-    rmse_log.write("No-Wind, Baseline, GP, Trajectory\n")
-    time_log.write("No-Wind, Baseline, GP\n")
+    rmse_log.write("No-Wind, Baseline, GP (acados), GP (CasADi), Trajectory\n")
+    time_log.write("No-Wind, Baseline, GP (acados), GP (CasADi)\n")
 
     for file in sorted(os.listdir(trajectories_folder)):
         file_name = Path(file).stem
@@ -163,15 +165,22 @@ def __test_exact_mogp(wind_field, trajectories_folder, model, name, window_size,
         wind_field.reset_gp()
         rmse_log.write(", ")
         time_log.write(", ")
-        print('=================================')
-        print('  Simulating Wind Field with gp  ')
-        print('=================================')
-        wind_field.simulate_mogp(window_size,predictor,p0,show=show,save=save, log_files = log_files) 
+        print('==========================================')
+        print('  Simulating Wind Field with gp (acados)  ')
+        print('==========================================')
+        wind_field.simulate_mogp(window_size,predictor,p0,show=show,save=save, log_files = log_files, mpc_type = MPCAcados) 
+        wind_field.reset()
+        wind_field.reset_gp()
+        rmse_log.write(", ")
+        time_log.write(", ")
+        print('==========================================')
+        print('  Simulating Wind Field with gp (casadi)  ')
+        print('==========================================')
+        wind_field.simulate_mogp(window_size,predictor,p0,show=show,save=save, log_files = log_files, mpc_type = MPCIpopt) 
         wind_field.reset()
         wind_field.reset_gp()
         rmse_log.write(f", {file_name}\n")
         time_log.write("\n")
-        print('Done')
 
     rmse_log.close()
     time_log.close()

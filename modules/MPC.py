@@ -48,6 +48,7 @@ class MPCAcados:
 
         # Maximum time allowed for the solver to solve the optimization problem
         self.max_time = maximum_solver_time
+        self.fails = 0
 
     def __setup_solver(self):
         # Declare control variables
@@ -391,20 +392,10 @@ class MPCAcados:
         # Solve the optimization problem
         status = self.solver.solve()
 
-        # Check the solver status
-        # if status != 0:
-        #     print(
-        #         f"Solver Returned Exit Status {status}",
-        #         file = sys.stderr
-        #     )
-        # Check the execution time and verify it is under the control time
         solver_time = self.solver.get_stats('time_tot') + elapsed_time
 
-        if solver_time > self.max_time:
-            print('\n')
-            print("Solver exceeded maximum computation time",file = sys.stderr)
-            print("Solver time: {:.3f} s".format(solver_time),file = sys.stderr)
-            print("Maximum control time: {:.3f} s\n".format(self.max_time),file = sys.stderr)
+        if solver_time >= self.max_time:
+            self.fails+=1
 
         if time_list is not None:
             time_list.append(solver_time)
@@ -476,6 +467,11 @@ class MPCIpopt:
         self.__setup_solver()
         if predictor is not None:
             self.__setup_solver_gp() 
+
+        # Maximum time allowed for the solver to solve the optimization problem
+        self.max_time = maximum_solver_time
+
+        self.fails = 0
 
     def __setup_solver(self):
         # Setup Optimization Problem
@@ -633,7 +629,8 @@ class MPCIpopt:
         
         return x_next
 
-    def __call__(self, x, ref, prev_x_opt, baseline = np.zeros(3)):
+    def __call__(self, x, ref, prev_x_opt, baseline = np.zeros(3), time_list = None):
+        start = time.process_time()
         if not self.gp_on:
             # Set the initial guess for state and control
             u_guess = np.tile((self.lower + self.upper) / 2, (self.N, 1))  # Initial guess for controls
@@ -666,7 +663,7 @@ class MPCIpopt:
             except:
                 # Extract the solution
                 u_opt = np.zeros((self.nu,self.N))
-                x_opt = np.zeros((self.nu,self.N+1))
+                x_opt = np.zeros((self.nx,self.N+1))
                 status = 1
         else:
             # Set the initial guess for state and control
@@ -705,8 +702,14 @@ class MPCIpopt:
             except:
                 # Extract the solution
                 u_opt = np.zeros((self.nu,self.N))
-                x_opt = np.zeros((self.nu,self.N+1))
+                x_opt = np.zeros((self.nx,self.N+1))
                 status = 1
+
+        elapsed_time = time.process_time() - start
+        if time_list is not None:
+            time_list.append(elapsed_time)
+        if elapsed_time >= self.max_time:
+            self.fails+=1
 
         # Extract Covariance
         if self.gp_on:

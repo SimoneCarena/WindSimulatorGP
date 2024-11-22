@@ -437,6 +437,8 @@ class WindField:
             if status != 0:
                 break
         
+        print(self.__mpc.fails)
+
         # Save the time when the simulation has finished
         self.__final_time = t+1
 
@@ -808,11 +810,11 @@ class WindField:
         
         print('')
 
-    def simulate_mogp(self, window_size, predictor, p0=None, show=False, save=None, log_files = None):
+    def simulate_mogp(self, window_size, predictor, p0=None, show=False, save=None, log_files = None, mpc_type = MPCAcados):
         if self.__trajectory is None:
             raise MissingTrajectoryException()
 
-        self.__mpc = MPCAcados(
+        self.__mpc = mpc_type(
             self.__quadrotor,
             self.__control_horizon,
             self.__dt*self.__control_frequency,
@@ -949,11 +951,14 @@ class WindField:
                 break
 
         print('')
+        print(self.__mpc.fails)
+        # Save the time when the simulation has finished
+        self.__final_time = t+1
 
         # Plots and Logs
-        rmse_x = _rmse(self.__xs,target_p[0,:],self.__N0)
-        rmse_y = _rmse(self.__ys,target_p[1,:],self.__N0)
-        rmse_z = _rmse(self.__zs,target_p[2,:],self.__N0)
+        rmse_x = _rmse(self.__xs,target_p[0,:self.__final_time],self.__N0)
+        rmse_y = _rmse(self.__ys,target_p[1,:self.__final_time],self.__N0)
+        rmse_z = _rmse(self.__zs,target_p[2,:self.__final_time],self.__N0)
         avg_solver_time = np.mean(np.array(solver_times))
         if log_files is not None:
             for idx, file in enumerate(log_files):
@@ -1018,25 +1023,25 @@ class WindField:
         fig.set_size_inches(16,9)
         fig.tight_layout(pad=4)
         fig.suptitle('Control Inputs')
-        ax[0].plot(T,self.__ctl_phi)
+        ax[0].plot(T[:self.__final_time],self.__ctl_phi)
         ax[0].axhline(y=control_limit_low[0],color='k',linestyle='dashed',label=r'$\phi^{\lim}$')
         ax[0].axhline(y=control_limit_upper[0],color='k',linestyle='dashed')
         ax[0].set_ylabel(r'$\phi^c$ $[rad]$')
         ax[0].legend()
         ax[0].set_xlim([0,self.__duration*self.__dt])
-        ax[1].plot(T,self.__ctl_theta)
+        ax[1].plot(T[:self.__final_time],self.__ctl_theta)
         ax[1].axhline(y=control_limit_low[1],color='k',linestyle='dashed',label=r'$\theta^{\lim}$')
         ax[1].axhline(y=control_limit_upper[1],color='k',linestyle='dashed')
         ax[1].set_ylabel(r'$\theta^c$ $[rad]$')
         ax[1].legend()
         ax[1].set_xlim([0,self.__duration*self.__dt])
-        ax[2].plot(T,self.__ctl_psi)
+        ax[2].plot(T[:self.__final_time],self.__ctl_psi)
         ax[2].axhline(y=control_limit_low[2],color='k',linestyle='dashed',label=r'$\psi^{\lim}$')
         ax[2].axhline(y=control_limit_upper[2],color='k',linestyle='dashed')
         ax[2].set_ylabel(r'$\psi^c$ $[rad]$')
         ax[2].legend()
         ax[2].set_xlim([0,self.__duration*self.__dt])
-        ax[3].plot(T,self.__ctl_a)
+        ax[3].plot(T[:self.__final_time],self.__ctl_a)
         ax[3].axhline(y=control_limit_low[3],color='k',linestyle='dashed',label=r'$a^{\lim}$')
         ax[3].axhline(y=control_limit_upper[3],color='k',linestyle='dashed')
         ax[3].set_ylabel(r'$a^c$ $[m/s^2]$')
@@ -1052,10 +1057,10 @@ class WindField:
         fig.set_size_inches(16,9)
         fig.tight_layout(pad=3)
         fig.suptitle('x Position')
-        ax[0].plot(T,self.__xs,label='System x Position')
+        ax[0].plot(T[:self.__final_time],self.__xs,label='System x Position')
         ax[0].plot(T,target_p[0,:],'--',color='orange',label='Reference x Position')
         ax[0].plot(np.nan,np.nan,'-',color='none',label="rmse = {:.4f} m".format(rmse_x))
-        ax[1].plot(T,self.__ex,label='Position Error')
+        ax[1].plot(T[:self.__final_time],self.__ex,label='Position Error')
         ax[0].set_xlabel(r'$t$ $[s]$')
         ax[0].set_ylabel(r'$x$ $[m]$')
         ax[1].set_xlabel(r'$t$ $[s]$')
@@ -1071,10 +1076,10 @@ class WindField:
         fig.set_size_inches(16,9)
         fig.tight_layout(pad=3)
         fig.suptitle('y Position')
-        ax[0].plot(T,self.__ys,color='tab:blue',label='System y Position')
+        ax[0].plot(T[:self.__final_time],self.__ys,color='tab:blue',label='System y Position')
         ax[0].plot(T,target_p[1,:],'--',color='orange',label='Reference y Position')
         ax[0].plot(np.nan,np.nan,'-',color='none',label="rmse = {:.4f} m".format(rmse_y))
-        ax[1].plot(T,self.__ey,label='Position Error')
+        ax[1].plot(T[:self.__final_time],self.__ey,label='Position Error')
         ax[0].set_xlabel(r'$t$ $[s]$')
         ax[0].set_ylabel(r'$y$ $[m]$')
         ax[1].set_xlabel(r'$t$ $[s]$')
@@ -1090,10 +1095,10 @@ class WindField:
         fig.set_size_inches(16,9)
         fig.tight_layout(pad=3)
         fig.suptitle('z Position')
-        ax[0].plot(T,self.__zs,color='tab:blue',label='System z Position')
+        ax[0].plot(T[:self.__final_time],self.__zs,color='tab:blue',label='System z Position')
         ax[0].plot(T,target_p[2,:],'--',color='orange',label='Reference z Position')
         ax[0].plot(np.nan,np.nan,'-',color='none',label="rmse = {:.4f} m".format(rmse_z))
-        ax[1].plot(T,self.__ez,label='Position Error')
+        ax[1].plot(T[:self.__final_time],self.__ez,label='Position Error')
         ax[0].set_xlabel(r'$t$ $[s]$')
         ax[0].set_ylabel(r'$z$ $[m]$')
         ax[1].set_xlabel(r'$t$ $[s]$')
@@ -1109,9 +1114,9 @@ class WindField:
         fig.set_size_inches(16,9)
         fig.tight_layout(pad=3)
         fig.suptitle('x Velocity')
-        ax[0].plot(T,self.__vxs,color='tab:blue',label='System x Velocity')
+        ax[0].plot(T[:self.__final_time],self.__vxs,color='tab:blue',label='System x Velocity')
         ax[0].plot(T,target_v[0,:],'--',color='orange',label='Reference x Velocity')
-        ax[1].plot(T,self.__evx,label='Velocity Error')
+        ax[1].plot(T[:self.__final_time],self.__evx,label='Velocity Error')
         ax[0].set_xlabel(r'$t$ $[s]$')
         ax[0].set_ylabel(r'$V_x$ $[m/s]$')
         ax[1].set_xlabel(r'$t$ $[s]$')
@@ -1127,9 +1132,9 @@ class WindField:
         fig.set_size_inches(16,9)
         fig.tight_layout(pad=3)
         fig.suptitle('y Velocity')
-        ax[0].plot(T,self.__vys,color='tab:blue',label='System y Velocity')
+        ax[0].plot(T[:self.__final_time],self.__vys,color='tab:blue',label='System y Velocity')
         ax[0].plot(T,target_v[1,:],'--',color='orange',label='Reference y Velocity')
-        ax[1].plot(T,self.__evy,label='Velocity Error')
+        ax[1].plot(T[:self.__final_time],self.__evy,label='Velocity Error')
         ax[0].set_xlabel(r'$t$ $[s]$')
         ax[0].set_ylabel(r'$V_y$ $[m/s]$')
         ax[1].set_xlabel(r'$t$ $[s]$')
@@ -1145,9 +1150,9 @@ class WindField:
         fig.set_size_inches(16,9)
         fig.tight_layout(pad=3)
         fig.suptitle('z Velocity')
-        ax[0].plot(T,self.__vzs,color='tab:blue',label='System z Velocity')
+        ax[0].plot(T[:self.__final_time],self.__vzs,color='tab:blue',label='System z Velocity')
         ax[0].plot(T,target_v[2,:],'--',color='orange',label='Reference z Velocity')
-        ax[1].plot(T,self.__evz,label='Velocity Error')
+        ax[1].plot(T[:self.__final_time],self.__evz,label='Velocity Error')
         ax[0].set_xlabel(r'$t$ $[s]$')
         ax[0].set_ylabel(r'$V_z$ $[m/s]$')
         ax[1].set_xlabel(r'$t$ $[s]$')
@@ -1163,16 +1168,16 @@ class WindField:
         fig.set_size_inches(16,9)
         fig.tight_layout(pad=4)
         fig.suptitle('Attitude and mass-normalized acceleration evolution')
-        ax[0].plot(T,self.__phi)
+        ax[0].plot(T[:self.__final_time],self.__phi)
         ax[0].set_ylabel(r'$\phi$ $[rad]$')
         ax[0].set_xlim([0,self.__duration*self.__dt])
-        ax[1].plot(T,self.__theta)
+        ax[1].plot(T[:self.__final_time],self.__theta)
         ax[1].set_ylabel(r'$\theta$ $[rad]$')
         ax[1].set_xlim([0,self.__duration*self.__dt])
-        ax[2].plot(T,self.__psi)
+        ax[2].plot(T[:self.__final_time],self.__psi)
         ax[2].set_ylabel(r'$\psi$ $[rad]$')
         ax[2].set_xlim([0,self.__duration*self.__dt])
-        ax[3].plot(T,self.__a)
+        ax[3].plot(T[:self.__final_time],self.__a)
         ax[3].set_ylabel(r'$a$ $[m/s^2]$')
         ax[3].set_xlabel(r'$t$ $[s]$')
         ax[3].set_xlim([0,self.__duration*self.__dt])
@@ -1283,11 +1288,11 @@ class WindField:
 
             ax.legend()
             
-        anim = animation.FuncAnimation(fig,animation_function,frames=int(self.__duration/(self.__control_frequency*scale)),interval=10,repeat=False)
+        anim = animation.FuncAnimation(fig,animation_function,frames=int(t/(self.__control_frequency*scale)),interval=10,repeat=False)
         FFwriter = animation.FFMpegWriter(fps=30)
         if render_full_animation:
             print(f"\nRendering {self.__trajectory_name} Trajectory animation")
-            anim.save(f'imgs/animations/{self.__trajectory_name}_gp_{len(self.__obstacles)}_obs.gif', writer = FFwriter)
+            anim.save(f'imgs/animations/{self.__trajectory_name}_gp_{mpc_type.__name__}_{len(self.__obstacles)}_obs.gif', writer = FFwriter)
             print("Done rendering!\n")
         if show:    
             plt.show()
