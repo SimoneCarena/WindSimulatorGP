@@ -1,3 +1,13 @@
+# Run the code
+
+- run the `set_env.sh` script to set the enviremnt variables needed to disable `numpy` multithreading
+
+- run the `main.py` file, with the followinf possible attributes:
+    - `--save_plots=all` to save the plots
+    - `--show_plots=all` to show the plots
+    - `--test` or `-t` to test the models. If the argument is omitted, the program will run to train the GP models
+    - `--suppress_warnings` or `-w` to suppress eventual warnings
+
 # Fans for Wind Generation
 
 The wind field can be generated in either of the following two ways:

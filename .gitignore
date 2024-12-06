@@ -12,3 +12,5 @@ data/MultiOutputExactGP/*
 c_generated_code/
 matlab_sim/
 *.csv
+run.sh
+plots.py

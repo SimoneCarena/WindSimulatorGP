@@ -800,9 +800,9 @@ class WindField:
         if render_full_animation:
             print(f"\nRendering {self.__trajectory_name} Trajectory animation")
             if with_baseline:
-                anim.save(f'imgs/animations/{self.__trajectory_name}_baseline_{len(self.__obstacles)}.obs.mp4', writer = FFwriter)
+                anim.save(f'imgs/animations/{self.__trajectory_name}_baseline_{len(self.__obstacles)}.obs.gif', writer = FFwriter)
             else:
-                anim.save(f'imgs/animations/{self.__trajectory_name}_nothing_{len(self.__obstacles)}.obs.mp4', writer = FFwriter)
+                anim.save(f'imgs/animations/{self.__trajectory_name}_nothing_{len(self.__obstacles)}.obs.gif', writer = FFwriter)
             print("Done rendering!\n")
         if show:    
             plt.show()
@@ -1233,7 +1233,7 @@ class WindField:
             DroneEllipses.append(drones)
 
         render_full_animation = False
-        scale = 2
+        scale = 1
 
         if render_full_animation:
             _, _, _, _, v = self.__draw_wind_field_grid()
